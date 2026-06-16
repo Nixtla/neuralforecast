@@ -295,9 +295,9 @@ class NeuralForecast:
     def _get_categorical_exog(self) -> Dict[str, int]:
         """Aggregate categorical exogenous features declared across models.
 
-        Returns a mapping ``{column: cardinality}`` where the cardinality is the
-        smallest declared across models that use the feature (the tightest bound
-        the panel-wide vocabulary must respect).
+        Returns a mapping ``{column: cardinality}``. If several models declare the
+        same categorical column they must agree on its cardinality; a conflict is
+        raised rather than silently reconciled.
         """
         cardinalities: Dict[str, int] = {}
         for m in self.models:
@@ -307,22 +307,32 @@ class NeuralForecast:
                 card = model_cards.get(col)
                 if card is None:
                     continue
-                cardinalities[col] = (
-                    min(cardinalities[col], card) if col in cardinalities else card
-                )
+                if col in cardinalities and cardinalities[col] != card:
+                    raise ValueError(
+                        f"Models declare conflicting `categorical_cardinalities` for "
+                        f"'{col}': {cardinalities[col]} and {card}. All models must "
+                        "agree on a feature's cardinality."
+                    )
+                cardinalities[col] = card
         return cardinalities
 
     def _has_categorical(self) -> bool:
         return len(self._get_categorical_exog()) > 0
 
-    def _build_categorical_vocab(self, df: DataFrame) -> None:
-        """Build the panel-wide value->index vocabulary (index 0 = OOV/unseen)."""
+    def _build_categorical_vocab(self, df: DataFrame, static_df=None) -> None:
+        """Build the panel-wide value->index vocabulary (index 0 = OOV/unseen).
+
+        A categorical column may live in the temporal frame (`df`) or, for static
+        categorical features, in `static_df`; each column is read from whichever
+        frame contains it.
+        """
         self.categorical_vocab_ = {}
         for col, max_card in self._get_categorical_exog().items():
-            if isinstance(df, pl_DataFrame):
-                uniques = df.get_column(col).drop_nulls().unique().to_list()
+            frame = static_df if (static_df is not None and col in static_df.columns) else df
+            if isinstance(frame, pl_DataFrame):
+                uniques = frame.get_column(col).drop_nulls().unique().to_list()
             else:
-                uniques = df[col].dropna().unique().tolist()
+                uniques = frame[col].dropna().unique().tolist()
             uniques = sorted(uniques)
             if len(uniques) > max_card:
                 raise ValueError(
@@ -368,6 +378,8 @@ class NeuralForecast:
                 dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
         if self.local_static_scaler_type is not None and dataset.static is not None:
             for i, col in enumerate(dataset.static_cols):
+                if col in self.categorical_vocab_:
+                    continue
                 ga = GroupedArray(dataset.static[:, i].numpy(), np.array([0, dataset.static.shape[0]]))
                 self.static_scalers_[col] = _type2scaler[self.local_static_scaler_type]().fit(ga)
                 dataset.static[:, i] = torch.from_numpy(self.static_scalers_[col].transform(ga))
@@ -384,6 +396,8 @@ class NeuralForecast:
                 dataset.temporal[:, i] = torch.from_numpy(scaler.transform(ga))
         if self.static_scalers_ and dataset.static is not None:
             for i, col in enumerate(dataset.static_cols):
+                if col in self.categorical_vocab_:
+                    continue
                 scaler = self.static_scalers_.get(col, None)
                 if scaler is None:
                     continue
@@ -409,8 +423,10 @@ class NeuralForecast:
 
         if self._has_categorical():
             if not self.categorical_vocab_:
-                self._build_categorical_vocab(df)
+                self._build_categorical_vocab(df, static_df)
             df = self._encode_categoricals(df)
+            if static_df is not None:
+                static_df = self._encode_categoricals(static_df)
 
         dataset, uids, last_dates, ds = TimeSeriesDataset.from_df(
             df=df,
@@ -708,6 +724,8 @@ class NeuralForecast:
                 raise ValueError(
                     "val_df is only supported when df is a pandas or polars DataFrame."
                 )
+            # Encode categoricals with the vocabulary fitted on the training data
+            val_df = self._encode_categoricals(val_df)
             val_dataset = self.dataset.align(
                 val_df, id_col=id_col, time_col=time_col, target_col=target_col
             )
@@ -1945,6 +1963,25 @@ class NeuralForecast:
             # Process and save new dataset in self
             if df is not None:
                 validate_freq(df[time_col], self.freq)
+                # Reset any stale vocabulary and build it from the training
+                # portion only.
+                self.categorical_vocab_ = {}
+                if self._has_categorical():
+                    _, train_only, _ = next(
+                        iter(
+                            ufp.backtest_splits(
+                                df,
+                                n_windows=1,
+                                h=test_size,
+                                id_col=id_col,
+                                time_col=time_col,
+                                freq=self.freq,
+                                step_size=test_size,
+                                input_size=None,
+                            )
+                        )
+                    )
+                    self._build_categorical_vocab(train_only, static_df)
                 self.dataset, self.uids, self.last_dates, self.ds = (
                     self._prepare_fit(
                         df=df,

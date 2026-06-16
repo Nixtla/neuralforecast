@@ -245,7 +245,7 @@ class Informer(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
-    CAT_EXOGENOUS = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False
     RECURRENT = False
 

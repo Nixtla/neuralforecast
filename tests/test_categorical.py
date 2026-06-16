@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import MLP, NHITS, VanillaTransformer, LSTM, MLPMultivariate
@@ -81,6 +82,28 @@ def test_categoricals_run(cls, hist_cat, futr_cat):
     assert np.isfinite(preds[cls.__name__].to_numpy()).all()
 
 
+def test_static_categorical_runs():
+    # Static categorical feature passed via static_df and embedded.
+    df = _panel(cols=())  # only y, no temporal exog
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        MLP,
+        stat_exog_list=["cluster"],
+        cat_exog_list=["cluster"],
+        categorical_cardinalities={"cluster": 3},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    # No continuous static features remain, so size == embedding dim.
+    assert nf.models[0].stat_exog_size == 5
+    preds = nf.predict()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
 def test_effective_exog_sizes():
     df = _panel()
     model = _model(
@@ -121,6 +144,20 @@ def test_embeddings_differ_from_numeric_baseline():
     assert not np.allclose(p_emb, p_num)
 
 
+def test_oov_uses_mean_of_category_embeddings():
+    # Index 0 (OOV/unseen) maps to the mean of the learned category rows.
+    model = _model(
+        MLP,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+    )
+    emb = model.hist_cat_embeddings[0]
+    out = model._lookup_embedding(emb, torch.tensor([0, 1]))
+    assert torch.allclose(out[0], emb.weight[1:].mean(dim=0))  # OOV -> mean
+    assert torch.allclose(out[1], emb.weight[1])  # real category -> its row
+
+
 def test_unseen_category_resolves_to_oov():
     df = _panel(cols=("dow",))
     model = _model(
@@ -154,6 +191,40 @@ def test_save_load_reproduces_predictions(tmp_path):
     assert nf2.categorical_vocab_ == nf.categorical_vocab_
     p2 = nf2.predict(futr_df=_futr_df())["MLP"].to_numpy()
     np.testing.assert_allclose(p1, p2, rtol=1e-5, atol=1e-5)
+
+
+def test_val_df_is_encoded():
+    # val_df goes through align/from_df, which bypasses _prepare_fit's encoding;
+    # without encoding it, the string categorical column would break or mismatch.
+    df = _panel(cols=("city",))
+    val_df = _panel(cols=("city",), n=12, seed=1)  # same series, string `city`
+    model = _model(
+        MLP,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, val_df=val_df)
+    preds = nf.predict()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
+def test_cross_validation_no_refit_with_categoricals():
+    # No-refit CV builds the vocab from the training portion (test_size held out)
+    # and resets stale vocab; here we just assert it runs end-to-end.
+    df = _panel(cols=("dow",))
+    model = _model(
+        MLP,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    cv = nf.cross_validation(df, n_windows=2, h=6, refit=False)
+    assert len(cv) > 0
+    assert np.isfinite(cv["MLP"].to_numpy()).all()
 
 
 def test_no_categoricals_is_inert():
@@ -228,6 +299,25 @@ def test_too_many_categories_raises():
     )
     nf = NeuralForecast(models=[model], freq=1)
     with pytest.raises(ValueError, match="distinct values"):
+        nf.fit(df)
+
+
+def test_conflicting_cross_model_cardinalities_raise():
+    df = _panel(cols=("city",))
+    m1 = _model(
+        MLP,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+    )
+    m2 = _model(
+        NHITS,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 6},  # disagrees with m1
+    )
+    nf = NeuralForecast(models=[m1, m2], freq=1)
+    with pytest.raises(ValueError, match="conflicting"):
         nf.fit(df)
 
 

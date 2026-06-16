@@ -28,7 +28,7 @@ class MLP(BaseModel):
         stat_exog_list (str list): static exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         futr_exog_list (str list): future exogenous columns.
-        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list`) to embed instead of scale.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
         categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
         cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
@@ -65,7 +65,7 @@ class MLP(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
-    CAT_EXOGENOUS = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)

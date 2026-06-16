@@ -90,7 +90,7 @@ class VanillaTransformer(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
-    CAT_EXOGENOUS = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)

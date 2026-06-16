@@ -116,7 +116,7 @@ class BaseModel(pl.LightningModule):
     EXOGENOUS_FUTR = True  # If the model can handle future exogenous variables
     EXOGENOUS_HIST = True  # If the model can handle historical exogenous variables
     EXOGENOUS_STAT = True  # If the model can handle static exogenous variables
-    CAT_EXOGENOUS = False  # If the model can embed categorical exogenous variables
+    EXOGENOUS_CAT = False  # If the model can embed categorical exogenous variables
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -286,6 +286,9 @@ class BaseModel(pl.LightningModule):
         self.futr_cat_exog_list = [
             c for c in self.cat_exog_list if c in self.futr_exog_list
         ]
+        self.stat_cat_exog_list = [
+            c for c in self.cat_exog_list if c in self.stat_exog_list
+        ]
         self.categorical_cardinalities = (
             dict(categorical_cardinalities)
             if categorical_cardinalities is not None
@@ -295,14 +298,19 @@ class BaseModel(pl.LightningModule):
         self._check_categorical_exog()
 
         # Per-feature embedding tables (held in the base class) and the effective
-        # exogenous sizes. Models size their input layers from self.hist_exog_size and self.futr_exog_size.
+        # exogenous sizes. Models size their input layers from self.hist_exog_size,
+        # self.futr_exog_size and self.stat_exog_size.
         self.hist_cat_embeddings = self._build_cat_embeddings(self.hist_cat_exog_list)
         self.futr_cat_embeddings = self._build_cat_embeddings(self.futr_cat_exog_list)
+        self.stat_cat_embeddings = self._build_cat_embeddings(self.stat_cat_exog_list)
         self.hist_exog_size = self._effective_exog_size(
             self.hist_exog_list, self.hist_cat_exog_list
         )
         self.futr_exog_size = self._effective_exog_size(
             self.futr_exog_list, self.futr_cat_exog_list
+        )
+        self.stat_exog_size = self._effective_exog_size(
+            self.stat_exog_list, self.stat_cat_exog_list
         )
 
         # Protections for loss functions
@@ -537,17 +545,17 @@ class BaseModel(pl.LightningModule):
             )
 
     def _check_categorical_exog(self):
-        if self.cat_exog_list and not self.CAT_EXOGENOUS:
+        if self.cat_exog_list and not self.EXOGENOUS_CAT:
             raise Exception(
                 f"{type(self).__name__} does not support categorical exogenous variables."
             )
         unknown = set(self.cat_exog_list) - set(
-            self.hist_exog_list + self.futr_exog_list
+            self.hist_exog_list + self.futr_exog_list + self.stat_exog_list
         )
         if unknown:
             raise Exception(
                 f"Categorical features {unknown} must also be listed in "
-                "`hist_exog_list` or `futr_exog_list`."
+                "`hist_exog_list`, `futr_exog_list` or `stat_exog_list`."
             )
         missing_card = [
             c for c in self.cat_exog_list if c not in self.categorical_cardinalities
@@ -591,8 +599,15 @@ class BaseModel(pl.LightningModule):
             pieces.append(x[..., cont_idxs])
         for emb, col in zip(embeddings, cat_exog_list):
             pos = exog_list.index(col)
-            pieces.append(emb(x[..., pos].long()))
+            pieces.append(self._lookup_embedding(emb, x[..., pos].long()))
         return torch.cat(pieces, dim=-1)
+
+    def _lookup_embedding(self, emb, idx):
+        # Index 0 is the OOV / unseen slot. Instead of its (untrained) row, map
+        # unseen categories to the mean of the learned category embeddings.
+        out = emb(idx)
+        oov = emb.weight[1:].mean(dim=0)
+        return torch.where((idx == 0).unsqueeze(-1), oov, out)
 
     def _restart_seed(self, random_seed):
         if random_seed is None:
@@ -1179,6 +1194,12 @@ class BaseModel(pl.LightningModule):
                 windows["static_cols"], self.stat_exog_list
             )
             stat_exog = windows["static"][:, static_idx]
+            stat_exog = self._embed_stream(
+                stat_exog,
+                self.stat_exog_list,
+                self.stat_cat_exog_list,
+                self.stat_cat_embeddings,
+            )
 
         # TODO: think a better way of removing insample_y features
         if self.exclude_insample_y:
