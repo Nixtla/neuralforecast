@@ -321,6 +321,11 @@ class BaseModel(pl.LightningModule):
             if torch.cuda.is_available():
                 trainer_kwargs["devices"] = -1
 
+        # Multivariate models require every batch to contain all series, so the
+        # data-parallel axis must be the time-windows, not the series.
+        if self.MULTIVARIATE:
+            trainer_kwargs.setdefault("use_distributed_sampler", False)
+
         # Avoid saturating local memory, disabled fit model checkpoints
         if trainer_kwargs.get("enable_checkpointing", None) is None:
             trainer_kwargs["enable_checkpointing"] = False
@@ -931,6 +936,24 @@ class BaseModel(pl.LightningModule):
         y_hat = self.scaler.inverse_transform(z=y_hat, x_scale=y_scale, x_shift=y_loc)
 
         return y_hat
+
+    def _shard_multivariate_windows(self, final_condition):
+        """Assign each device a disjoint slice of the valid time-windows.
+
+        Multivariate models keep all series in every batch. Striding the
+        valid windows by `global_rank` gives data parallelism over the
+        window axis, with DDP averaging the per-device gradients.
+
+        Falls back to no sharding when there are fewer valid windows than
+        devices, so no rank is left with an empty batch. All ranks observe the
+        same batch.
+        """
+        if not self.MULTIVARIATE or self._trainer is None:
+            return final_condition
+        world_size = self.trainer.world_size
+        if world_size <= 1 or len(final_condition) < world_size:
+            return final_condition
+        return final_condition[self.global_rank :: world_size]
 
     def _sample_windows(
         self,
@@ -1773,6 +1796,7 @@ class BaseModel(pl.LightningModule):
         windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
             self._create_windows(batch, step="train")
         )
+        final_condition = self._shard_multivariate_windows(final_condition)
         n_windows = len(final_condition)
         if self.windows_batch_size is not None:
             if n_windows < self.windows_batch_size:
