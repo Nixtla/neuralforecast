@@ -1,12 +1,21 @@
+import torch.nn.functional as F
+
 from neuralforecast.auto import AutoTFT, RayOptions, TFT
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
+from neuralforecast.models.tft import get_activation_fn
 
 from .test_helpers import check_args
 
 
 def test_tft_model(suppress_warnings):
     check_model(TFT, ["airpassengers"])
+
+
+def test_grn_activation_gelu_lookup():
+    # "GELU" must resolve to F.gelu, not silently fall back to F.elu
+    # (get_activation_fn uses activation_map.get(name, F.elu)).
+    assert get_activation_fn("GELU") is F.gelu
 
 
 def test_autotft(setup_dataset):
