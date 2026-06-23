@@ -27,6 +27,7 @@ def get_activation_fn(activation_str: str) -> Callable:
         "Sigmoid": F.sigmoid,
         "ELU": F.elu,
         "GLU": F.glu,
+        "GELU": F.gelu,
     }
     return activation_map.get(activation_str, F.elu)
 
@@ -529,7 +530,7 @@ class TFT(BaseModel):
         hidden_size (int): units of embeddings and encoders.
         n_head (int): number of attention heads in temporal fusion decoder.
         attn_dropout (float): dropout of fusion decoder's attention layer.
-        grn_activation (str): activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU'].
+        grn_activation (str): activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU', 'GELU'].
         n_rnn_layers (int): number of RNN layers.
         rnn_type (str): recurrent neural network (RNN) layer type from ["lstm","gru"].
         one_rnn_initial_state (str): Initialize all rnn layers with the same initial states computed from static covariates.
