@@ -25,7 +25,6 @@
           "docs/capabilities/overview.html",
           "docs/capabilities/objectives.html",
           "docs/capabilities/exogenous_variables.html",
-          "docs/capabilities/categorical_features.html",
           "docs/capabilities/cross_validation.html",
           "docs/capabilities/hyperparameter_tuning.html",
           "docs/capabilities/predictInsample.html",
