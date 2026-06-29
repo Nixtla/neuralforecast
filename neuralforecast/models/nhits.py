@@ -198,6 +198,9 @@ class NHITS(BaseModel):
         futr_exog_list (str list): future exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
         stack_types (List[str]): stacks list in the form N * ['identity'], to be deprecated in favor of `n_stacks`. Note that len(stack_types)=len(n_freq_downsample)=len(n_pool_kernel_size).
         n_blocks (List[int]): Number of blocks for each stack. Note that len(n_blocks) = len(stack_types).
@@ -239,6 +242,7 @@ class NHITS(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -251,6 +255,9 @@ class NHITS(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         stack_types: list = ["identity", "identity", "identity"],
         n_blocks: list = [1, 1, 1],
@@ -295,6 +302,9 @@ class NHITS(BaseModel):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,

@@ -67,6 +67,9 @@ class TiDE(BaseModel):
         futr_exog_list (str list): future exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): whether to exclude the target variable from the historic exogenous data.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
         valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
@@ -103,6 +106,7 @@ class TiDE(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -123,6 +127,9 @@ class TiDE(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         loss=MAE(),
         valid_loss=None,
@@ -158,6 +165,9 @@ class TiDE(BaseModel):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
