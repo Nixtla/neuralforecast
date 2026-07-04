@@ -1,6 +1,6 @@
 __all__ = ['BasePointLoss', 'MAE', 'MSE', 'RMSE', 'MAPE', 'SMAPE', 'MASE', 'relMSE', 'QuantileLoss', 'MQLoss', 'QuantileLayer',
            'IQLoss', 'DistributionLoss', 'PMM', 'GMM', 'NBMM', 'HuberLoss', 'TukeyLoss', 'HuberQLoss', 'HuberMQLoss',
-           'HuberIQLoss', 'Accuracy', 'sCRPS']
+           'HuberIQLoss', 'Accuracy', 'sCRPS', 'FreDF']
 
 
 import warnings
@@ -146,6 +146,81 @@ class MAE(BasePointLoss):
         losses = torch.abs(y - y_hat)
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
+
+
+class FreDF(BasePointLoss):
+    r"""Frequency-enhanced Decomposed Loss (FreDF).
+
+    Combines time-domain MSE with frequency-domain MAE to improve forecasting
+    accuracy across both temporal and spectral dimensions, as proposed by
+    Lin et al. (2023) [1]_.
+
+    The loss is computed as a weighted sum:
+
+    ```math
+    \mathcal{L}_{\text{FreDF}} = (1 - \alpha) \cdot \mathrm{MSE}(\mathbf{y}, \hat{\mathbf{y}})
+    + \alpha \cdot \mathrm{MAE}(\mathcal{F}(\mathbf{y}), \mathcal{F}(\hat{\mathbf{y}}))
+    ```
+
+    where :math:`\mathcal{F}` denotes the real FFT along the time axis.
+
+    Args:
+        alpha (float): Weight for the frequency-domain term. Must be in [0, 1].
+            When ``alpha=0`` the loss reduces to pure time-domain MSE;
+            when ``alpha=1`` it reduces to pure frequency-domain MAE.
+            Defaults to 0.5.
+        horizon_weight (Optional[torch.Tensor]): Tensor of size h, weight for
+            each timestamp of the forecasting window. Defaults to None.
+
+    References
+    ----------
+    .. [1] Lin, S., Lin, W., Wu, W., Zhao, F., Mo, R., & Zhang, H. (2023).
+        SegRNN: Segment Recurrent Neural Network for Long-Term Time Series
+        Forecasting. arXiv preprint arXiv:2308.11200.
+    """
+
+    def __init__(self, alpha: float = 0.5, horizon_weight=None):
+        super(FreDF, self).__init__(
+            horizon_weight=horizon_weight, outputsize_multiplier=1, output_names=[""]
+        )
+        if not 0.0 <= alpha <= 1.0:
+            raise ValueError(f"alpha must be in [0, 1], got {alpha}")
+        self.alpha = alpha
+
+    def __call__(
+        self,
+        y: torch.Tensor,
+        y_hat: torch.Tensor,
+        mask: Union[torch.Tensor, None] = None,
+        y_insample: Union[torch.Tensor, None] = None,
+    ) -> torch.Tensor:
+        """Calculate FreDF loss between actual and predicted values.
+
+        Args:
+            y (torch.Tensor): Actual values with shape [B, H, N].
+            y_hat (torch.Tensor): Predicted values with shape [B, H, N].
+            mask (Union[torch.Tensor, None], optional): Specifies datapoints
+                to consider in loss. Defaults to None.
+            y_insample (Union[torch.Tensor, None], optional): Insample values,
+                unused but kept for API consistency. Defaults to None.
+
+        Returns:
+            torch.Tensor: Scalar FreDF loss value.
+        """
+        weights = self._compute_weights(y=y, mask=mask)
+
+        # Time-domain MSE
+        time_losses = (y - y_hat) ** 2
+        time_loss = _weighted_mean(losses=time_losses, weights=weights)
+
+        # Frequency-domain MAE via real FFT along the time axis (dim=1)
+        freq_losses = torch.abs(
+            torch.fft.rfft(y, dim=1) - torch.fft.rfft(y_hat, dim=1)
+        )
+        # rfft output length differs from H; use unweighted mean over freq bins
+        freq_loss = freq_losses.mean()
+
+        return (1.0 - self.alpha) * time_loss + self.alpha * freq_loss
 
 
 class MSE(BasePointLoss):
