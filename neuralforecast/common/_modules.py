@@ -4,6 +4,7 @@
 __all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolutionEncoder', 'TransEncoderLayer', 'TransEncoder',
            'TransDecoderLayer', 'TransDecoder', 'AttentionLayer', 'TriangularCausalMask', 'FullAttention',
            'PositionalEmbedding', 'TokenEmbedding', 'TimeFeatureEmbedding', 'FixedEmbedding', 'TemporalEmbedding',
+           'TorchembedTemporalEmbedding',
            'DataEmbedding', 'DataEmbedding_inverted', 'MovingAvg', 'SeriesDecomp', 'RevIN', 'RevINMultivariate']
 
 
@@ -829,7 +830,100 @@ class TimeFeatureEmbedding(nn.Module):
         return self.embed(x)
 
 
-class FixedEmbedding(nn.Module):  
+class TorchembedTemporalEmbedding(nn.Module):
+    """Temporal embedding powered by torchembed's composable cyclic encoders.
+
+    Replaces the plain linear ``TimeFeatureEmbedding`` with properly periodic
+    (sin, cos) encodings for each exogenous feature, then projects the
+    concatenated 2D cyclic vectors to the model's hidden dimension.
+
+    Each feature column in *x_mark* is treated as a periodic signal.
+    ``CyclicEmbedding(period=p)`` maps a normalised scalar in [0, 1] to
+    ``(sin(2π·x/p), cos(2π·x/p))``, yielding a 2-D representation that is
+    equivariant under cyclic shifts and avoids the discontinuity at the wrap
+    boundary.
+
+    If *periods* is ``None`` the class infers sensible defaults from the number
+    of features following the Informer/Autoformer convention of
+    (month, day, weekday, hour[, minute]).  Callers may pass an explicit list
+    of periods — one per feature column — for full control.
+
+    Args:
+        input_size (int): Number of exogenous feature columns in *x_mark*.
+        hidden_size (int): Dimension of the output embeddings (model's d_model).
+        periods (list[float] | None): Cyclic period for each feature.
+            Defaults to ``None``, which uses the Informer convention
+            ``[12, 31, 7, 24, 60]`` truncated / extended to *input_size*.
+
+    Input:
+        x_mark (torch.Tensor): shape ``[batch, seq_len, input_size]``, values
+            already in their natural range (e.g. 0–23 for hour-of-day).
+
+    Returns:
+        torch.Tensor: shape ``[batch, seq_len, hidden_size]``.
+
+    Notes:
+        - Requires ``torchembed >= 0.3.1``  (``pip install torchembed``).
+        - Falls back with a clear ``ImportError`` when torchembed is absent so
+          models remain importable; the error surfaces only when the embedding
+          is instantiated.
+        - The projection layer is initialised with Kaiming uniform to match the
+          weight init convention used elsewhere in this module.
+    """
+
+    # Default periods following the Informer/Autoformer calendar convention:
+    # [month(1-12), day(1-31), weekday(0-6), hour(0-23), minute(0-59)]
+    _DEFAULT_PERIODS = [12.0, 31.0, 7.0, 24.0, 60.0]
+
+    def __init__(
+        self,
+        input_size: int,
+        hidden_size: int,
+        periods=None,
+    ):
+        super(TorchembedTemporalEmbedding, self).__init__()
+
+        try:
+            from torchembed.temporal import CyclicEmbedding  # noqa: F401
+        except ImportError as exc:
+            raise ImportError(
+                "torchembed is required for temporal_embedding='torchembed'. "
+                "Install it with:  pip install 'neuralforecast[torchembed]'  "
+                "or  pip install torchembed>=0.3.1"
+            ) from exc
+
+        from torchembed.temporal import CyclicEmbedding
+
+        if periods is None:
+            periods = (self._DEFAULT_PERIODS * ((input_size // 5) + 1))[:input_size]
+
+        if len(periods) != input_size:
+            raise ValueError(
+                f"len(periods)={len(periods)} must equal input_size={input_size}"
+            )
+
+        self.cyclic_encoders = nn.ModuleList(
+            [CyclicEmbedding(period=float(p)) for p in periods]
+        )
+        # Project from 2*input_size (stacked sin/cos pairs) to hidden_size
+        self.proj = nn.Linear(2 * input_size, hidden_size, bias=False)
+        nn.init.kaiming_uniform_(self.proj.weight, nonlinearity="linear")
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: [batch, seq_len, input_size]
+        cyclic_parts = []
+        for i, encoder in enumerate(self.cyclic_encoders):
+            # encoder expects (batch,) or (batch, seq_len); we flatten then restore
+            feat = x[..., i]  # [batch, seq_len]
+            B, T = feat.shape
+            encoded = encoder(feat.reshape(-1))  # [B*T, 2]
+            cyclic_parts.append(encoded.view(B, T, 2))
+        # Concatenate along last dim: [batch, seq_len, 2*input_size]
+        out = torch.cat(cyclic_parts, dim=-1)
+        return self.proj(out)  # [batch, seq_len, hidden_size]
+
+
+class FixedEmbedding(nn.Module):
     """Fixed sinusoidal embedding for categorical temporal features.  
 
     Creates non-trainable embeddings using sine and cosine functions at different  
@@ -932,21 +1026,31 @@ class TemporalEmbedding(nn.Module):
         return hour_x + weekday_x + day_x + month_x + minute_x
 
 
-class DataEmbedding(nn.Module):  
-    """Data embedding module combining value, positional, and temporal embeddings.  
+class DataEmbedding(nn.Module):
+    """Data embedding module combining value, positional, and temporal embeddings.
 
-    Transforms time series data into high-dimensional embeddings by combining:  
-    - Value embeddings: Convolutional encoding of the time series values  
-    - Positional embeddings: Sinusoidal encodings for relative position within window  
-    - Temporal embeddings: Linear projection of absolute calendar features (optional)  
+    Transforms time series data into high-dimensional embeddings by combining:
+    - Value embeddings: Convolutional encoding of the time series values
+    - Positional embeddings: Sinusoidal encodings for relative position within window
+    - Temporal embeddings: Encoding of absolute calendar features (optional)
 
-    Args:  
-        c_in (int): Number of input channels (variates) in the time series.  
-        exog_input_size (int): Number of exogenous/temporal features. If 0, temporal   
-            embeddings are disabled.  
-        hidden_size (int): Dimension of the embedding vectors.  
+    Args:
+        c_in (int): Number of input channels (variates) in the time series.
+        exog_input_size (int): Number of exogenous/temporal features. If 0, temporal
+            embeddings are disabled.
+        hidden_size (int): Dimension of the embedding vectors.
         pos_embedding (bool): Whether to include positional embeddings.
         dropout (float): Dropout rate applied to the final embeddings.
+        temporal_embedding (str): Which temporal encoder to use for exogenous features.
+            ``"native"`` (default) uses a simple bias-free linear projection
+            (``TimeFeatureEmbedding``).  ``"torchembed"`` uses
+            ``TorchembedTemporalEmbedding``, which applies a composable
+            ``CyclicEmbedding`` (sin/cos pair) to every feature column before
+            projecting to *hidden_size*; requires ``pip install torchembed>=0.3.1``.
+        torchembed_periods (list[float] | None): Explicit cyclic periods passed to
+            ``TorchembedTemporalEmbedding`` when *temporal_embedding="torchembed"*.
+            Defaults to ``None``, which infers periods from the calendar convention
+            ``[12, 31, 7, 24, 60]``.
 
     Returns:
         (torch.Tensor): Combined embeddings of shape [batch, seq_len, hidden_size] after
@@ -955,13 +1059,19 @@ class DataEmbedding(nn.Module):
     Notes:
         - Value embeddings use `TokenEmbedding` with 1D convolution (kernel_size=3).
         - Positional embeddings use sinusoidal functions (sine for even dims, cosine for odd).
-        - Temporal embeddings use a linear layer to project calendar features.
         - All three embeddings are summed element-wise before dropout is applied.
         - If `x_mark` is None, only value and positional embeddings are used.
     """
 
     def __init__(
-        self, c_in, exog_input_size, hidden_size, pos_embedding=True, dropout=0.1
+        self,
+        c_in,
+        exog_input_size,
+        hidden_size,
+        pos_embedding=True,
+        dropout=0.1,
+        temporal_embedding: str = "native",
+        torchembed_periods=None,
     ):
         super(DataEmbedding, self).__init__()
 
@@ -973,9 +1083,16 @@ class DataEmbedding(nn.Module):
             self.position_embedding = None
 
         if exog_input_size > 0:
-            self.temporal_embedding = TimeFeatureEmbedding(
-                input_size=exog_input_size, hidden_size=hidden_size
-            )
+            if temporal_embedding == "torchembed":
+                self.temporal_embedding = TorchembedTemporalEmbedding(
+                    input_size=exog_input_size,
+                    hidden_size=hidden_size,
+                    periods=torchembed_periods,
+                )
+            else:
+                self.temporal_embedding = TimeFeatureEmbedding(
+                    input_size=exog_input_size, hidden_size=hidden_size
+                )
         else:
             self.temporal_embedding = None
 
