@@ -5,6 +5,7 @@ import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.models import MLP, NHITS, VanillaTransformer, LSTM, MLPMultivariate
+from neuralforecast.auto import AutoMLP
 
 CITIES = ["paris", "london", "tokyo", "berlin"]
 DOWS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -80,6 +81,45 @@ def test_categoricals_run(cls, hist_cat, futr_cat):
     preds = nf.predict(futr_df=futr_df)
     assert preds.shape[0] == 4 * 6
     assert np.isfinite(preds[cls.__name__].to_numpy()).all()
+
+
+def test_mixed_continuous_and_categorical_hist_stream():
+    df = _panel(cols=("city",))
+    df["temp"] = (np.arange(len(df), dtype=float) % 10)  # continuous
+    model = _model(
+        MLP,
+        hist_exog_list=["temp", "city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert nf.models[0].hist_exog_size == 1 + 5  # 1 continuous + 5-dim embedding
+    assert "temp" not in nf.categorical_vocab_  # continuous column not embedded
+    preds = nf.predict()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
+def test_mixed_continuous_and_categorical_futr_stream():
+    df = _panel(cols=("dow",))
+    df["price"] = (np.arange(len(df), dtype=float) % 5)  # continuous
+    model = _model(
+        MLP,
+        futr_exog_list=["price", "dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert nf.models[0].futr_exog_size == 1 + 5
+    futr = _futr_df()  # has `dow`; add the continuous futr column too
+    futr["price"] = (np.arange(len(futr), dtype=float) % 5)
+    preds = nf.predict(futr_df=futr)
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
 
 
 def test_static_categorical_runs():
@@ -227,6 +267,74 @@ def test_cross_validation_no_refit_with_categoricals():
     assert np.isfinite(cv["MLP"].to_numpy()).all()
 
 
+def test_refit_stored_dataset_preserves_vocab():
+    # fit(df=None) retrains on the stored (already-encoded) dataset; it must not
+    # wipe the vocabulary, so predict(futr_df=...) still encodes categoricals.
+    df = _panel(cols=("dow",))
+    model = _model(
+        MLP,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    vocab = dict(nf.categorical_vocab_)
+    nf.fit()  # df=None -> reuse stored dataset
+    assert nf.categorical_vocab_ == vocab
+    preds = nf.predict(futr_df=_futr_df())
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
+def test_use_fitted_cross_validation_preserves_vocab():
+    # use_fitted CV on a new df snapshots/restores state; the fitted vocabulary
+    # must survive the (reset+rebuild) that runs on the holdout df.
+    df = _panel(cols=("dow",))
+    model = _model(
+        MLP,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    vocab_before = dict(nf.categorical_vocab_)
+    holdout = _panel(cols=("dow",), n=30, seed=2)
+    nf.cross_validation(df=holdout, n_windows=2, h=6, refit=False, use_fitted=True)
+    assert nf.categorical_vocab_ == vocab_before
+
+
+def test_prediction_intervals_preserve_full_vocab():
+    # 'flag' == "B" only in the tail. The conformal CV trains on df-minus-tail,
+    # but the final vocab must still include "B" (as in a plain fit) rather than
+    # making it permanent OOV.
+    from neuralforecast.utils import PredictionIntervals
+
+    rng = np.random.default_rng(0)
+    rows = []
+    for uid in range(4):
+        for t in range(60):
+            flag = "B" if t >= 54 else "A"
+            rows.append(
+                {
+                    "unique_id": f"s{uid}",
+                    "ds": t,
+                    "y": np.sin(t / 5) + uid + rng.standard_normal() * 0.1,
+                    "flag": flag,
+                }
+            )
+    df = pd.DataFrame(rows)
+    model = _model(
+        MLP,
+        hist_exog_list=["flag"],
+        cat_exog_list=["flag"],
+        categorical_cardinalities={"flag": 2},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, prediction_intervals=PredictionIntervals(n_windows=2))
+    assert nf.categorical_vocab_["flag"] == {"A": 1, "B": 2}
+
+
 def test_no_categoricals_is_inert():
     # When no categorical lists are declared, sizes equal the raw counts and the
     # vocabulary stays empty -> the carve-out is a no-op.
@@ -319,6 +427,26 @@ def test_conflicting_cross_model_cardinalities_raise():
     nf = NeuralForecast(models=[m1, m2], freq=1)
     with pytest.raises(ValueError, match="conflicting"):
         nf.fit(df)
+
+
+def test_auto_model_with_categoricals_runs():
+    # Auto* models read cat_exog_list / categorical_cardinalities from their
+    # config; the vocab is built and the search trains on the encoded data.
+    df = _panel(cols=("city",))
+    config = AutoMLP.get_default_config(h=6, backend="ray")
+    config["input_size"] = 12
+    config["max_steps"] = 2
+    config["accelerator"] = "cpu"
+    config["hist_exog_list"] = ["city"]
+    config["cat_exog_list"] = ["city"]
+    config["categorical_cardinalities"] = {"city": 4}
+    model = AutoMLP(h=6, config=config, num_samples=1, backend="ray")
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert set(nf.categorical_vocab_["city"]) == set(CITIES)
+    preds = nf.predict()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["AutoMLP"].to_numpy()).all()
 
 
 def test_explain_guard():

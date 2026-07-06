@@ -295,14 +295,25 @@ class NeuralForecast:
     def _get_categorical_exog(self) -> Dict[str, int]:
         """Aggregate categorical exogenous features declared across models.
 
-        Returns a mapping ``{column: cardinality}``. If several models declare the
-        same categorical column they must agree on its cardinality; a conflict is
-        raised rather than silently reconciled.
+        Auto* models store their hyperparameters in `config` (a dict for Ray, a
+        callable for Optuna), so `cat_exog_list` / `categorical_cardinalities` are
+        read from there, mirroring `_get_needed_futr_exog`. If several models
+        declare the same column they must agree on its cardinality.
         """
         cardinalities: Dict[str, int] = {}
         for m in self.models:
-            cat_cols = list(getattr(m, "cat_exog_list", []) or [])
-            model_cards = getattr(m, "categorical_cardinalities", {}) or {}
+            if isinstance(m, BaseAuto):
+                config = m.config if isinstance(m.config, dict) else m.config(MockTrial())
+                raw_cols = config.get("cat_exog_list", []) or []
+                if hasattr(raw_cols, "categories"):  # tuned search space
+                    raw_cols = raw_cols.categories
+                cat_cols = []
+                for c in raw_cols:
+                    cat_cols.append(c) if isinstance(c, str) else cat_cols.extend(c)
+                model_cards = config.get("categorical_cardinalities", {}) or {}
+            else:
+                cat_cols = list(getattr(m, "cat_exog_list", []) or [])
+                model_cards = getattr(m, "categorical_cardinalities", {}) or {}
             for col in cat_cols:
                 card = model_cards.get(col)
                 if card is None:
@@ -630,10 +641,14 @@ class NeuralForecast:
         self._cs_df: Optional[DataFrame] = None
         self.prediction_intervals: Optional[PredictionIntervals] = None
 
-        # Categorical vocabulary is rebuilt for each fit; built once from the
-        # training panel in `_prepare_fit` and reused at predict time.
-        self.categorical_vocab_ = {}
-        if self._has_categorical() and not isinstance(df, (pd.DataFrame, pl_DataFrame)):
+        # Categorical exogenous features require an in-memory (pandas/polars)
+        # frame. `df=None` reuses the stored dataset and its existing vocabulary,
+        # so only distributed/file-based inputs are rejected here.
+        if (
+            self._has_categorical()
+            and df is not None
+            and not isinstance(df, (pd.DataFrame, pl_DataFrame))
+        ):
             raise NotImplementedError(
                 "Categorical exogenous features are only supported with pandas or "
                 "polars DataFrames."
@@ -641,6 +656,9 @@ class NeuralForecast:
 
         # Process and save new dataset (in self)
         if isinstance(df, (pd.DataFrame, pl_DataFrame)):
+            # Rebuild the categorical vocabulary from this training panel
+            # `df=None` keeps the stored one.
+            self.categorical_vocab_ = {}
             validate_freq(df[time_col], self.freq)
             self.dataset, self.uids, self.last_dates, self.ds = self._prepare_fit(
                 df=df,
@@ -661,6 +679,10 @@ class NeuralForecast:
                         time_col=time_col,
                         target_col=target_col,
                     ).min_size
+                # The internal conformal CV rebuilds the cat vocab
+                # from the training split. Restore the full-panel vocabulary
+                # so the final models match a plain fit
+                _saved_vocab = self.categorical_vocab_
                 self._cs_df = self._conformity_scores(
                     df=df,
                     id_col=id_col,
@@ -669,6 +691,7 @@ class NeuralForecast:
                     static_df=static_df,
                     val_size=conformal_val_size,
                 )
+                self.categorical_vocab_ = _saved_vocab
 
         elif isinstance(df, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):
@@ -1949,6 +1972,7 @@ class NeuralForecast:
                 for attr in (
                     "scalers_",
                     "static_scalers_",
+                    "categorical_vocab_",
                     "dataset",
                     "uids",
                     "last_dates",

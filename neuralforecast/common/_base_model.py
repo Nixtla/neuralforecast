@@ -606,8 +606,12 @@ class BaseModel(pl.LightningModule):
         # Index 0 is the OOV / unseen slot. Instead of its (untrained) row, map
         # unseen categories to the mean of the learned category embeddings.
         out = emb(idx)
+        is_oov = idx == 0
+        if not is_oov.any():
+            # No unseen categories in this batch: skip the mean.
+            return out
         oov = emb.weight[1:].mean(dim=0)
-        return torch.where((idx == 0).unsqueeze(-1), oov, out)
+        return torch.where(is_oov.unsqueeze(-1), oov, out)
 
     def _restart_seed(self, random_seed):
         if random_seed is None:
