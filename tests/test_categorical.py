@@ -433,14 +433,18 @@ def test_auto_model_with_categoricals_runs():
     # Auto* models read cat_exog_list / categorical_cardinalities from their
     # config; the vocab is built and the search trains on the encoded data.
     df = _panel(cols=("city",))
-    config = AutoMLP.get_default_config(h=6, backend="ray")
-    config["input_size"] = 12
-    config["max_steps"] = 2
-    config["accelerator"] = "cpu"
-    config["hist_exog_list"] = ["city"]
-    config["cat_exog_list"] = ["city"]
-    config["categorical_cardinalities"] = {"city": 4}
-    model = AutoMLP(h=6, config=config, num_samples=1, backend="ray")
+
+    def config(trial):
+        return {
+            "input_size": 12,
+            "max_steps": 2,
+            "accelerator": "cpu",
+            "hist_exog_list": ["city"],
+            "cat_exog_list": ["city"],
+            "categorical_cardinalities": {"city": 4},
+        }
+
+    model = AutoMLP(h=6, config=config, num_samples=1, backend="optuna")
     nf = NeuralForecast(models=[model], freq=1)
     nf.fit(df)
     assert set(nf.categorical_vocab_["city"]) == set(CITIES)
