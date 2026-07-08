@@ -129,6 +129,9 @@ class TimesNet(BaseModel):
         stat_exog_list (list of str): optional (default=None), Static exogenous columns.
         hist_exog_list (list of str): optional (default=None), Historic exogenous columns.
         futr_exog_list (list of str): optional (default=None), Future exogenous columns.
+        cat_exog_list (list of str): optional (default=None), exogenous columns (from `hist_exog_list` / `futr_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): optional (default=None), mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): The model skips the autoregressive features y[t-input_size:t] if True.
         hidden_size (int): Size of embedding for embedding and encoders.
         dropout (float): Dropout for embeddings.
@@ -170,6 +173,7 @@ class TimesNet(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -182,6 +186,9 @@ class TimesNet(BaseModel):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         hidden_size: int = 64,
         dropout: float = 0.1,
@@ -221,6 +228,9 @@ class TimesNet(BaseModel):
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
             futr_exog_list=futr_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
