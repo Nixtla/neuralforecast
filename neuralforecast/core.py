@@ -2437,7 +2437,9 @@ class NeuralForecast:
                         self.dataset.indptr[i] : self.dataset.indptr[i + 1]
                     ],
                     temporal_cols=self.dataset.temporal_cols,
-                    static=self.dataset.static,
+                    static=None
+                    if self.dataset.static is None
+                    else self.dataset.static[i : i + 1],
                     static_cols=self.dataset.static_cols,
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
@@ -2460,7 +2462,9 @@ class NeuralForecast:
                         self.dataset.indptr[i] : self.dataset.indptr[i + 1]
                     ],
                     temporal_cols=self.dataset.temporal_cols,
-                    static=self.dataset.static,
+                    static=None
+                    if self.dataset.static is None
+                    else self.dataset.static[i : i + 1],
                     static_cols=self.dataset.static_cols,
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
