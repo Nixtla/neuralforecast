@@ -101,7 +101,7 @@ Name | Type | Description | Default
 `hidden_size` | <code>[int](#int)</code> | units of embeddings and encoders. | <code>128</code>
 `n_head` | <code>[int](#int)</code> | number of attention heads in temporal fusion decoder. | <code>4</code>
 `attn_dropout` | <code>[float](#float)</code> | dropout of fusion decoder's attention layer. | <code>0.0</code>
-`grn_activation` | <code>[str](#str)</code> | activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU']. | <code>'ELU'</code>
+`grn_activation` | <code>[str](#str)</code> | activation for the GRN module from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'Sigmoid', 'ELU', 'GLU', 'GELU']. | <code>'ELU'</code>
 `n_rnn_layers` | <code>[int](#int)</code> | number of RNN layers. | <code>1</code>
 `rnn_type` | <code>[str](#str)</code> | recurrent neural network (RNN) layer type from ["lstm","gru"]. | <code>'lstm'</code>
 `one_rnn_initial_state` | <code>[str](#str)</code> | Initialize all rnn layers with the same initial states computed from static covariates. | <code>False</code>
