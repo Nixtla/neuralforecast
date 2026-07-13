@@ -2841,3 +2841,31 @@ def test_trainer_caching(setup_airplane_data):
     model._pred_trainer_kwargs = {**model._pred_trainer_kwargs, "enable_checkpointing": True}
     nf.predict()
     assert model._pred_trainer is not trainer_2, "Trainer should be replaced when a kwarg value changes"
+
+
+def test_predict_insample_uses_correct_static_per_series():
+    """Regression: predict_insample built each single-series dataset with the full
+    static array, so every series was predicted with the first series' static
+    features. Two series with identical history but different static must yield
+    different insample predictions."""
+    n = 48
+    df = pd.DataFrame(
+        {
+            "unique_id": ["A"] * n + ["B"] * n,
+            "ds": np.tile(pd.date_range("2020-01-01", periods=n, freq="D"), 2),
+            "y": np.tile(np.arange(n, dtype=float), 2),  # identical history for A and B
+        }
+    )
+    static_df = pd.DataFrame({"unique_id": ["A", "B"], "sval": [0.0, 1000.0]})
+
+    nf = NeuralForecast(
+        models=[NHITS(h=6, input_size=12, max_steps=2, stat_exog_list=["sval"])],
+        freq="D",
+    )
+    nf.fit(df, static_df=static_df)
+    ins = nf.predict_insample()
+
+    a = ins[ins["unique_id"] == "A"]["NHITS"].to_numpy()
+    b = ins[ins["unique_id"] == "B"]["NHITS"].to_numpy()
+    # Same history, different static -> predictions must differ once static is aligned.
+    assert not np.allclose(a, b), "series B was predicted with series A's static features"
