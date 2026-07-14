@@ -6,7 +6,7 @@ import ray.cloudpickle as cpickle
 from ray import tune
 
 from neuralforecast import NeuralForecast
-from neuralforecast.auto import AutoHINT
+from neuralforecast.auto import AutoHINT, RayOptions
 from neuralforecast.common._base_auto import BaseAuto
 from neuralforecast.losses.pytorch import GMM, sCRPS
 from neuralforecast.models import HINT, NHITS
@@ -147,6 +147,7 @@ def _make_auto_hint(S, quantiles, config=None):
         S=S,
         config=config,
         num_samples=1,
+        ray_options=RayOptions(cpus=1, gpus=0),
     )
 
 
