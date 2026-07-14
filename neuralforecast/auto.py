@@ -2219,11 +2219,7 @@ class AutoHINT(BaseAuto):
         random_seed=None,
         distributed_config=None,
     ):
-        # The Ray trainable is built from the bound method `self._train_tune`,
-        # which serializes the whole `AutoHINT` instance (including `self.S`) into
-        # every trial actor. For a large summing matrix this blows past Ray's
-        # FUNCTION_SIZE_ERROR_THRESHOLD (see issue #559). Move `S` into the Ray
-        # object store so the captured `self.S` is a lightweight ObjectRef; the
+        # Move `S` into the Ray object store so the captured `self.S` is a lightweight ObjectRef; the
         # array is fetched once per actor via `ray.get` in `_fit_model`.
         original_S = self.S
         moved_to_store = False
