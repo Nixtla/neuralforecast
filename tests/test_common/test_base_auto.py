@@ -1,5 +1,6 @@
 import logging
 import warnings
+from unittest.mock import patch
 
 import numpy as np
 import optuna
@@ -127,6 +128,25 @@ def test_instantiation(setup_config):
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MAE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
+
+
+def test_ray_gpus_default_single_gpu_per_trial(setup_config):
+    # On a multi-GPU node the Ray backend must reserve
+    # a single GPU per trial. Reserving every GPU per trial makes the model
+    # default to DDP inside the Ray actor, which crashes with ActorDiedError.
+    with patch(
+        "neuralforecast.common._base_auto.torch.cuda.device_count", return_value=4
+    ):
+        auto = BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            backend="ray",
+        )
+    assert auto.gpus == 1
 
 def test_validation_default(setup_config):
     auto = BaseAuto(

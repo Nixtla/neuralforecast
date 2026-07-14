@@ -30,8 +30,11 @@ class RayOptions:
             See https://docs.ray.io/en/latest/tune/api/schedulers.html.
         cpus (int, optional): Number of cpus to use during optimization.
             Defaults to `os.cpu_count()` when unset.
-        gpus (int, optional): Number of gpus to use during optimization.
-            Defaults to `torch.cuda.device_count()` when unset.
+        gpus (int, optional): Number of gpus to reserve per trial. Defaults to
+            `1` when GPUs are available (`0` otherwise), so Ray parallelizes
+            trials across the available GPUs, one GPU per trial. DDP within a
+            single Ray trial is not supported; reserving every GPU per trial and
+            training with multiple devices crashes the trial actor.
     """
 
     run_config: Optional[Any] = None
@@ -215,7 +218,7 @@ class BaseAuto(pl.LightningModule):
             if ray_options.cpus is None:
                 ray_options.cpus = cpu_count()
             if ray_options.gpus is None:
-                ray_options.gpus = torch.cuda.device_count()
+                ray_options.gpus = min(1, torch.cuda.device_count())
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:
