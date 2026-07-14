@@ -835,13 +835,16 @@ class BaseModel(pl.LightningModule):
     def on_validation_epoch_end(self):
         if self.val_size == 0:
             return
-        losses = torch.stack(self.validation_step_outputs)
-        avg_loss = losses.mean().detach().item()
+        # Each entry is a (weighted_loss_sum, window_count) pair. Summing both
+        # gives a window-count-weighted mean across this rank's validation
+        # batches; all_gather then combines the ranks.
+        stacked = torch.stack(self.validation_step_outputs)
+        totals = self.all_gather(stacked.sum(dim=0)).reshape(-1, 2).sum(dim=0)
+        avg_loss = (totals[0] / totals[1]).item()
         self.log(
             "ptl/val_loss",
             avg_loss,
-            batch_size=losses.size(0),
-            sync_dist=True,
+            batch_size=int(totals[1].item()),
         )
         self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
@@ -2055,6 +2058,7 @@ class BaseModel(pl.LightningModule):
         windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
             self._create_windows(batch, step="val")
         )
+        final_condition = self._shard_multivariate_windows(final_condition)
         n_windows = len(final_condition)
         y_idx = batch["y_idx"]
 
@@ -2136,7 +2140,8 @@ class BaseModel(pl.LightningModule):
         valid_loss = torch.stack(valid_losses)
         batch_sizes = torch.tensor(batch_sizes, device=valid_loss.device)
         batch_size = torch.sum(batch_sizes)
-        valid_loss = torch.sum(valid_loss * batch_sizes) / batch_size
+        valid_loss_sum = torch.sum(valid_loss * batch_sizes)
+        valid_loss = valid_loss_sum / batch_size
 
         if torch.isnan(valid_loss):
             raise Exception("Loss is NaN, training stopped.")
@@ -2149,7 +2154,11 @@ class BaseModel(pl.LightningModule):
             prog_bar=True,
             on_epoch=True,
         )
-        self.validation_step_outputs.append(valid_loss_log)
+        # Store the weighted loss sum and the window count so the epoch-end hook
+        # can combine batches and devices with count-weighting.
+        self.validation_step_outputs.append(
+            torch.stack([valid_loss_sum.detach().float(), batch_size.float()])
+        )
         return valid_loss
 
     def predict_step(self, batch, batch_idx):
