@@ -9,6 +9,8 @@ __all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilat
            'AutoXLinear', 'RayOptions', 'OptunaOptions']
 
 
+import numpy as np
+import ray
 from ray import tune
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
@@ -2186,6 +2188,12 @@ class AutoHINT(BaseAuto):
                             try tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])"
             )
         self.S = S
+        # `save_hyperparameters` captures `S` into `_hparams`. `S` is a summing matrix, not a tunable
+        # hyperparameter. Drop copies of `S`.
+        for _hparams in ("_hparams", "_hparams_initial"):
+            hparams = getattr(self, _hparams, None)
+            if hparams is not None:
+                hparams.pop("S", None)
 
     def _fit_model(
         self, cls_model, config, dataset, val_size, test_size, distributed_config=None
@@ -2193,8 +2201,12 @@ class AutoHINT(BaseAuto):
         # Overwrite _fit_model for HINT two-stage instantiation
         reconciliation = config.pop("reconciliation")
         base_model = cls_model(**config)
+        # `S` may have been placed in the Ray object store (see `fit`) to avoid
+        # serializing the full summing matrix into every trial actor. Resolve the
+        # ObjectRef back into the array before instantiating HINT.
+        S = ray.get(self.S) if isinstance(self.S, ray.ObjectRef) else self.S
         model = HINT(
-            h=base_model.h, model=base_model, S=self.S, reconciliation=reconciliation
+            h=base_model.h, model=base_model, S=S, reconciliation=reconciliation
         )
         model.test_size = test_size
         model = model.fit(
@@ -2204,6 +2216,35 @@ class AutoHINT(BaseAuto):
             distributed_config=distributed_config,
         )
         return model
+
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
+        # Move `S` into the Ray object store so the captured `self.S` is a lightweight ObjectRef; the
+        # array is fetched once per actor via `ray.get` in `_fit_model`.
+        original_S = self.S
+        moved_to_store = False
+        if self.backend == "ray" and isinstance(self.S, np.ndarray):
+            if not ray.is_initialized():
+                ray.init()
+            self.S = ray.put(self.S)
+            moved_to_store = True
+        try:
+            return super().fit(
+                dataset,
+                val_size=val_size,
+                test_size=test_size,
+                random_seed=random_seed,
+                distributed_config=distributed_config,
+            )
+        finally:
+            if moved_to_store:
+                self.S = original_S
 
     @classmethod
     def get_default_config(cls, h, backend, n_series=None):
