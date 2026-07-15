@@ -1,4 +1,4 @@
-"""Regression tests for multi-device training of multivariate models (#1100).
+"""Regression tests for multi-device training of multivariate models.
 
 Multivariate models need all series in every batch, so we shard the
 time-windows across devices instead of the series.
@@ -99,3 +99,49 @@ def test_multivariate_trains_on_multi_process_ddp(model_cls):
     )
     nf = NeuralForecast(models=[model], freq="15min")
     nf.fit(df=df)
+
+
+def test_validation_loss_is_window_count_weighted():
+    """on_validation_epoch_end combines batches/devices weighted by window
+    count, not as an unweighted mean of per-batch means.
+
+    Two batches with means 2.0 (3 windows) and 4.0 (1 window) must yield the
+    weighted mean 2.5, not the unweighted mean-of-means 3.0.
+    """
+    model = NHITS(**_model_kwargs(NHITS))
+    model.val_size = 2
+    model.log = lambda *args, **kwargs: None
+    model.all_gather = lambda t: t.unsqueeze(0)  # single-device passthrough
+    model.validation_step_outputs = [
+        torch.tensor([6.0, 3.0]),  # loss_sum=6 over 3 windows -> mean 2.0
+        torch.tensor([4.0, 1.0]),  # loss_sum=4 over 1 window  -> mean 4.0
+    ]
+
+    model.on_validation_epoch_end()
+
+    _, avg_loss = model.valid_trajectories[-1]
+    assert avg_loss == pytest.approx(2.5)
+
+
+@pytest.mark.parametrize("model_cls", [NHITS, SOFTS])
+def test_validation_runs_on_multi_process_ddp(model_cls):
+    """Validation completes on >1 device without hanging or crashing.
+
+    Exercises the all_gather in on_validation_epoch_end and the window
+    sharding added to validation_step for both univariate and multivariate
+    models.
+    """
+    if not torch.distributed.is_gloo_available():
+        pytest.skip("gloo backend required for CPU DDP")
+    df = _make_df()
+    n_series = df["unique_id"].nunique()
+    model = model_cls(
+        **_model_kwargs(model_cls, n_series=n_series, max_steps=2),
+        batch_size=n_series,
+        loss=MAE(),
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp_spawn",
+    )
+    nf = NeuralForecast(models=[model], freq="15min")
+    nf.fit(df=df, val_size=4)
