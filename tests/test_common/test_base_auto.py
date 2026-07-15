@@ -1,5 +1,6 @@
 import logging
 import warnings
+from unittest.mock import patch
 
 import numpy as np
 import optuna
@@ -127,6 +128,51 @@ def test_instantiation(setup_config):
     )
     assert str(type(auto.loss)) == "<class 'neuralforecast.losses.pytorch.MAE'>"
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
+
+
+def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
+    # Reserving every GPU per trial makes the model launch DDP inside the Ray
+    # actor and crash. Default to one GPU per trial; keep the override untouched
+    # for fractional reservations (e.g. 0.5 packs two trials onto one GPU).
+    with patch(
+        "neuralforecast.common._base_auto.torch.cuda.device_count", return_value=4
+    ):
+        auto = BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            backend="ray",
+        )
+        assert auto.gpus == 1  # not 4
+
+        override = BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            backend="ray",
+            ray_options=RayOptions(gpus=0.5),
+        )
+        assert override.gpus == 0.5  # explicit value untouched
+
+        # gpus > 1 re-enters the DDP-in-actor trap: keep the value but warn.
+        with pytest.warns(UserWarning, match="unless the model config pins"):
+            multi = BaseAuto(
+                h=12,
+                loss=MAE(),
+                valid_loss=MSE(),
+                cls_model=MLP,
+                config=setup_config,
+                num_samples=1,
+                backend="ray",
+                ray_options=RayOptions(gpus=2),
+            )
+        assert multi.gpus == 2
 
 def test_validation_default(setup_config):
     auto = BaseAuto(
