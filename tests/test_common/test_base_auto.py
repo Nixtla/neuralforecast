@@ -130,10 +130,9 @@ def test_instantiation(setup_config):
     assert str(type(auto.valid_loss)) == "<class 'neuralforecast.losses.pytorch.MSE'>"
 
 
-def test_ray_gpus_default_single_gpu_per_trial(setup_config):
-    # On a multi-GPU node the Ray backend must reserve
-    # a single GPU per trial. Reserving every GPU per trial makes the model
-    # default to DDP inside the Ray actor, which crashes with ActorDiedError.
+def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
+    # #1291: reserving every GPU per trial makes the model launch DDP inside the
+    # Ray actor and crash. Default to one GPU per trial; respect explicit overrides.
     with patch(
         "neuralforecast.common._base_auto.torch.cuda.device_count", return_value=4
     ):
@@ -146,7 +145,19 @@ def test_ray_gpus_default_single_gpu_per_trial(setup_config):
             num_samples=1,
             backend="ray",
         )
-    assert auto.gpus == 1
+        assert auto.gpus == 1  # not 4
+
+        override = BaseAuto(
+            h=12,
+            loss=MAE(),
+            valid_loss=MSE(),
+            cls_model=MLP,
+            config=setup_config,
+            num_samples=1,
+            backend="ray",
+            ray_options=RayOptions(gpus=2),
+        )
+        assert override.gpus == 2  # explicit value untouched
 
 def test_validation_default(setup_config):
     auto = BaseAuto(
