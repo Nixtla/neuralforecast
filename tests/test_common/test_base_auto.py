@@ -131,8 +131,9 @@ def test_instantiation(setup_config):
 
 
 def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
-    # Reserving every GPU per trial makes the model launch DDP inside the
-    # Ray actor and crash. Default to one GPU per trial; respect explicit overrides.
+    # Reserving every GPU per trial makes the model launch DDP inside the Ray
+    # actor and crash. Default to one GPU per trial; keep the override untouched
+    # for fractional reservations (e.g. 0.5 packs two trials onto one GPU).
     with patch(
         "neuralforecast.common._base_auto.torch.cuda.device_count", return_value=4
     ):
@@ -155,9 +156,23 @@ def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
             config=setup_config,
             num_samples=1,
             backend="ray",
-            ray_options=RayOptions(gpus=2),
+            ray_options=RayOptions(gpus=0.5),
         )
-        assert override.gpus == 2  # explicit value untouched
+        assert override.gpus == 0.5  # explicit value untouched
+
+        # gpus > 1 re-enters the DDP-in-actor trap: keep the value but warn.
+        with pytest.warns(UserWarning, match="DDP inside the trial actor"):
+            multi = BaseAuto(
+                h=12,
+                loss=MAE(),
+                valid_loss=MSE(),
+                cls_model=MLP,
+                config=setup_config,
+                num_samples=1,
+                backend="ray",
+                ray_options=RayOptions(gpus=2),
+            )
+        assert multi.gpus == 2
 
 def test_validation_default(setup_config):
     auto = BaseAuto(

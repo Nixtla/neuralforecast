@@ -219,6 +219,15 @@ class BaseAuto(pl.LightningModule):
                 ray_options.cpus = cpu_count()
             if ray_options.gpus is None:
                 ray_options.gpus = min(1, torch.cuda.device_count())
+            elif ray_options.gpus > 1:
+                warnings.warn(
+                    f"Reserving {ray_options.gpus} GPUs per Ray trial makes the "
+                    "model launch DDP inside the trial actor, which is not "
+                    "supported and crashes with ActorDiedError. Use "
+                    "`ray_options=RayOptions(gpus=1)` and let Ray parallelize "
+                    "trials across the available GPUs, one GPU per trial.",
+                    UserWarning,
+                )
         if config_base.get("h", None) is not None:
             raise Exception("Please use `h` init argument instead of `config['h']`.")
         if config_base.get("loss", None) is not None:
