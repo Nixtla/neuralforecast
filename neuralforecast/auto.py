@@ -2188,6 +2188,12 @@ class AutoHINT(BaseAuto):
                             try tune.choice(['BottomUp', 'MinTraceOLS', 'MinTraceWLS'])"
             )
         self.S = S
+        # `save_hyperparameters` captures `S` into `_hparams`. `S` is a summing matrix, not a tunable
+        # hyperparameter. Drop copies of `S`.
+        for _hparams in ("_hparams", "_hparams_initial"):
+            hparams = getattr(self, _hparams, None)
+            if hparams is not None:
+                hparams.pop("S", None)
 
     def _fit_model(
         self, cls_model, config, dataset, val_size, test_size, distributed_config=None

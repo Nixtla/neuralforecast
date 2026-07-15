@@ -167,14 +167,11 @@ def test_auto_hint_large_S_not_captured_in_trainable():
     captured_size = len(cpickle.dumps(auto._train_tune))
     assert captured_size > RAY_FUNCTION_SIZE_THRESHOLD
 
-    # Once `S` lives in the object store, `self` no longer
-    # holds the ndarray directly. Ray captures the ObjectRef by reference in the
-    # actual actor-registration path, so the array is not re-serialized per trial.
     if not ray.is_initialized():
         ray.init()
     auto.S = ray.put(S)
-    assert isinstance(auto.S, ray.ObjectRef)
-    assert not isinstance(auto.S, np.ndarray)
+    recaptured_size = len(cpickle.dumps(auto._train_tune))
+    assert recaptured_size < RAY_FUNCTION_SIZE_THRESHOLD
 
 
 # `AutoHINT.fit` must move `S` into the Ray object store before the trainable is
