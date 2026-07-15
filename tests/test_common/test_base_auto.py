@@ -161,7 +161,7 @@ def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
         assert override.gpus == 0.5  # explicit value untouched
 
         # gpus > 1 re-enters the DDP-in-actor trap: keep the value but warn.
-        with pytest.warns(UserWarning, match="DDP inside the trial actor"):
+        with pytest.warns(UserWarning, match="unless the model config pins"):
             multi = BaseAuto(
                 h=12,
                 loss=MAE(),
