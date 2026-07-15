@@ -131,7 +131,7 @@ def test_instantiation(setup_config):
 
 
 def test_ray_gpus_default_is_single_gpu_per_trial(setup_config):
-    # #1291: reserving every GPU per trial makes the model launch DDP inside the
+    # Reserving every GPU per trial makes the model launch DDP inside the
     # Ray actor and crash. Default to one GPU per trial; respect explicit overrides.
     with patch(
         "neuralforecast.common._base_auto.torch.cuda.device_count", return_value=4
