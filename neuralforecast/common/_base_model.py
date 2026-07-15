@@ -840,11 +840,12 @@ class BaseModel(pl.LightningModule):
         # batches; all_gather then combines the ranks.
         stacked = torch.stack(self.validation_step_outputs)
         totals = self.all_gather(stacked.sum(dim=0)).reshape(-1, 2).sum(dim=0)
-        avg_loss = (totals[0] / totals[1]).item()
+        loss_sum, count = totals.tolist()
+        avg_loss = loss_sum / count
         self.log(
             "ptl/val_loss",
             avg_loss,
-            batch_size=int(totals[1].item()),
+            batch_size=int(count),
         )
         self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
