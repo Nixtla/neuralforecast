@@ -14,6 +14,8 @@ from neuralforecast.models import (
     DeepAR,
     MLPMultivariate,
     TSMixerx,
+    XLinear,
+    TimeXer,
 )
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.auto import AutoMLP
@@ -434,7 +436,7 @@ def test_recurrent_embeddings_differ_from_numeric_baseline():
     assert not np.allclose(p_emb, p_num)
 
 
-@pytest.mark.parametrize("cls", [MLPMultivariate, TSMixerx])
+@pytest.mark.parametrize("cls", [MLPMultivariate, TSMixerx, XLinear])
 def test_multivariate_categoricals_run(cls):
     # hist + futr + static categoricals embedded on the feature axis.
     df = _panel(cols=("city", "dow"))
@@ -460,6 +462,34 @@ def test_multivariate_categoricals_run(cls):
     preds = nf.predict(futr_df=_futr_df())
     assert preds.shape[0] == 4 * 6
     assert np.isfinite(preds[cls.__name__].to_numpy()).all()
+
+
+def test_timexer_categoricals_run():
+    # TimeXer has EXOGENOUS_FUTR = False, so only hist + static categoricals.
+    # It reshapes hist_exog into per-variate tokens ([B, L, X * N]), so each
+    # embedding dimension becomes its own variate: the least trivial consumer
+    # of the expanded feature axis.
+    df = _panel(cols=("city",))
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        TimeXer,
+        n_series=4,
+        patch_len=6,  # must divide input_size (12); default 16 is too large here
+        hist_exog_list=["city"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["city", "cluster"],
+        categorical_cardinalities={"city": 4, "cluster": 3},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    assert nf.models[0].hist_exog_size == 5
+    assert nf.models[0].stat_exog_size == 5
+    preds = nf.predict()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["TimeXer"].to_numpy()).all()
 
 
 def test_multivariate_mixed_continuous_and_categorical():

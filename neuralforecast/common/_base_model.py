@@ -1177,9 +1177,9 @@ class BaseModel(pl.LightningModule):
                     self.hist_cat_embeddings,
                 )
             else:
-                # [Ws, L, C, N] -> embed on the feature axis -> [Ws, C', L, N].
                 # _embed_stream works on the last axis, so transpose the feature
-                # axis to last, embed, then transpose back before the swapaxes.
+                # axis to last, embed, then transpose back: [Ws, L, C, N] ->
+                # [Ws, L, C', N]. The swapaxes below then gives [Ws, C', L, N].
                 hist_exog = self._embed_stream(
                     hist_exog.transpose(-1, -2),
                     self.hist_exog_list,
@@ -1204,7 +1204,9 @@ class BaseModel(pl.LightningModule):
                     self.futr_cat_embeddings,
                 )
             else:
-                # [Ws, L + h, C, N] -> embed on the feature axis -> [Ws, C', L + h, N].
+                # Embed on the feature axis (see hist branch above):
+                # [Ws, L + h, C, N] -> [Ws, L + h, C', N]; the swapaxes below
+                # then gives [Ws, C', L + h, N].
                 futr_exog = self._embed_stream(
                     futr_exog.transpose(-1, -2),
                     self.futr_exog_list,
