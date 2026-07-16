@@ -27,6 +27,9 @@ class MLPMultivariate(BaseModel):
         input_size (int): considered autorregresive inputs (lags), y=[1,2,3,4] input_size=2 -> lags=[1,2].
         n_series (int): number of time-series.
         stat_exog_list (str list): static exogenous columns.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         hist_exog_list (str list): historic exogenous columns.
         futr_exog_list (str list): future exogenous columns.
         num_layers (int): number of layers for the MLP.
@@ -62,6 +65,7 @@ class MLPMultivariate(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = True  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -75,6 +79,9 @@ class MLPMultivariate(BaseModel):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         num_layers=2,
         hidden_size=1024,
@@ -113,6 +120,9 @@ class MLPMultivariate(BaseModel):
             stat_exog_list=stat_exog_list,
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,

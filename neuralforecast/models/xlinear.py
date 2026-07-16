@@ -44,6 +44,9 @@ class XLinear(BaseModel):
         input_size (int): Input size, y=[1,2,3,4] input_size=2 -> lags=[1,2].
         n_series (int): Number of time series.
         stat_exog_list (str list): Static exogenous columns.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         hist_exog_list (str list): Historic exogenous columns.
         futr_exog_list (str list): Future exogenous columns.
         hidden_size (int): Dimension of the model embedding.
@@ -88,6 +91,7 @@ class XLinear(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = True
     RECURRENT = False
 
@@ -99,6 +103,9 @@ class XLinear(BaseModel):
         stat_exog_list=None,
         hist_exog_list=None,
         futr_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         hidden_size: int = 128,
         temporal_ff: int = 256,
@@ -141,6 +148,9 @@ class XLinear(BaseModel):
             stat_exog_list=stat_exog_list,
             hist_exog_list=hist_exog_list,
             futr_exog_list=futr_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,

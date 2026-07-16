@@ -4,7 +4,14 @@ import pytest
 import torch
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import MLP, NHITS, VanillaTransformer, LSTM, MLPMultivariate
+from neuralforecast.models import (
+    MLP,
+    NHITS,
+    VanillaTransformer,
+    LSTM,
+    MLPMultivariate,
+    TSMixerx,
+)
 from neuralforecast.auto import AutoMLP
 
 CITIES = ["paris", "london", "tokyo", "berlin"]
@@ -365,17 +372,76 @@ def test_recurrent_model_rejects_categoricals():
         )
 
 
-def test_multivariate_model_rejects_categoricals():
-    with pytest.raises(Exception, match="categorical"):
-        MLPMultivariate(
-            h=6,
-            input_size=12,
-            n_series=4,
-            max_steps=2,
-            hist_exog_list=["city"],
-            cat_exog_list=["city"],
-            categorical_cardinalities={"city": 4},
-        )
+@pytest.mark.parametrize("cls", [MLPMultivariate, TSMixerx])
+def test_multivariate_categoricals_run(cls):
+    # hist + futr + static categoricals embedded on the feature axis.
+    df = _panel(cols=("city", "dow"))
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        cls,
+        n_series=4,
+        hist_exog_list=["city"],
+        futr_exog_list=["dow"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["city", "dow", "cluster"],
+        categorical_cardinalities={"city": 4, "dow": 7, "cluster": 3},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    # No continuous features remain, so each size == embedding dim.
+    assert nf.models[0].hist_exog_size == 5
+    assert nf.models[0].futr_exog_size == 5
+    assert nf.models[0].stat_exog_size == 5
+    preds = nf.predict(futr_df=_futr_df())
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds[cls.__name__].to_numpy()).all()
+
+
+def test_multivariate_mixed_continuous_and_categorical():
+    # Continuous features are kept and concatenated ahead of the embeddings.
+    df = _panel(cols=("city",))
+    df["temp"] = np.arange(len(df), dtype=float) % 10  # continuous hist
+    model = _model(
+        MLPMultivariate,
+        n_series=4,
+        hist_exog_list=["temp", "city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert nf.models[0].hist_exog_size == 1 + 5  # 1 continuous + 5-dim embedding
+    preds = nf.predict()
+    assert np.isfinite(preds["MLPMultivariate"].to_numpy()).all()
+
+
+def test_multivariate_embeddings_differ_from_numeric_baseline():
+    # Confirms the embedding is actually wired into the multivariate forward.
+    df = _panel(cols=("city",))
+    emb = _model(
+        MLPMultivariate,
+        n_series=4,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+    )
+    nf_emb = NeuralForecast(models=[emb], freq=1)
+    nf_emb.fit(df)
+    p_emb = nf_emb.predict()["MLPMultivariate"].to_numpy()
+
+    # Baseline: same column passed as a plain numeric (label-encoded) feature.
+    df_num = df.copy()
+    df_num["city"] = df_num["city"].map({c: i for i, c in enumerate(CITIES)})
+    num = _model(MLPMultivariate, n_series=4, hist_exog_list=["city"])
+    nf_num = NeuralForecast(models=[num], freq=1)
+    nf_num.fit(df_num)
+    p_num = nf_num.predict()["MLPMultivariate"].to_numpy()
+
+    assert not np.allclose(p_emb, p_num)
 
 
 def test_categorical_must_be_subset_of_exog_list():
