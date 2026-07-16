@@ -44,6 +44,9 @@ class xLSTM(BaseModel):
         futr_exog_list (List[str]): future exogenous columns.
         hist_exog_list (list): historic exogenous columns.
         stat_exog_list (list): static exogenous columns.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
+        cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
         exclude_insample_y (bool): whether to exclude the target variable from the input.
         recurrent (bool): whether to produce forecasts recursively (True) or direct (False).
         loss (nn.Module): instantiated train loss class from [losses collection](./losses.pytorch.html).
@@ -81,6 +84,7 @@ class xLSTM(BaseModel):
     EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
+    EXOGENOUS_CAT = True
     MULTIVARIATE = False  # If the model produces multivariate forecasts (True) or univariate (False)
     RECURRENT = (
         False  # If the model produces forecasts recursively (True) or direct (False)
@@ -104,6 +108,9 @@ class xLSTM(BaseModel):
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
+        cat_exog_list=None,
+        categorical_cardinalities=None,
+        cat_emb_dim="fastai",
         exclude_insample_y=False,
         recurrent=False,
         loss=MAE(),
@@ -147,6 +154,9 @@ class xLSTM(BaseModel):
             futr_exog_list=futr_exog_list,
             hist_exog_list=hist_exog_list,
             stat_exog_list=stat_exog_list,
+            cat_exog_list=cat_exog_list,
+            categorical_cardinalities=categorical_cardinalities,
+            cat_emb_dim=cat_emb_dim,
             exclude_insample_y=exclude_insample_y,
             loss=loss,
             valid_loss=valid_loss,
