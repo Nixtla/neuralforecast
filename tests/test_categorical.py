@@ -9,9 +9,13 @@ from neuralforecast.models import (
     NHITS,
     VanillaTransformer,
     LSTM,
+    GRU,
+    RNN,
+    DeepAR,
     MLPMultivariate,
     TSMixerx,
 )
+from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.auto import AutoMLP
 
 CITIES = ["paris", "london", "tokyo", "berlin"]
@@ -360,16 +364,74 @@ def test_no_categoricals_is_inert():
 # ---------------------------------------------------------------------------
 
 
-def test_recurrent_model_rejects_categoricals():
-    with pytest.raises(Exception, match="categorical"):
-        LSTM(
-            h=6,
-            input_size=12,
-            max_steps=2,
-            hist_exog_list=["city"],
-            cat_exog_list=["city"],
-            categorical_cardinalities={"city": 4},
-        )
+@pytest.mark.parametrize("cls", [LSTM, GRU, RNN])
+def test_recurrent_categoricals_run(cls):
+    # Recursive path (recurrent=True): hist + futr categoricals embedded per step.
+    df = _panel(cols=("city", "dow"))
+    model = _model(
+        cls,
+        recurrent=True,
+        hist_exog_list=["city"],
+        futr_exog_list=["dow"],
+        cat_exog_list=["city", "dow"],
+        categorical_cardinalities={"city": 4, "dow": 7},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert nf.models[0].hist_exog_size == 5
+    assert nf.models[0].futr_exog_size == 5
+    preds = nf.predict(futr_df=_futr_df())
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds[cls.__name__].to_numpy()).all()
+
+
+def test_deepar_categoricals_run():
+    # DeepAR is always recurrent and uses a distribution loss; futr + static cats.
+    df = _panel(cols=("dow",))
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        DeepAR,
+        futr_exog_list=["dow"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["dow", "cluster"],
+        categorical_cardinalities={"dow": 7, "cluster": 3},
+        cat_emb_dim=5,
+        loss=DistributionLoss(distribution="Normal", level=[80]),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    assert nf.models[0].futr_exog_size == 5
+    assert nf.models[0].stat_exog_size == 5
+    preds = nf.predict(futr_df=_futr_df())
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["DeepAR"].to_numpy()).all()
+
+
+def test_recurrent_embeddings_differ_from_numeric_baseline():
+    # Confirms the embedding is wired into the recursive forward.
+    df = _panel(cols=("city",))
+    emb = _model(
+        LSTM,
+        recurrent=True,
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+    )
+    nf_emb = NeuralForecast(models=[emb], freq=1)
+    nf_emb.fit(df)
+    p_emb = nf_emb.predict()["LSTM"].to_numpy()
+
+    df_num = df.copy()
+    df_num["city"] = df_num["city"].map({c: i for i, c in enumerate(CITIES)})
+    num = _model(LSTM, recurrent=True, hist_exog_list=["city"])
+    nf_num = NeuralForecast(models=[num], freq=1)
+    nf_num.fit(df_num)
+    p_num = nf_num.predict()["LSTM"].to_numpy()
+
+    assert not np.allclose(p_emb, p_num)
 
 
 @pytest.mark.parametrize("cls", [MLPMultivariate, TSMixerx])
