@@ -28,9 +28,9 @@ Internally, it:
     features are not scaled, unlike numerical features.
 
 -   learns an embedding for each feature. One vector per category is
-    created and is learned jointly with other continuous feaetures.
+    created and is learned jointly with other continuous features.
 
--   concatenates each feature’s embeddings with the continous features
+-   concatenates each feature’s embeddings with the continuous features
     and feeds the result to the model.
 
 By using learned embeddings, models learn a rich representation of the
@@ -38,7 +38,8 @@ features which usually results in better forecasts than using a
 traditional label encoder.
 
 Note that the current handling of static exogenous features stays
-unchanged; i.e., they are not embedded.
+unchanged; i.e., they are not embedded unless you pass them as
+categorical features.
 
 ### Choosing the embedding dimension
 
@@ -75,17 +76,15 @@ means more parameters to train and a risk of overfitting.
 ### What is currently supported
 
 This is a large change that is being implemented in multiple phases.
-Currently, categorical features are support for: - univariate models
+Currently, categorical features are supported for: - univariate models
 
 -   multivariate models
 
--   non-recurrent models
+-   recurrent models
 
 ### Upcoming work
 
 All elements listed here do not support the use of categorical features:
-
--   recurrent models
 
 -   explainability with categorical features
 
