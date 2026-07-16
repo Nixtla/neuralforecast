@@ -30,6 +30,9 @@ XLinear(
     stat_exog_list=None,
     hist_exog_list=None,
     futr_exog_list=None,
+    cat_exog_list=None,
+    categorical_cardinalities=None,
+    cat_emb_dim="fastai",
     exclude_insample_y=False,
     hidden_size=128,
     temporal_ff=256,
@@ -85,6 +88,9 @@ Name | Type | Description | Default
 `input_size` | <code>[int](#int)</code> | Input size, y=[1,2,3,4] input_size=2 -> lags=[1,2]. | *required*
 `n_series` | <code>[int](#int)</code> | Number of time series. | *required*
 `stat_exog_list` | <code>str list</code> | Static exogenous columns. | <code>None</code>
+`cat_exog_list` | <code>str list</code> | exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale. | <code>None</code>
+`categorical_cardinalities` | <code>[dict](#dict)</code> | mapping from each categorical column to its number of distinct categories. | <code>None</code>
+`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `hist_exog_list` | <code>str list</code> | Historic exogenous columns. | <code>None</code>
 `futr_exog_list` | <code>str list</code> | Future exogenous columns. | <code>None</code>
 `hidden_size` | <code>[int](#int)</code> | Dimension of the model embedding. | <code>128</code>

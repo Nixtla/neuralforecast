@@ -18,15 +18,20 @@ NeuralForecast and how you can incorporate them when training a model.
 ## How it works
 
 NeuralForecast handles categorical features with learned embeddings.
-Internally, it: - builds a panel-wide vocabulary at `fit` time. This
-creates a mapping from category to index for each feature across all
-series. Index 0 is reserved for unseen categories during training. -
-routes the categorical features around the scalers. Categorical features
-are not scaled, unlike numerical features. - learns an embedding for
-each feature. One vector per category is created and is learned jointly
-with other continuous feaetures. - concatenates each feature’s
-embeddings with the continous features and feeds the result to the
-model.
+Internally, it:
+
+-   builds a panel-wide vocabulary at `fit` time. This creates a mapping
+    from category to index for each feature across all series. Index 0
+    is reserved for unseen categories during training.
+
+-   routes the categorical features around the scalers. Categorical
+    features are not scaled, unlike numerical features.
+
+-   learns an embedding for each feature. One vector per category is
+    created and is learned jointly with other continuous feaetures.
+
+-   concatenates each feature’s embeddings with the continous features
+    and feeds the result to the model.
 
 By using learned embeddings, models learn a rich representation of the
 features which usually results in better forecasts than using a
@@ -35,7 +40,7 @@ traditional label encoder.
 Note that the current handling of static exogenous features stays
 unchanged; i.e., they are not embedded.
 
-### Choosing the embdding dimension
+### Choosing the embedding dimension
 
 Choosing the right embedding dimension determines the representational
 capacity of the model.
@@ -70,14 +75,21 @@ means more parameters to train and a risk of overfitting.
 ### What is currently supported
 
 This is a large change that is being implemented in multiple phases.
-Currently, categorical features are support for: - univariate models -
-non-recurrent models
+Currently, categorical features are support for: - univariate models
+
+-   multivariate models
+
+-   non-recurrent models
 
 ### Upcoming work
 
-All elements listed here do not support the use of categorical
-features: - recurrent models - multivariate models - explainability with
-categorical features - simulation with categorical features
+All elements listed here do not support the use of categorical features:
+
+-   recurrent models
+
+-   explainability with categorical features
+
+-   simulation with categorical features
 
 ## Example
 

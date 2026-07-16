@@ -20,6 +20,9 @@ TimeXer(
     futr_exog_list=None,
     hist_exog_list=None,
     stat_exog_list=None,
+    cat_exog_list=None,
+    categorical_cardinalities=None,
+    cat_emb_dim="fastai",
     exclude_insample_y=False,
     patch_len=16,
     hidden_size=512,
@@ -71,6 +74,9 @@ Name | Type | Description | Default
 `futr_exog_list` | <code>str list</code> | future exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>str list</code> | historic exogenous columns. | <code>None</code>
 `stat_exog_list` | <code>str list</code> | static exogenous columns. | <code>None</code>
+`cat_exog_list` | <code>str list</code> | exogenous columns (from `hist_exog_list` / `stat_exog_list`) to embed instead of scale. | <code>None</code>
+`categorical_cardinalities` | <code>[dict](#dict)</code> | mapping from each categorical column to its number of distinct categories. | <code>None</code>
+`cat_emb_dim` | <code>[str](#str) or [int](#int)</code> | categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer. | <code>'fastai'</code>
 `patch_len` | <code>[int](#int)</code> | length of patches. | <code>16</code>
 `hidden_size` | <code>[int](#int)</code> | dimension of the model. | <code>512</code>
 `n_heads` | <code>[int](#int)</code> | number of heads. | <code>8</code>
