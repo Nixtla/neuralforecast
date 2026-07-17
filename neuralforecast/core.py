@@ -1497,10 +1497,6 @@ class NeuralForecast:
         """
         if not self._fitted:
             raise Exception("You must fit the model before simulating.")
-        if self._has_categorical():
-            raise NotImplementedError(
-                "simulate() does not yet support models with categorical exogenous features."
-            )
         if not isinstance(n_paths, int) or n_paths < 1:
             raise ValueError(
                 f"`n_paths` must be a positive integer, got {n_paths!r}."
@@ -1514,6 +1510,13 @@ class NeuralForecast:
         # Distributed simulation for Spark DataFrames
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
+            # Categorical features need an in-memory (pandas/polars) frame to build
+            # embeddings, mirroring the restriction enforced in fit().
+            if self._has_categorical():
+                raise NotImplementedError(
+                    "Categorical exogenous features are only supported with pandas or "
+                    "polars DataFrames."
+                )
             return self._simulate_distributed(
                 df=df,
                 static_df=static_df,
@@ -1577,6 +1580,9 @@ class NeuralForecast:
             )
             futr_df = fcsts_df
 
+        # Encode categoricals with the vocabulary fitted on the training data
+        # (the df-provided path already encodes via _prepare_fit).
+        futr_df = self._encode_categoricals(futr_df)
         futr_dataset = dataset.align(
             futr_df,
             id_col=self.id_col,
