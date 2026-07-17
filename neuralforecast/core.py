@@ -1710,6 +1710,7 @@ class NeuralForecast:
             outputs (list of int, optional): List of outputs to explain for models with multiple outputs. Defaults to [0] (first output).
             series (list of int, optional): List of series indices to explain. If None, all series are explained. Defaults to None.
             explainer (str): Name of the explainer to use. Options are 'IntegratedGradients', 'ShapleyValueSampling', 'InputXGradient'. Defaults to 'IntegratedGradients'.
+                For categorical features, attributions are aggregated back to one value per feature by summing over the learned embedding dimensions. Note that 'ShapleyValueSampling' perturbs individual embedding dimensions, so its categorical attributions are approximate.
             df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`, `ds`, `y`] and exogenous variables.
             If a DataFrame is passed, it is used to generate forecasts.
             static_df (pandas, polars or spark DataFrame, optional): DataFrame with columns [`unique_id`] and static exogenous.
@@ -1727,11 +1728,6 @@ class NeuralForecast:
             explanations (dict): Dictionary of explanations for the predictions.
         """
         warnings.warn("This function is beta and subject to change.")
-
-        if self._has_categorical():
-            raise NotImplementedError(
-                "explain() does not yet support models with categorical exogenous features."
-            )
 
         if h is None:
             h_explain = self.h  # Default to model's training horizon
