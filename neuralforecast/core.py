@@ -139,8 +139,6 @@ def _as_distributed_file_uri(protocol: str, path: str) -> str:
     if protocol == "dbfs":
         dbfs_path = path if path.startswith("/") else f"/{path}"
         return _dbfs_path_for_pandas(f"dbfs:{dbfs_path}")
-    if path.startswith("/"):
-        return f"{protocol}://{path}"
     return f"{protocol}://{path}"
 
 
