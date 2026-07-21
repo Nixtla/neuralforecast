@@ -1627,25 +1627,44 @@ class NeuralForecast:
                     f"Models require future exogenous features: {needed_futr_exog}. "
                     "Please provide them through the `futr_df` argument."
                 )
-            fcsts_df = ufp.make_future_dataframe(
-                uids=uids,
-                last_times=last_dates,
-                freq=self.freq,
-                h=h,
-                id_col=self.id_col,
-                time_col=self.time_col,
-            )
-            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
-        else:
-            fcsts_df = ufp.make_future_dataframe(
-                uids=uids,
-                last_times=last_dates,
-                freq=self.freq,
-                h=h,
-                id_col=self.id_col,
-                time_col=self.time_col,
-            )
+            missing = needed_futr_exog - set(futr_df.columns)
+            if missing:
+                raise ValueError(
+                    f"The following features are missing from `futr_df`: {missing}"
+                )
+
+        fcsts_df = ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_dates,
+            freq=self.freq,
+            h=h,
+            id_col=self.id_col,
+            time_col=self.time_col,
+        )
+
+        # Update and define new forecasting dataset (mirrors predict()'s validation)
+        if futr_df is None:
             futr_df = fcsts_df
+        else:
+            futr_orig_rows = futr_df.shape[0]
+            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
+            if futr_df.shape[0] < fcsts_df.shape[0]:
+                if df is None:
+                    expected_cmd = "make_future_dataframe()"
+                    missing_cmd = "get_missing_future(futr_df)"
+                else:
+                    expected_cmd = "make_future_dataframe(df)"
+                    missing_cmd = "get_missing_future(futr_df, df)"
+                raise ValueError(
+                    "There are missing combinations of ids and times in `futr_df`.\n"
+                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                    f"the `{missing_cmd}` method to get the missing combinations."
+                )
+            if futr_orig_rows > futr_df.shape[0]:
+                dropped_rows = futr_orig_rows - futr_df.shape[0]
+                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
+            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
 
         # Encode categoricals with the vocabulary fitted on the training data
         # (the df-provided path already encodes via _prepare_fit).
