@@ -86,6 +86,80 @@ from .losses.pytorch import HuberIQLoss, IQLoss, sCRPS
 warnings.filterwarnings("ignore", category=pl.utilities.warnings.PossibleUserWarning)
 
 
+def _fsspec_entry_path(entry: Union[str, Dict[str, Any]]) -> str:
+    """Normalize an ``fs.ls`` entry to a path string.
+
+    Some filesystems (notably Databricks DBFS via fsspec) return detail dicts
+    from ``ls`` even when callers expect plain path strings.
+    """
+    if isinstance(entry, dict):
+        name = entry.get("name")
+        if name is None:
+            raise ValueError(f"Cannot determine path from fsspec ls entry: {entry}")
+        return name
+    return entry
+
+
+def _fsspec_listdir(fs, path: str) -> List[str]:
+    """List paths from fsspec, always returning path strings."""
+    try:
+        entries = fs.ls(path, detail=False)
+    except TypeError:
+        # Implementations that do not accept ``detail``
+        entries = fs.ls(path)
+    return [_fsspec_entry_path(entry) for entry in entries]
+
+
+def _dbfs_path_for_pandas(path: str) -> str:
+    """Prefer the Databricks ``/dbfs`` FUSE mount when available.
+
+    Spark commonly writes with ``dbfs:/...`` URIs while pandas on the driver
+    reads more reliably from ``/dbfs/...`` when that mount exists.
+    """
+    import os
+
+    if not path.startswith("dbfs:"):
+        return path
+
+    rest = path.split(":", 1)[1]
+    while rest.startswith("//"):
+        rest = rest[1:]
+    if not rest.startswith("/"):
+        rest = f"/{rest}"
+    fuse_path = rest if rest.startswith("/dbfs/") else f"/dbfs{rest}"
+    if os.path.isdir("/dbfs"):
+        return fuse_path
+    return path
+
+
+def _as_distributed_file_uri(protocol: str, path: str) -> str:
+    """Build a readable URI/path for a distributed parquet partition."""
+    if path.startswith("/dbfs/") or path.startswith("dbfs:") or "://" in path:
+        return _dbfs_path_for_pandas(path)
+    if protocol == "dbfs":
+        dbfs_path = path if path.startswith("/") else f"/{path}"
+        return _dbfs_path_for_pandas(f"dbfs:{dbfs_path}")
+    return f"{protocol}://{path}"
+
+
+def _list_distributed_parquet_files(fs, partitions_path: str) -> List[str]:
+    """List parquet partition files for distributed training.
+
+    Handles fsspec backends that return detail dicts from ``ls`` and normalizes
+    Databricks DBFS paths for pandas reads.
+    """
+    protocol = fs.protocol
+    if isinstance(protocol, tuple):
+        protocol = protocol[0]
+
+    files = []
+    for file in _fsspec_listdir(fs, partitions_path):
+        if not file.endswith("parquet"):
+            continue
+        files.append(_as_distributed_file_uri(protocol, file))
+    return files
+
+
 def _insample_times(
     times: np.ndarray,
     uids: Series,
@@ -520,14 +594,7 @@ class NeuralForecast:
         df = df.repartitionByRange(num_partitions, id_col)
         df.write.parquet(path=distributed_config.partitions_path, mode="overwrite")
         fs, _, _ = fsspec.get_fs_token_paths(distributed_config.partitions_path)
-        protocol = fs.protocol
-        if isinstance(protocol, tuple):
-            protocol = protocol[0]
-        files = [
-            f"{protocol}://{file}"
-            for file in fs.ls(distributed_config.partitions_path)
-            if file.endswith("parquet")
-        ]
+        files = _list_distributed_parquet_files(fs, distributed_config.partitions_path)
         return _FilesDataset(
             files=files,
             temporal_cols=temporal_cols,
@@ -2584,7 +2651,7 @@ class NeuralForecast:
             fs.makedirs(path)
         else:
             # Check if directory is empty to protect overwriting files
-            files = fs.ls(path)
+            files = _fsspec_listdir(fs, path)
 
             # Checking if the list is empty or not
             if files:
@@ -2685,7 +2752,9 @@ class NeuralForecast:
             path = path[:-1]
 
         fs, _, _ = fsspec.get_fs_token_paths(path)
-        files = [f.split("/")[-1] for f in fs.ls(path) if fs.isfile(f)]
+        files = [
+            f.split("/")[-1] for f in _fsspec_listdir(fs, path) if fs.isfile(f)
+        ]
 
         # Load models
         models_ckpt = [f for f in files if f.endswith(".ckpt")]
