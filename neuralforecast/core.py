@@ -960,6 +960,7 @@ class NeuralForecast:
             nf.time_col = time_col
             nf.target_col = target_col
             nf.scalers_ = {}
+            nf.static_scalers_ = {}
             nf._fitted = True
             if futr_exog_cols:
                 # if we have futr_exog we'll have extra rows with the future values
