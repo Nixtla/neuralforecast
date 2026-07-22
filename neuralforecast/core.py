@@ -1363,6 +1363,7 @@ class NeuralForecast:
             nf.time_col = time_col
             nf.target_col = target_col
             nf.scalers_ = {}
+            nf.static_scalers_ = {}
             nf._fitted = True
             if futr_exog_cols:
                 futr_rows = df[target_col].isnull()
