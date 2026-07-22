@@ -625,15 +625,97 @@ def test_explain_guard():
         nf.explain()
 
 
-def test_simulate_guard():
+def test_simulate_distribution_loss_with_futr_categorical():
+    # futr categorical: futr_df must be encoded with the fitted vocab before
+    # alignment, otherwise the raw string values crash the copula sampling.
+    df = _panel(cols=("dow",))
+    model = _model(
+        NHITS,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+        loss=DistributionLoss(distribution="Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    sims = nf.simulate(n_paths=5, futr_df=_futr_df())
+    assert sims.shape[0] == 4 * 6 * 5  # n_series * h * n_paths
+    assert np.isfinite(sims["NHITS"].to_numpy()).all()
+
+    # simulate() validates futr_df like predict(): a required (categorical)
+    # column missing from futr_df raises before alignment.
+    bad_futr = _futr_df().drop(columns=["dow"])
+    with pytest.raises(ValueError, match="missing from `futr_df`"):
+        nf.simulate(n_paths=5, futr_df=bad_futr)
+
+
+def test_simulate_point_loss_conformal_with_hist_categorical():
+    # Point-loss models simulate through the conformal path (_simulate_conformal),
+    # which reuses the conformity scores + vocabulary built during fit().
+    from neuralforecast.utils import PredictionIntervals
+
     df = _panel(cols=("city",))
     model = _model(
-        MLP,
+        NHITS,
         hist_exog_list=["city"],
         cat_exog_list=["city"],
         categorical_cardinalities={"city": 4},
     )
     nf = NeuralForecast(models=[model], freq=1)
-    nf.fit(df)
-    with pytest.raises(NotImplementedError, match="categorical"):
-        nf.simulate()
+    nf.fit(df, prediction_intervals=PredictionIntervals(n_windows=2))
+    sims = nf.simulate(n_paths=5)
+    assert sims.shape[0] == 4 * 6 * 5
+    assert np.isfinite(sims["NHITS"].to_numpy()).all()
+
+
+def test_simulate_static_categorical():
+    # Static categoricals are embedded and the stored (encoded) dataset is reused.
+    df = _panel(cols=())
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        NHITS,
+        stat_exog_list=["cluster"],
+        cat_exog_list=["cluster"],
+        categorical_cardinalities={"cluster": 3},
+        loss=DistributionLoss(distribution="Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    sims = nf.simulate(n_paths=5)
+    assert sims.shape[0] == 4 * 6 * 5
+    assert np.isfinite(sims["NHITS"].to_numpy()).all()
+
+
+def test_simulate_with_provided_df():
+    df = _panel(cols=("city", "dow"))
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        NHITS,
+        hist_exog_list=["city"],
+        futr_exog_list=["dow"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["city", "dow", "cluster"],
+        categorical_cardinalities={"city": 4, "dow": 7, "cluster": 3},
+        loss=DistributionLoss(distribution="Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+
+    futr = _futr_df()
+    sims_df = nf.simulate(
+        df=df, static_df=static_df, futr_df=futr, n_paths=5, seed=0
+    )
+    sims_stored = nf.simulate(futr_df=futr, n_paths=5, seed=0)
+
+    assert sims_df.shape[0] == 4 * 6 * 5
+    assert np.isfinite(sims_df["NHITS"].to_numpy()).all()
+    np.testing.assert_allclose(
+        sims_df["NHITS"].to_numpy(),
+        sims_stored["NHITS"].to_numpy(),
+        rtol=1e-5,
+        atol=1e-5,
+    )

@@ -1566,10 +1566,6 @@ class NeuralForecast:
         """
         if not self._fitted:
             raise Exception("You must fit the model before simulating.")
-        if self._has_categorical():
-            raise NotImplementedError(
-                "simulate() does not yet support models with categorical exogenous features."
-            )
         if not isinstance(n_paths, int) or n_paths < 1:
             raise ValueError(
                 f"`n_paths` must be a positive integer, got {n_paths!r}."
@@ -1583,6 +1579,13 @@ class NeuralForecast:
         # Distributed simulation for Spark DataFrames
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
+            # Categorical features need an in-memory (pandas/polars) frame to build
+            # embeddings, mirroring the restriction enforced in fit().
+            if self._has_categorical():
+                raise NotImplementedError(
+                    "Categorical exogenous features are only supported with pandas or "
+                    "polars DataFrames."
+                )
             return self._simulate_distributed(
                 df=df,
                 static_df=static_df,
@@ -1626,26 +1629,48 @@ class NeuralForecast:
                     f"Models require future exogenous features: {needed_futr_exog}. "
                     "Please provide them through the `futr_df` argument."
                 )
-            fcsts_df = ufp.make_future_dataframe(
-                uids=uids,
-                last_times=last_dates,
-                freq=self.freq,
-                h=h,
-                id_col=self.id_col,
-                time_col=self.time_col,
-            )
-            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
-        else:
-            fcsts_df = ufp.make_future_dataframe(
-                uids=uids,
-                last_times=last_dates,
-                freq=self.freq,
-                h=h,
-                id_col=self.id_col,
-                time_col=self.time_col,
-            )
-            futr_df = fcsts_df
+            missing = needed_futr_exog - set(futr_df.columns)
+            if missing:
+                raise ValueError(
+                    f"The following features are missing from `futr_df`: {missing}"
+                )
 
+        fcsts_df = ufp.make_future_dataframe(
+            uids=uids,
+            last_times=last_dates,
+            freq=self.freq,
+            h=h,
+            id_col=self.id_col,
+            time_col=self.time_col,
+        )
+
+        # Update and define new forecasting dataset (mirrors predict()'s validation)
+        if futr_df is None:
+            futr_df = fcsts_df
+        else:
+            futr_orig_rows = futr_df.shape[0]
+            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
+            if futr_df.shape[0] < fcsts_df.shape[0]:
+                if df is None:
+                    expected_cmd = "make_future_dataframe()"
+                    missing_cmd = "get_missing_future(futr_df)"
+                else:
+                    expected_cmd = "make_future_dataframe(df)"
+                    missing_cmd = "get_missing_future(futr_df, df)"
+                raise ValueError(
+                    "There are missing combinations of ids and times in `futr_df`.\n"
+                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                    f"the `{missing_cmd}` method to get the missing combinations."
+                )
+            if futr_orig_rows > futr_df.shape[0]:
+                dropped_rows = futr_orig_rows - futr_df.shape[0]
+                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
+            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
+                raise ValueError("Found null values in `futr_df`")
+
+        # Encode categoricals with the vocabulary fitted on the training data
+        # (the df-provided path already encodes via _prepare_fit).
+        futr_df = self._encode_categoricals(futr_df)
         futr_dataset = dataset.align(
             futr_df,
             id_col=self.id_col,
