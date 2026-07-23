@@ -1438,11 +1438,15 @@ class NeuralForecast:
 
         # df
         if isinstance(df, SparkDataFrame):
+            # A user-provided frame holds raw categories; encode it driver-side
+            # so it matches the integer-encoded parquet history.
+            df = self._encode_categoricals(df)
             repartition = True
         else:
             if engine is None:
                 raise ValueError("engine is required for distributed simulation")
             df = engine.read.parquet(*self.dataset.files)
+            # parquet history is already encoded at fit time
             repartition = False
 
         # static
@@ -1461,6 +1465,7 @@ class NeuralForecast:
                 raise ValueError(
                     f"The following static columns are missing from the static_df: {missing_static}"
                 )
+            static_df = self._encode_categoricals(static_df)
             df = df.join(static_df, on=[self.id_col], how="left")
 
         # exog
@@ -1473,6 +1478,7 @@ class NeuralForecast:
                 )
             if self.target_col in futr_df.columns:
                 raise ValueError("`futr_df` must not contain the target column.")
+            futr_df = self._encode_categoricals(futr_df)
             df = df.unionByName(futr_df, allowMissingColumns=True)
             repartition = True
 
@@ -1622,13 +1628,6 @@ class NeuralForecast:
         # Distributed simulation for Spark DataFrames
         is_files_dataset = isinstance(getattr(self, "dataset", None), _FilesDataset)
         if isinstance(df, SparkDataFrame) or (df is None and is_files_dataset):
-            # Categorical features need an in-memory (pandas/polars) frame to build
-            # embeddings, mirroring the restriction enforced in fit().
-            if self._has_categorical():
-                raise NotImplementedError(
-                    "Categorical exogenous features are only supported with pandas or "
-                    "polars DataFrames."
-                )
             return self._simulate_distributed(
                 df=df,
                 static_df=static_df,

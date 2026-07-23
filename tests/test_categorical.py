@@ -833,3 +833,31 @@ def test_distributed_fit_predict_with_categoricals(spark_session, tmp_path):
     preds = nf.predict(futr_df=spark_futr, engine=spark).toPandas()
     assert preds.shape[0] == 4 * 6
     assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
+def test_distributed_simulate_with_categoricals(spark_session, tmp_path):
+    # Distributed simulation works with categoricals too (a distribution-loss
+    # model, since point-loss conformal simulation needs prediction intervals,
+    # which distributed training does not support for any model).
+    from neuralforecast import DistributedConfig
+
+    spark = spark_session
+    pdf = _panel(cols=("dow",))  # 'dow' futr-cat
+    spark_df = spark.createDataFrame(pdf)
+
+    model = _model(
+        NHITS,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+        loss=DistributionLoss(distribution="Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    dist_cfg = DistributedConfig(
+        partitions_path=str(tmp_path / "sim_partitions"), num_nodes=1, devices=1
+    )
+    nf.fit(spark_df, distributed_config=dist_cfg)
+
+    spark_futr = spark.createDataFrame(_futr_df())
+    sims = nf.simulate(futr_df=spark_futr, engine=spark, n_paths=5).toPandas()
+    assert np.isfinite(sims["NHITS"].to_numpy()).all()
