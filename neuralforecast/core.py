@@ -414,7 +414,17 @@ class NeuralForecast:
         self.categorical_vocab_ = {}
         for col, max_card in self._get_categorical_exog().items():
             frame = static_df if (static_df is not None and col in static_df.columns) else df
-            if isinstance(frame, pl_DataFrame):
+            if isinstance(frame, SparkDataFrame):
+                from pyspark.sql import functions as spark_F
+
+                rows = (
+                    frame.select(col)
+                    .where(spark_F.col(col).isNotNull())
+                    .distinct()
+                    .collect()
+                )
+                uniques = [r[0] for r in rows]
+            elif isinstance(frame, pl_DataFrame):
                 uniques = frame.get_column(col).drop_nulls().unique().to_list()
             else:
                 uniques = frame[col].dropna().unique().tolist()
@@ -433,6 +443,22 @@ class NeuralForecast:
             return df
         cols = [c for c in self.categorical_vocab_ if c in df.columns]
         if not cols:
+            return df
+        if isinstance(df, SparkDataFrame):
+            from pyspark.sql import functions as spark_F
+
+            for col in cols:
+                vocab = self.categorical_vocab_[col]
+                mapping = spark_F.create_map(
+                    [spark_F.lit(x) for kv in vocab.items() for x in kv]
+                )
+                # Unseen / null categories map to 0 (the reserved OOV index).
+                df = df.withColumn(
+                    col,
+                    spark_F.coalesce(
+                        mapping[spark_F.col(col)], spark_F.lit(0)
+                    ).cast("long"),
+                )
             return df
         if isinstance(df, pl_DataFrame):
             import polars as pl
@@ -580,6 +606,14 @@ class NeuralForecast:
                 "Static scaling isn't supported in distributed. "
                 "Please open an issue if this would be valuable to you."
             )
+        # Categorical features are encoded to integer indices on the driver so
+        # the parquet partitions (read directly by the training workers) hold
+        # embeddable ints rather than raw strings.
+        if self._has_categorical():
+            self._build_categorical_vocab(df, static_df)
+            df = self._encode_categoricals(df)
+            if static_df is not None:
+                static_df = self._encode_categoricals(static_df)
         temporal_cols = [c for c in df.columns if c not in (id_col, time_col)]
         if static_df is not None:
             static_cols = [c for c in static_df.columns if c != id_col]
@@ -708,17 +742,18 @@ class NeuralForecast:
         self._cs_df: Optional[DataFrame] = None
         self.prediction_intervals: Optional[PredictionIntervals] = None
 
-        # Categorical exogenous features require an in-memory (pandas/polars)
-        # frame. `df=None` reuses the stored dataset and its existing vocabulary,
-        # so only distributed/file-based inputs are rejected here.
+        # Categorical exogenous features are supported for pandas/polars and
+        # spark DataFrames. `df=None` reuses the stored dataset and its existing
+        # vocabulary. Only the list-of-files input (read directly into tensors,
+        # so there is no encoding hook) is rejected here.
         if (
             self._has_categorical()
             and df is not None
-            and not isinstance(df, (pd.DataFrame, pl_DataFrame))
+            and not isinstance(df, (pd.DataFrame, pl_DataFrame, SparkDataFrame))
         ):
             raise NotImplementedError(
-                "Categorical exogenous features are only supported with pandas or "
-                "polars DataFrames."
+                "Categorical exogenous features are only supported with pandas, "
+                "polars or spark DataFrames (not a list of parquet files)."
             )
 
         # Process and save new dataset (in self)
@@ -765,6 +800,8 @@ class NeuralForecast:
                 raise ValueError(
                     "`static_df` must be a spark dataframe when `df` is a spark dataframe."
                 )
+            # Rebuild the categorical vocabulary from this training panel.
+            self.categorical_vocab_ = {}
             self.dataset = self._prepare_fit_distributed(
                 df=df,
                 static_df=static_df,
@@ -1051,11 +1088,15 @@ class NeuralForecast:
 
         # df
         if isinstance(df, SparkDataFrame):
+            # A user-provided frame holds raw categories; encode it driver-side
+            # so it matches the integer-encoded parquet history.
+            df = self._encode_categoricals(df)
             repartition = True
         else:
             if engine is None:
                 raise ValueError("engine is required for distributed inference")
             df = engine.read.parquet(*self.dataset.files)
+            # parquet history is already encoded at fit time
             # we save the datataset with partitioning
             repartition = False
 
@@ -1075,6 +1116,7 @@ class NeuralForecast:
                 raise ValueError(
                     f"The following static columns are missing from the static_df: {missing_static}"
                 )
+            static_df = self._encode_categoricals(static_df)
             # join is supposed to preserve the partitioning
             df = df.join(static_df, on=[self.id_col], how="left")
 
@@ -1088,6 +1130,7 @@ class NeuralForecast:
                 )
             if self.target_col in futr_df.columns:
                 raise ValueError("`futr_df` must not contain the target column.")
+            futr_df = self._encode_categoricals(futr_df)
             # df has the statics, historic exog and target at this point, futr_df doesnt
             df = df.unionByName(futr_df, allowMissingColumns=True)
             # union doesn't guarantee preserving the partitioning
