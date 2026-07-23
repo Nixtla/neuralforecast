@@ -611,18 +611,76 @@ def test_auto_model_with_categoricals_runs():
     assert np.isfinite(preds["AutoMLP"].to_numpy()).all()
 
 
-def test_explain_guard():
-    df = _panel(cols=("city",))
+@pytest.mark.parametrize(
+    "explainer",
+    ["IntegratedGradients", "InputXGradient", "ShapleyValueSampling"],
+)
+def test_explain_categoricals_aggregate_to_feature(explainer):
+    # Attributions over the embedded axis are summed back to one value per
+    # original feature, so the feature axis matches `hist_exog_list` /
+    # `futr_exog_list` (1 each here) rather than the embedding dim (5).
+    pytest.importorskip("captum")
+    df = _panel(cols=("city", "dow"))
     model = _model(
         MLP,
         hist_exog_list=["city"],
-        cat_exog_list=["city"],
-        categorical_cardinalities={"city": 4},
+        futr_exog_list=["dow"],
+        cat_exog_list=["city", "dow"],
+        categorical_cardinalities={"city": 4, "dow": 7},
+        cat_emb_dim=5,
     )
     nf = NeuralForecast(models=[model], freq=1)
     nf.fit(df)
-    with pytest.raises(NotImplementedError, match="categorical"):
-        nf.explain()
+    _, explanations = nf.explain(futr_df=_futr_df(), explainer=explainer)
+    hist = explanations["MLP"]["hist_exog"]  # [b, h, series, out, n_features, temporal]
+    futr = explanations["MLP"]["futr_exog"]
+    assert hist.shape[-2] == 1  # 'city' collapsed from emb_dim 5 -> 1 feature
+    assert futr.shape[-2] == 1  # 'dow'  collapsed from emb_dim 5 -> 1 feature
+    assert np.isfinite(hist.numpy()).all()
+    assert np.isfinite(futr.numpy()).all()
+
+
+def test_explain_mixed_continuous_and_categorical():
+    # Continuous feature keeps its own attribution; the categorical one collapses,
+    # so a hist stream of [temp, city] yields 2 feature attributions (not 1 + 5).
+    pytest.importorskip("captum")
+    df = _panel(cols=("city",))
+    df["temp"] = np.arange(len(df), dtype=float) % 10
+    model = _model(
+        MLP,
+        hist_exog_list=["temp", "city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": 4},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df)
+    assert nf.models[0].hist_exog_size == 1 + 5  # embedded size
+    _, explanations = nf.explain()
+    hist = explanations["MLP"]["hist_exog"]
+    assert hist.shape[-2] == 2  # temp + city
+    assert np.isfinite(hist.numpy()).all()
+
+
+def test_explain_static_categorical():
+    pytest.importorskip("captum")
+    df = _panel(cols=())
+    static_df = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        MLP,
+        stat_exog_list=["cluster"],
+        cat_exog_list=["cluster"],
+        categorical_cardinalities={"cluster": 3},
+        cat_emb_dim=5,
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    _, explanations = nf.explain()
+    stat = explanations["MLP"]["stat_exog"]  # [..., n_static_features]
+    assert stat.shape[-1] == 1  # 'cluster' collapsed from emb_dim 5 -> 1 feature
+    assert np.isfinite(stat.numpy()).all()
 
 
 def test_simulate_distribution_loss_with_futr_categorical():

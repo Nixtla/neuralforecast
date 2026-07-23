@@ -2585,6 +2585,40 @@ class BaseModel(pl.LightningModule):
 
         return y_hat[:, output_horizon, output_series, output_index]
 
+    def _cat_attr_groups(self, exog_list, cat_exog_list):
+        """Embedded-column groups per original feature, in ``exog_list`` order.
+
+        Mirrors the layout produced by ``_embed_stream`` (continuous features
+        first, then each categorical feature's embedding block). Returns a list
+        of ``(start, length)`` slices into the embedded feature axis, one per
+        original feature.
+        """
+        cont_cols = [c for c in exog_list if c not in cat_exog_list]
+        starts = {c: i for i, c in enumerate(cont_cols)}
+        offset = len(cont_cols)
+        for c in cat_exog_list:
+            starts[c] = offset
+            offset += self._cat_emb_dim(c)
+        return [
+            (starts[c], self._cat_emb_dim(c) if c in cat_exog_list else 1)
+            for c in exog_list
+        ]
+
+    def _reduce_cat_attr(self, attr, exog_list, cat_exog_list, axis):
+        """Sum embedding-dim attributions back to one value per original feature.
+
+        ``attr`` has an embedded feature axis (continuous + per-category
+        embeddings) at ``axis``; the returned tensor has that axis reduced to
+        ``len(exog_list)``. Inert when the stream has no categorical features.
+        """
+        if not cat_exog_list:
+            return attr
+        pieces = [
+            attr.narrow(axis, start, length).sum(dim=axis, keepdim=True)
+            for start, length in self._cat_attr_groups(exog_list, cat_exog_list)
+        ]
+        return torch.cat(pieces, dim=axis)
+
     def _explain_batch(
         self,
         insample_y,
@@ -2644,13 +2678,13 @@ class BaseModel(pl.LightningModule):
             if futr_exog is not None:
                 if futr_exog.ndim == 3:
                     futr_exog_explanations = torch.empty(
-                        size=(*empty_shape, futr_exog.shape[1], futr_exog.shape[2]),
+                        size=(*empty_shape, futr_exog.shape[1], len(self.futr_exog_list)),
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
                 else:  # multivariate: [Ws, F, L+h, n_series]
                     futr_exog_explanations = torch.empty(
-                        size=(*empty_shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
+                        size=(*empty_shape, len(self.futr_exog_list), futr_exog.shape[2], futr_exog.shape[3]),
                         device=futr_exog.device,
                         dtype=futr_exog.dtype,
                     )
@@ -2660,13 +2694,13 @@ class BaseModel(pl.LightningModule):
             if hist_exog is not None:
                 if hist_exog.ndim == 3:
                     hist_exog_explanations = torch.empty(
-                        size=(*empty_shape, hist_exog.shape[1], hist_exog.shape[2]),
+                        size=(*empty_shape, hist_exog.shape[1], len(self.hist_exog_list)),
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
                 else:  # multivariate: [Ws, X, L, n_series]
                     hist_exog_explanations = torch.empty(
-                        size=(*empty_shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
+                        size=(*empty_shape, len(self.hist_exog_list), hist_exog.shape[2], hist_exog.shape[3]),
                         device=hist_exog.device,
                         dtype=hist_exog.dtype,
                     )
@@ -2675,13 +2709,13 @@ class BaseModel(pl.LightningModule):
             if stat_exog is not None:
                 if self.MULTIVARIATE:
                     stat_exog_explanations = torch.empty(
-                        size=(*empty_shape, stat_exog.shape[0], stat_exog.shape[1]),
+                        size=(*empty_shape, stat_exog.shape[0], len(self.stat_exog_list)),
                         device=stat_exog.device,
                         dtype=stat_exog.dtype,
                     )
                 else:
                     stat_exog_explanations = torch.empty(
-                        size=(*empty_shape, stat_exog.shape[1]),
+                        size=(*empty_shape, len(self.stat_exog_list)),
                         device=stat_exog.device,
                         dtype=stat_exog.dtype,
                     )
@@ -2736,14 +2770,16 @@ class BaseModel(pl.LightningModule):
             param_positions["futr_exog"] = pos
             pos += 1
             if futr_exog.ndim == 3:
+                # Categorical features collapse the embedded axis back to one
+                # attribution per original feature.
                 futr_exog_explanations = torch.empty(
-                    size=(*shape, futr_exog.shape[1], futr_exog.shape[2]),
+                    size=(*shape, futr_exog.shape[1], len(self.futr_exog_list)),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
             else:  # multivariate: [Ws, F, L+h, n_series]
                 futr_exog_explanations = torch.empty(
-                    size=(*shape, futr_exog.shape[1], futr_exog.shape[2], futr_exog.shape[3]),
+                    size=(*shape, len(self.futr_exog_list), futr_exog.shape[2], futr_exog.shape[3]),
                     device=futr_exog.device,
                     dtype=futr_exog.dtype,
                 )
@@ -2756,13 +2792,13 @@ class BaseModel(pl.LightningModule):
             pos += 1
             if hist_exog.ndim == 3:
                 hist_exog_explanations = torch.empty(
-                    size=(*shape, hist_exog.shape[1], hist_exog.shape[2]),
+                    size=(*shape, hist_exog.shape[1], len(self.hist_exog_list)),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
             else:  # multivariate: [Ws, X, L, n_series]
                 hist_exog_explanations = torch.empty(
-                    size=(*shape, hist_exog.shape[1], hist_exog.shape[2], hist_exog.shape[3]),
+                    size=(*shape, len(self.hist_exog_list), hist_exog.shape[2], hist_exog.shape[3]),
                     device=hist_exog.device,
                     dtype=hist_exog.dtype,
                 )
@@ -2775,7 +2811,7 @@ class BaseModel(pl.LightningModule):
                 stat_exog_flat = stat_exog.reshape(1, -1).requires_grad_()
                 input_batch = input_batch + (stat_exog_flat,)
                 stat_exog_explanations = torch.empty(
-                    size=(*shape, stat_exog.shape[0], stat_exog.shape[1]),
+                    size=(*shape, stat_exog.shape[0], len(self.stat_exog_list)),
                     device=stat_exog.device,
                     dtype=stat_exog.dtype,
                 )
@@ -2783,7 +2819,7 @@ class BaseModel(pl.LightningModule):
                 stat_exog.requires_grad_()
                 input_batch = input_batch + (stat_exog,)
                 stat_exog_explanations = torch.empty(
-                    size=(*shape, stat_exog.shape[1]),
+                    size=(*shape, len(self.stat_exog_list)),
                     device=stat_exog.device,
                     dtype=stat_exog.dtype,
                 )
@@ -2869,21 +2905,43 @@ class BaseModel(pl.LightningModule):
                         insample_explanations[:, i, j, k, :, 0] = attributions[0].squeeze(-1)
                         insample_explanations[:, i, j, k, :, 1] = attributions[1].squeeze(-1)
 
+                    # The embedded feature axis is last for univariate exog
+                    # ([.., temporal, features]) and axis 1 for multivariate
+                    # ([Ws, features, temporal, n_series]).
+                    exog_feat_axis = 1 if self.MULTIVARIATE else -1
+
                     if "futr_exog" in param_positions:
                         futr_exog_attr = attributions[param_positions["futr_exog"]]
+                        futr_exog_attr = self._reduce_cat_attr(
+                            futr_exog_attr,
+                            self.futr_exog_list,
+                            self.futr_cat_exog_list,
+                            exog_feat_axis,
+                        )
                         futr_exog_explanations[:, i, j, k] = futr_exog_attr
 
                     if "hist_exog" in param_positions:
                         hist_exog_attr = attributions[param_positions["hist_exog"]]
+                        hist_exog_attr = self._reduce_cat_attr(
+                            hist_exog_attr,
+                            self.hist_exog_list,
+                            self.hist_cat_exog_list,
+                            exog_feat_axis,
+                        )
                         hist_exog_explanations[:, i, j, k] = hist_exog_attr
 
                     if "stat_exog" in param_positions:
                         stat_exog_attr = attributions[param_positions["stat_exog"]]
                         if self.MULTIVARIATE:
                             # captum returns [1, n_series * S]; reshape to [1, n_series, S]
-                            stat_exog_explanations[:, i, j, k] = stat_exog_attr.reshape(-1, *stat_exog.shape)
-                        else:
-                            stat_exog_explanations[:, i, j, k] = stat_exog_attr
+                            stat_exog_attr = stat_exog_attr.reshape(-1, *stat_exog.shape)
+                        stat_exog_attr = self._reduce_cat_attr(
+                            stat_exog_attr,
+                            self.stat_exog_list,
+                            self.stat_cat_exog_list,
+                            -1,
+                        )
+                        stat_exog_explanations[:, i, j, k] = stat_exog_attr
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
