@@ -213,6 +213,13 @@ class Informer(BaseModel):
         encoder_layers (int): number of layers for the TCN encoder.
         decoder_layers (int): number of layers for the MLP decoder.
         distil (bool): wether the Informer decoder uses bottlenecks.
+        temporal_embedding (str): temporal encoder for exogenous features.
+            ``"native"`` (default) uses a linear projection (``TimeFeatureEmbedding``).
+            ``"torchembed"`` uses composable cyclic (sin/cos) encoders from the
+            `torchembed <https://github.com/liodon-ai/torchembed>`_ library,
+            which produces periodic representations that are invariant to cyclic
+            shifts — better suited for calendar features such as hour-of-day or
+            day-of-week.  Requires ``pip install torchembed>=0.3.1``.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
         valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
@@ -270,6 +277,7 @@ class Informer(BaseModel):
         encoder_layers: int = 2,
         decoder_layers: int = 1,
         distil: bool = True,
+        temporal_embedding: str = "native",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5000,
@@ -355,6 +363,7 @@ class Informer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=True,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
@@ -362,6 +371,7 @@ class Informer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=True,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
 
         # Encoder
