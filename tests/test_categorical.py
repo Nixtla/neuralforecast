@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -781,6 +783,10 @@ def test_simulate_with_provided_df():
 
 @pytest.fixture(scope="module")
 def spark_session():
+    if sys.platform == "win32":
+        # Spark needs a Hadoop/winutils setup on Windows (HADOOP_HOME); the
+        # distributed suite is not run there.
+        pytest.skip("Distributed (Spark) tests are not run on Windows.")
     pytest.importorskip("pyspark")
     pytest.importorskip("fugue")
     from pyspark.sql import SparkSession
