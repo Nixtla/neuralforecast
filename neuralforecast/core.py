@@ -1486,9 +1486,20 @@ class NeuralForecast:
             df = df.repartitionByRange(df.rdd.getNumPartitions(), self.id_col)
 
         # simulate
+        # simulate() emits one sample-path column per model (named by repr(model),
+        # deduplicated), not the quantile-expanded names from _get_model_names().
+        base_model_names: List[str] = []
+        count_names = {"model": 0}
+        for model in self.models:
+            name = repr(model)
+            count_names[name] = count_names.get(name, -1) + 1
+            if count_names[name] > 0:
+                name += str(count_names[name])
+            base_model_names.append(name)
+
         base_schema = fa.get_schema(df).extract([self.id_col, self.time_col])
         models_schema = {"sample_id": "int"}
-        models_schema.update({model: "float" for model in self._get_model_names()})
+        models_schema.update({name: "float" for name in base_model_names})
         return fa.transform(
             df=df,
             using=_simulate,
