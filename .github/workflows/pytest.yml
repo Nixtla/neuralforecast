@@ -27,7 +27,7 @@ jobs:
             python-version: '3.13'
     steps:
       - name: Clone repo
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
 
       - uses: actions/setup-python@v7
         with:
