@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -777,3 +779,91 @@ def test_simulate_with_provided_df():
         rtol=1e-5,
         atol=1e-5,
     )
+
+
+@pytest.fixture(scope="module")
+def spark_session():
+    if sys.platform == "win32":
+        # Spark needs a Hadoop/winutils setup on Windows (HADOOP_HOME); the
+        # distributed suite is not run there.
+        pytest.skip("Distributed (Spark) tests are not run on Windows.")
+    pytest.importorskip("pyspark")
+    pytest.importorskip("fugue")
+    from pyspark.sql import SparkSession
+
+    try:
+        spark = (
+            SparkSession.builder.master("local[1]")
+            .config("spark.sql.shuffle.partitions", "1")
+            .getOrCreate()
+        )
+    except Exception as e:  # e.g. no Java runtime available
+        pytest.skip(f"Could not start a local SparkSession: {e}")
+    yield spark
+    spark.stop()
+
+
+def test_distributed_fit_predict_with_categoricals(spark_session, tmp_path):
+    # Distributed (Spark) fit builds the vocabulary from the Spark frame and
+    # encodes it driver-side before writing parquet; predict encodes the futr /
+    # static frames driver-side before the union / join. Workers never encode.
+    from neuralforecast import DistributedConfig
+
+    spark = spark_session
+    pdf = _panel(cols=("city", "dow"))  # 'city' hist-cat, 'dow' futr-cat
+    static_pdf = pd.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    spark_df = spark.createDataFrame(pdf)
+    spark_static = spark.createDataFrame(static_pdf)
+
+    model = _model(
+        MLP,
+        hist_exog_list=["city"],
+        futr_exog_list=["dow"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["city", "dow", "cluster"],
+        categorical_cardinalities={"city": 4, "dow": 7, "cluster": 3},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    dist_cfg = DistributedConfig(
+        partitions_path=str(tmp_path / "partitions"), num_nodes=1, devices=1
+    )
+    nf.fit(spark_df, static_df=spark_static, distributed_config=dist_cfg)
+
+    # Vocabulary was built distributedly from the Spark frames.
+    assert set(nf.categorical_vocab_) == {"city", "dow", "cluster"}
+    assert nf.categorical_vocab_["cluster"] == {"A": 1, "B": 2, "C": 3}
+
+    spark_futr = spark.createDataFrame(_futr_df())
+    preds = nf.predict(futr_df=spark_futr, engine=spark).toPandas()
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+
+def test_distributed_simulate_with_categoricals(spark_session, tmp_path):
+    # Distributed simulation works with categoricals too (a distribution-loss
+    # model, since point-loss conformal simulation needs prediction intervals,
+    # which distributed training does not support for any model).
+    from neuralforecast import DistributedConfig
+
+    spark = spark_session
+    pdf = _panel(cols=("dow",))  # 'dow' futr-cat
+    spark_df = spark.createDataFrame(pdf)
+
+    model = _model(
+        NHITS,
+        futr_exog_list=["dow"],
+        cat_exog_list=["dow"],
+        categorical_cardinalities={"dow": 7},
+        loss=DistributionLoss(distribution="Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    dist_cfg = DistributedConfig(
+        partitions_path=str(tmp_path / "sim_partitions"), num_nodes=1, devices=1
+    )
+    nf.fit(spark_df, distributed_config=dist_cfg)
+
+    spark_futr = spark.createDataFrame(_futr_df())
+    sims = nf.simulate(futr_df=spark_futr, engine=spark, n_paths=5).toPandas()
+    assert np.isfinite(sims["NHITS"].to_numpy()).all()
