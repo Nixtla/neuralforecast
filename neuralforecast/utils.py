@@ -781,7 +781,7 @@ def gaussian_copula_sample(
         seed: random seed.
 
     Returns:
-        simulations: (n_series, n_paths, H) tensor (float64).
+        simulations: (n_series, n_paths, H) tensor, dtype of `quantile_values`.
     """
     gen = torch.Generator()
     if seed is not None:
@@ -851,6 +851,14 @@ def schaake_shuffle_sample(
     Draws independent uniform samples per horizon step, maps them through
     each step's marginal CDF (via quantile interpolation), then reorders
     them to match the rank structure of historical trajectory templates.
+    Ranks are compared across paths within each horizon step, so the reordering
+    leaves every step's marginal distribution untouched and only induces the
+    cross-step dependence observed in the history.
+
+    Templates are the length-`H` rolling windows of each series' history. They
+    are drawn without replacement when at least `n_paths` windows exist, and
+    with replacement otherwise (a short history therefore yields duplicated,
+    less diverse templates).
 
     The uniform draw and CDF inversion are batched across all series. The
     template extraction loop remains per-series because each series may have
@@ -859,12 +867,16 @@ def schaake_shuffle_sample(
     Args:
         quantile_positions: (Q,) sorted quantile levels in (0, 1), tensor.
         quantile_values: (n_series, H, Q) quantile forecast values, tensor.
-        y_hist: list of 1-D tensors, historical values per series.
+        y_hist: list of 1-D tensors, historical values per series. NaNs are
+            dropped per series before templates are extracted.
         n_paths: number of sample paths.
         seed: random seed.
 
     Returns:
-        simulations: (n_series, n_paths, H) tensor (float64).
+        simulations: (n_series, n_paths, H) tensor, dtype of `quantile_values`.
+
+    Raises:
+        ValueError: if a series has fewer than `H` non-NaN historical values.
     """
     gen = torch.Generator()
     if seed is not None:
@@ -917,13 +929,19 @@ def schaake_shuffle_sample(
         all_windows = yi_clean.unfold(0, H, 1)  # (max_start, H)
         templates = all_windows[start_indices].T  # (H, n_paths)
 
-        # Reorder raw samples to match the rank structure of each template
+        # Reorder raw samples to match the rank structure of each template.
+        # Ranks are taken across paths within each horizon step (dim=1), so
+        # each row of template_ranks is a permutation of 0..n_paths-1 (ties
+        # broken by index). Gather, not scatter: the sample at rank r must land
+        # on the path whose template rank is r, i.e.
+        #     reordered[h, p] = sorted_samples[h, template_ranks[h, p]]
+        # Scattering instead applies the inverse permutation, which preserves
+        # each step's marginal but destroys the cross-step dependence.
         template_ranks = torch.argsort(
             torch.argsort(templates, dim=1), dim=1
         )  # (H, n_paths)
         sorted_samples = torch.sort(raw_samples, dim=1).values  # (H, n_paths)
-        reordered = torch.empty_like(raw_samples)
-        reordered.scatter_(1, template_ranks, sorted_samples)
+        reordered = torch.gather(sorted_samples, dim=1, index=template_ranks)
 
         simulations[i] = reordered.T  # (n_paths, H)
 
