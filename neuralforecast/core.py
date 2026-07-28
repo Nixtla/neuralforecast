@@ -1612,7 +1612,11 @@ class NeuralForecast:
             quantiles (list of float, optional): Quantile grid for marginals.
                 Defaults to ``[0.01, 0.02, ..., 0.99]``.
             seed (int, optional): Random seed for reproducibility.
-            method (str): Simulation method. Default: ``"gaussian_copula"``.
+            method (str): Simulation method, one of ``"gaussian_copula"``
+                (parametric AR(1) dependence) or ``"schaake_shuffle"``
+                (nonparametric dependence from historical templates, which
+                requires at least ``h`` non-NaN historical values per series).
+                Default: ``"gaussian_copula"``.
             verbose (bool): Print progress information.
             engine (spark session): Distributed engine for simulation. Only used
                 if df is a spark dataframe or if fit was called on a spark

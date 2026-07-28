@@ -2413,7 +2413,11 @@ class BaseModel(pl.LightningModule):
                 Defaults to ``[0.01, 0.02, ..., 0.99]``.
                 For ``MQLoss``/``HuberMQLoss``, the model's trained quantiles
                 are used automatically.
-            method (str): Simulation method. Default: ``"gaussian_copula"``.
+            method (str): Simulation method, one of ``"gaussian_copula"``
+                (parametric AR(1) dependence) or ``"schaake_shuffle"``
+                (nonparametric dependence from historical templates, which
+                requires at least ``h`` non-NaN historical values per series).
+                Default: ``"gaussian_copula"``.
             **data_module_kwargs: Extra arguments for ``TimeSeriesDataModule``.
 
         Returns:

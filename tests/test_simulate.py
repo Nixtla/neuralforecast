@@ -801,7 +801,11 @@ class TestSchaakeShuffleSample:
         n_series, H, n_paths = 2, 4, 10
         qp = torch.linspace(0.1, 0.9, Q)
         qv = torch.randn(n_series, H, Q, dtype=torch.float64).cumsum(dim=-1)
-        y_hist = [torch.randn(20, dtype=torch.float64) for _ in range(n_series)]
+        gen = torch.Generator().manual_seed(0)
+        y_hist = [
+            torch.randn(20, generator=gen, dtype=torch.float64)
+            for _ in range(n_series)
+        ]
         result = schaake_shuffle_sample(qp, qv, y_hist, n_paths, seed=42)
         assert result.shape == (n_series, n_paths, H)
 
@@ -812,7 +816,8 @@ class TestSchaakeShuffleSample:
         Q = 5
         qp = torch.linspace(0.1, 0.9, Q)
         qv = torch.randn(1, 3, Q, dtype=torch.float64).cumsum(dim=-1)
-        y_hist = [torch.randn(20, dtype=torch.float64)]
+        gen = torch.Generator().manual_seed(0)
+        y_hist = [torch.randn(20, generator=gen, dtype=torch.float64)]
         r1 = schaake_shuffle_sample(qp, qv, y_hist, 5, seed=42)
         r2 = schaake_shuffle_sample(qp, qv, y_hist, 5, seed=42)
         torch.testing.assert_close(r1, r2)
@@ -825,16 +830,66 @@ class TestSchaakeShuffleSample:
         H = 10
         qp = torch.linspace(0.1, 0.9, Q)
         qv = torch.randn(1, H, Q, dtype=torch.float64).cumsum(dim=-1)
-        y_hist = [torch.randn(5, dtype=torch.float64)]  # 5 < 10
+        gen = torch.Generator().manual_seed(0)
+        y_hist = [torch.randn(5, generator=gen, dtype=torch.float64)]  # 5 < 10
         with pytest.raises(ValueError, match="shorter than horizon"):
             schaake_shuffle_sample(qp, qv, y_hist, 3, seed=0)
 
+    def test_reorder_direction_is_gather_not_scatter(self, monkeypatch):
+        """Each path must carry the rank vector of *its own* template.
+
+        Pinning the template draw to the identity permutation makes the expected
+        output exact: path ``p`` gets window ``p``, so the output rank matrix
+        must equal the template rank matrix element-wise. This is the property
+        that distinguishes the correct reordering from its inverse -- scattering
+        ``sorted_samples`` into ``template_ranks`` instead of gathering from it
+        yields the inverse permutation per step, which preserves each step's
+        marginal and so passes shape/NaN/quantile checks.
+
+        The history is deliberately non-monotone: for a monotone history every
+        window's rank vector is the identity, which is its own inverse, and both
+        the correct and the inverted reordering would agree.
+        """
+        from neuralforecast.utils import schaake_shuffle_sample
+
+        monkeypatch.setattr(
+            torch, "randperm", lambda n, generator=None: torch.arange(n)
+        )
+
+        Q = 99
+        H = 3
+        T = 40
+        n_paths = T - H + 1  # == max_start, so templates are drawn without
+        qp = torch.linspace(0.01, 0.99, Q)  # replacement: every window once
+        # Monotonically increasing quantile values per step
+        qv = torch.linspace(0, 100, Q).unsqueeze(0).unsqueeze(0).expand(
+            1, H, Q
+        ).clone().to(torch.float64)
+        gen = torch.Generator().manual_seed(0)
+        y = torch.randn(T, generator=gen, dtype=torch.float64).cumsum(0)
+        result = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=42)
+        assert result.shape == (1, n_paths, H)
+        assert not torch.any(torch.isnan(result))
+
+        def ranks(x):  # (H, n_paths) -> ranks across paths, per step
+            return torch.argsort(torch.argsort(x, dim=1), dim=1)
+
+        templates = y.unfold(0, H, 1).T  # (H, n_paths): every window, in order
+        # Guard the fixture: a rank structure that is its own inverse would make
+        # this test blind to the direction of the reordering.
+        assert not torch.equal(
+            ranks(templates), torch.argsort(templates, dim=1)
+        ), "history is too monotone to distinguish a permutation from its inverse"
+        assert torch.equal(ranks(result[0].T), ranks(templates))
+
     def test_rank_structure_preserved(self):
-        """Output rank vectors must reproduce the historical template ranks.
+        """The set of paths must reproduce the set of historical templates.
 
         With ``n_paths == max_start`` every window is used exactly once, so the
         multiset of per-path rank vectors is fully determined by the history and
-        does not depend on the order the templates were drawn in.
+        does not depend on the order the templates were drawn in. Unlike
+        ``test_reorder_direction_is_gather_not_scatter`` this makes no
+        assumption about which path receives which template.
         """
         from neuralforecast.utils import schaake_shuffle_sample
 
@@ -861,12 +916,48 @@ class TestSchaakeShuffleSample:
         templates = y.unfold(0, H, 1).T  # (H, n_paths): every window, in order
         assert rank_vectors(result[0].T) == rank_vectors(templates)
 
+    def test_marginals_preserved(self):
+        """Reordering must permute the draws of each step, never alter them.
+
+        The other half of the Schaake contract: the shuffle induces temporal
+        dependence without disturbing any horizon step's marginal distribution.
+        """
+        from neuralforecast.utils import schaake_shuffle_sample
+
+        Q = 99
+        H = 3
+        T = 40
+        n_paths = T - H + 1
+        qp = torch.linspace(0.01, 0.99, Q)
+        qv = torch.linspace(0, 100, Q).unsqueeze(0).unsqueeze(0).expand(
+            1, H, Q
+        ).clone().to(torch.float64)
+        gen = torch.Generator().manual_seed(0)
+        y = torch.randn(T, generator=gen, dtype=torch.float64).cumsum(0)
+        shuffled = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=42)[0]
+
+        # The uniform draws are made before any history-dependent code runs, so
+        # the same seed gives the same draws for a different history. A monotone
+        # history yields identity rank templates, i.e. the sorted draws
+        # themselves -- the reference multiset for each step.
+        y_monotone = torch.arange(T, dtype=torch.float64)
+        reference = schaake_shuffle_sample(
+            qp, qv, [y_monotone], n_paths, seed=42
+        )[0]
+        for h in range(H):
+            torch.testing.assert_close(
+                torch.sort(shuffled[:, h]).values,
+                torch.sort(reference[:, h]).values,
+            )
+
     def test_temporal_dependence_matches_history(self):
         """Paths must inherit the step-to-step rank dependence of the history.
 
         A random-walk history has near-perfectly rank-correlated consecutive
         steps; reordering by its templates must carry that into the paths.
-        Independent marginals alone would give a rank correlation near zero.
+        Independent marginals alone would give a rank correlation near zero,
+        and so does the inverse reordering, since it re-pairs each step's ranks
+        across paths independently.
         """
         from neuralforecast.utils import schaake_shuffle_sample
 
@@ -878,7 +969,10 @@ class TestSchaakeShuffleSample:
             1, H, Q
         ).clone().to(torch.float64)
         gen = torch.Generator().manual_seed(0)
-        y = torch.randn(n_paths + H, generator=gen, dtype=torch.float64).cumsum(0)
+        # n_paths + H - 1 observations give exactly n_paths windows
+        y = torch.randn(
+            n_paths + H - 1, generator=gen, dtype=torch.float64
+        ).cumsum(0)
         result = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=42)[0]
 
         def spearman(a, b):
@@ -890,16 +984,58 @@ class TestSchaakeShuffleSample:
             assert spearman(result[:, 0], result[:, lag]) > 0.9
 
     def test_history_equals_horizon(self):
-        """Edge case: history length exactly equals horizon."""
+        """Edge case: history length exactly equals horizon.
+
+        Only one window exists, so ``max_start < n_paths`` and templates are
+        drawn with replacement -- every path reuses that single template. Ranks
+        are taken across paths within a step, so a template that is constant
+        across paths carries no cross-path information and the result degenerates
+        to comonotone paths: path ``p`` gets the ``p``-th smallest draw at every
+        step. This is inherent to having a single template, not a defect.
+        """
         from neuralforecast.utils import schaake_shuffle_sample
 
         Q = 5
         H = 4
+        n_paths = 3
         qp = torch.linspace(0.1, 0.9, Q)
         qv = torch.randn(1, H, Q, dtype=torch.float64).cumsum(dim=-1)
-        y_hist = [torch.randn(H, dtype=torch.float64)]  # exactly H
-        result = schaake_shuffle_sample(qp, qv, y_hist, 3, seed=0)
-        assert result.shape == (1, 3, H)
+        gen = torch.Generator().manual_seed(0)
+        y_hist = [torch.randn(H, generator=gen, dtype=torch.float64)]  # exactly H
+        result = schaake_shuffle_sample(qp, qv, y_hist, n_paths, seed=0)
+        assert result.shape == (1, n_paths, H)
+
+        ranks = torch.argsort(torch.argsort(result[0].T, dim=1), dim=1)
+        identity = torch.arange(n_paths).expand(H, n_paths)
+        assert torch.equal(ranks, identity)
+
+    def test_nan_history_filtered(self):
+        """NaNs in the history are dropped, and the length check uses the rest.
+
+        A series padded with NaNs must behave exactly like the same series
+        without them, and the ``ValueError`` must fire on the filtered length.
+        """
+        from neuralforecast.utils import schaake_shuffle_sample
+
+        Q = 5
+        H = 3
+        n_paths = 4
+        qp = torch.linspace(0.1, 0.9, Q)
+        qv = torch.randn(1, H, Q, dtype=torch.float64).cumsum(dim=-1)
+        gen = torch.Generator().manual_seed(0)
+        y = torch.randn(20, generator=gen, dtype=torch.float64)
+
+        padded = torch.cat([torch.full((5,), float("nan"), dtype=y.dtype), y])
+        clean = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=7)
+        with_nans = schaake_shuffle_sample(qp, qv, [padded], n_paths, seed=7)
+        torch.testing.assert_close(clean, with_nans)
+
+        # 2 non-NaN observations for H=3: the filtered length is what counts.
+        too_short = torch.cat(
+            [torch.full((10,), float("nan"), dtype=y.dtype), y[:2]]
+        )
+        with pytest.raises(ValueError, match="history length 2 is shorter"):
+            schaake_shuffle_sample(qp, qv, [too_short], n_paths, seed=7)
 
 
 class TestSampleFromQuantiles:
