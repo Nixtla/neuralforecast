@@ -917,13 +917,13 @@ def schaake_shuffle_sample(
         all_windows = yi_clean.unfold(0, H, 1)  # (max_start, H)
         templates = all_windows[start_indices].T  # (H, n_paths)
 
-        # Reorder raw samples to match the rank structure of each template
+        # Reorder raw samples to match the rank structure of each template:
+        # place the sample with rank r at every template position of rank r.
         template_ranks = torch.argsort(
             torch.argsort(templates, dim=1), dim=1
         )  # (H, n_paths)
         sorted_samples = torch.sort(raw_samples, dim=1).values  # (H, n_paths)
-        reordered = torch.empty_like(raw_samples)
-        reordered.scatter_(1, template_ranks, sorted_samples)
+        reordered = torch.gather(sorted_samples, dim=1, index=template_ranks)
 
         simulations[i] = reordered.T  # (n_paths, H)
 

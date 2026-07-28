@@ -830,26 +830,64 @@ class TestSchaakeShuffleSample:
             schaake_shuffle_sample(qp, qv, y_hist, 3, seed=0)
 
     def test_rank_structure_preserved(self):
-        """Output ranks should match template ranks for a deterministic case.
+        """Output rank vectors must reproduce the historical template ranks.
 
-        With n_paths <= max_start, specific templates are selected.
-        Verify rank correspondence on a controlled example.
+        With ``n_paths == max_start`` every window is used exactly once, so the
+        multiset of per-path rank vectors is fully determined by the history and
+        does not depend on the order the templates were drawn in.
         """
         from neuralforecast.utils import schaake_shuffle_sample
 
         Q = 99
         H = 3
-        n_paths = 5
+        T = 40
+        n_paths = T - H + 1
         qp = torch.linspace(0.01, 0.99, Q)
         # Monotonically increasing quantile values per step
         qv = torch.linspace(0, 100, Q).unsqueeze(0).unsqueeze(0).expand(
             1, H, Q
         ).clone().to(torch.float64)
-        y_hist = [torch.randn(50, dtype=torch.float64)]
-        result = schaake_shuffle_sample(qp, qv, y_hist, n_paths, seed=42)
+        gen = torch.Generator().manual_seed(0)
+        y = torch.randn(T, generator=gen, dtype=torch.float64).cumsum(0)
+        result = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=42)
         # Result should have correct shape and no NaN
         assert result.shape == (1, n_paths, H)
         assert not torch.any(torch.isnan(result))
+
+        def rank_vectors(x):  # (H, n_paths) -> sorted per-path rank tuples
+            ranks = torch.argsort(torch.argsort(x, dim=1), dim=1)
+            return sorted(map(tuple, ranks.T.tolist()))
+
+        templates = y.unfold(0, H, 1).T  # (H, n_paths): every window, in order
+        assert rank_vectors(result[0].T) == rank_vectors(templates)
+
+    def test_temporal_dependence_matches_history(self):
+        """Paths must inherit the step-to-step rank dependence of the history.
+
+        A random-walk history has near-perfectly rank-correlated consecutive
+        steps; reordering by its templates must carry that into the paths.
+        Independent marginals alone would give a rank correlation near zero.
+        """
+        from neuralforecast.utils import schaake_shuffle_sample
+
+        Q = 99
+        H = 4
+        n_paths = 2000
+        qp = torch.linspace(0.01, 0.99, Q)
+        qv = torch.linspace(0, 100, Q).unsqueeze(0).unsqueeze(0).expand(
+            1, H, Q
+        ).clone().to(torch.float64)
+        gen = torch.Generator().manual_seed(0)
+        y = torch.randn(n_paths + H, generator=gen, dtype=torch.float64).cumsum(0)
+        result = schaake_shuffle_sample(qp, qv, [y], n_paths, seed=42)[0]
+
+        def spearman(a, b):
+            ra = torch.argsort(torch.argsort(a)).to(torch.float64)
+            rb = torch.argsort(torch.argsort(b)).to(torch.float64)
+            return torch.corrcoef(torch.stack([ra, rb]))[0, 1].item()
+
+        for lag in range(1, H):
+            assert spearman(result[:, 0], result[:, lag]) > 0.9
 
     def test_history_equals_horizon(self):
         """Edge case: history length exactly equals horizon."""
