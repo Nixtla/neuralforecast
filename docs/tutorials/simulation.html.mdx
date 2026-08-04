@@ -100,8 +100,8 @@ Y_train_df.tail()
 ```
 
 ``` text
-2026-03-20 13:09:32,071 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
-2026-03-20 13:09:32,151 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+2026-07-28 21:22:50,689 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
+2026-07-28 21:22:50,793 INFO util.py:154 -- Missing packages: ['ipywidgets']. Run `pip install -U ipywidgets`, then restart the notebook server for rich notebook output.
 ```
 
 ``` text
@@ -251,14 +251,14 @@ sim_df.head(10)
 |     | unique_id | ds         | sample_id | NHITS_GMM  | NHITS_Normal | NHITS_MQ   | NHITS_IQL  | NHITS_MAE  |
 |-----|-----------|------------|-----------|------------|--------------|------------|------------|------------|
 | 0   | 1.0       | 1960-01-01 | 0         | 424.577554 | 424.765725   | 415.206802 | 409.314326 | 438.886536 |
-| 1   | 1.0       | 1960-02-01 | 0         | 404.827416 | 404.260575   | 414.203812 | 388.755778 | 416.497602 |
-| 2   | 1.0       | 1960-03-01 | 0         | 469.169496 | 469.978479   | 464.367880 | 466.584470 | 482.319912 |
-| 3   | 1.0       | 1960-04-01 | 0         | 450.245044 | 451.145088   | 454.416200 | 462.261074 | 459.493987 |
+| 1   | 1.0       | 1960-02-01 | 0         | 404.827416 | 404.260575   | 414.203816 | 388.755800 | 416.497571 |
+| 2   | 1.0       | 1960-03-01 | 0         | 469.169496 | 469.978479   | 464.367880 | 466.584492 | 482.319912 |
+| 3   | 1.0       | 1960-04-01 | 0         | 450.245014 | 451.145057   | 454.416200 | 462.261105 | 459.493987 |
 | 4   | 1.0       | 1960-05-01 | 0         | 472.641135 | 471.130120   | 475.350769 | 486.486899 | 493.030374 |
 | 5   | 1.0       | 1960-06-01 | 0         | 528.117486 | 527.280406   | 539.266724 | 497.874372 | 530.030655 |
 | 6   | 1.0       | 1960-07-01 | 0         | 594.137207 | 592.315796   | 623.242188 | 507.372412 | 586.462607 |
 | 7   | 1.0       | 1960-08-01 | 0         | 604.532895 | 604.907234   | 617.977478 | 531.723887 | 583.457802 |
-| 8   | 1.0       | 1960-09-01 | 0         | 530.447128 | 529.882652   | 545.858492 | 566.198389 | 524.067964 |
+| 8   | 1.0       | 1960-09-01 | 0         | 530.447128 | 529.882652   | 545.858480 | 566.198389 | 524.067964 |
 | 9   | 1.0       | 1960-10-01 | 0         | 458.686895 | 458.105852   | 466.378017 | 466.831645 | 468.689723 |
 
 ### Visualize paths for each model
@@ -390,6 +390,75 @@ plt.show()
 
 ![](./simulation_files/figure-markdown_strict/cell-13-output-1.png)
 
+### Diagnosing the dependence structure
+
+The path bundles above look nearly identical, and they should: both
+methods share the same marginal quantiles, so any per-step summary — the
+median line, the shaded intervals — is by construction the same. The
+methods differ only in the **joint** structure, which no marginal view
+can reveal.
+
+Two diagnostics that do reveal it: the step-to-step rank correlation of
+the paths, and the mean longest run of consecutive months above their
+own median. Both are compared against the same statistics on the
+historical rolling windows (the Schaake shuffle’s own templates) and
+against a null built by permuting each step independently — identical
+marginals, dependence destroyed.
+
+```python
+def lag1_rank_corr(paths):
+    """Mean lag-1 Spearman correlation across consecutive horizon steps."""
+    ranks = np.apply_along_axis(lambda c: np.argsort(np.argsort(c)), 0, paths)
+    return np.mean([
+        np.corrcoef(ranks[:, h], ranks[:, h + 1])[0, 1]
+        for h in range(paths.shape[1] - 1)
+    ])
+
+
+def mean_longest_run(paths):
+    """Mean longest run of consecutive months above that month's median."""
+    above = paths > np.median(paths, axis=0)
+    runs = []
+    for row in above:
+        best = current = 0
+        for flag in row:
+            current = current + 1 if flag else 0
+            best = max(best, current)
+        runs.append(best)
+    return np.mean(runs)
+
+
+def break_dependence(paths, seed=0):
+    """Permute each step independently: same marginals, no temporal structure."""
+    rng = np.random.default_rng(seed)
+    return np.column_stack([rng.permutation(paths[:, h]) for h in range(paths.shape[1])])
+
+
+# Reference: the same statistics on the history's length-H rolling windows, which is
+# exactly what the Schaake shuffle uses as its templates.
+hist_windows = np.lib.stride_tricks.sliding_window_view(
+    Y_train_df["y"].to_numpy(), H
+)
+
+rows = [
+    ("History (rolling windows)", hist_windows),
+    ("Gaussian copula", sims_copula),
+    ("Schaake shuffle", sims_schaake),
+    ("Schaake, dependence broken", break_dependence(sims_schaake)),
+]
+print(f"{'':28s}{'lag-1 rank corr':>17s}{'mean longest run':>19s}")
+for name, paths in rows:
+    print(f"{name:28s}{lag1_rank_corr(paths):>+17.3f}{mean_longest_run(paths):>19.2f}")
+```
+
+``` text
+                              lag-1 rank corr   mean longest run
+History (rolling windows)              +0.962               5.51
+Gaussian copula                        +0.267               3.49
+Schaake shuffle                        +0.963               5.60
+Schaake, dependence broken             -0.006               3.04
+```
+
 ## 8. Evaluating Marginal vs. Joint Distributions
 
 We can evaluate both the **marginal** distribution (from
@@ -483,8 +552,8 @@ Model: NHITS_Normal
 |             | Marginal (predict) | Joint — Gaussian Copula | Joint — Schaake Shuffle |
 |-------------|--------------------|-------------------------|-------------------------|
 | Metric      |                    |                         |                         |
-| MAE         | 12.669571          | 12.942172               | 12.516764               |
-| MSE         | 276.954919         | 288.357154              | 275.652889              |
+| MAE         | 12.669576          | 12.942177               | 12.516772               |
+| MSE         | 276.955045         | 288.357283              | 275.653049              |
 | Scaled CRPS | 0.021440           | 0.022133                | 0.021545                |
 
 **Interpreting the results:**
