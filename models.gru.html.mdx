@@ -27,7 +27,7 @@ of the prediction.
 
 - [Junyoung Chung, Caglar Gulcehre, KyungHyun Cho,
 Yoshua Bengio (2014). “Empirical Evaluation of Gated Recurrent Neural
-Networks on Sequence Modeling”.](https:arxivorg/abs/1412.3555)
+Networks on Sequence Modeling”.](https://arxiv.org/abs/1412.3555)
 - [Kyunghyun Cho, Bart van Merrienboer, Dzmitry Bahdanau, Yoshua Bengio
 (2014). “On the Properties of Neural Machine Translation:
 Encoder-Decoder Approaches”.](https://arxiv.org/abs/1409.1259)

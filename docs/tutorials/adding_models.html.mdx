@@ -335,7 +335,7 @@ depending on the `loss`. For example, for the Multi-quantile loss
 development process. It allows users to iterate the development within
 the notebook, testing the code in the same environment. Refer to
 existing models, such as the complete MLP model
-[here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/models.mlp.ipynb).
+[here](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/mlp.py).
 These files already contain the tests, documentation, and usage examples
 that were used during the development process.
 
@@ -355,8 +355,8 @@ Finally, add the model to the `core` class and additional files:
 1.  Manually add the model in the following [init
     file](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/__init__.py).
 
-2.  Add the model to the `core` class, using the `nbdev` file
-    [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/core.ipynb):
+2.  Add the model to the `core` class, using the source file
+    [here](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py):
 
     1.  Add the model to the initial model list:
 
@@ -379,12 +379,12 @@ It’s important to add the model to the necessary documentation pages so
 that everyone can find the documentation:
 
 1.  Add the model to the [model overview
-    table](https://github.com/Nixtla/neuralforecast/blob/main/nbs/docs/capabilities/01_overview.ipynb).
-2.  Add the model to the
-    [sidebar](https://github.com/Nixtla/neuralforecast/blob/main/nbs/sidebar.yml)
+    table](https://github.com/Nixtla/neuralforecast/blob/main/nbs/docs/capabilities/overview.ipynb).
+2.  Add the model to the [documentation
+    navigation](https://github.com/Nixtla/neuralforecast/blob/main/docs/mintlify/docs.json)
     for the API reference.
-3.  Add the model to
-    [mint.json](https://github.com/Nixtla/neuralforecast/blob/main/nbs/mint.json).
+3.  Confirm the page is present in
+    [docs.json](https://github.com/Nixtla/neuralforecast/blob/main/docs/mintlify/docs.json).
 
 ## 5. Upload to GitHub
 
@@ -410,6 +410,6 @@ and merge it into the library.
 -   Add model to this [init
     file](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/models/__init__.py).
 -   Add the model to the `core` class
-    [here](https://github.com/Nixtla/neuralforecast/blob/main/nbs/core.ipynb).
+    [here](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/core.py).
 -   Follow the CONTRIBUTING guide to create the PR to upload the model.
 
