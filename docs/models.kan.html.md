@@ -1,8 +1,8 @@
 ---
 description: >-
-  KAN: Kolmogorov-Arnold Networks for time series forecasting. MLP alternative using learnable activation functions for improved non-linear pattern modeling.
+  Build time series forecasts with Kolmogorov Arnold Networks in NeuralForecast. Compare KAN with MLP models and run a complete Python example.
 output-file: models.kan.html
-title: KAN
+title: KAN Time Series Forecasting in Python
 ---
 
 Kolmogorov-Arnold Networks (KANs) are an alternative to Multi-Layer
