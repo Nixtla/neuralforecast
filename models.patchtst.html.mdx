@@ -1,8 +1,8 @@
 ---
 description: >-
-  PatchTST: Efficient Transformer model for multivariate forecasting using patched time series and channel-independence for scalable long-term predictions.
+  Build long horizon forecasts with PatchTST in NeuralForecast. Learn how temporal patches and channel independence work, then run a complete Python example.
 output-file: models.patchtst.html
-title: PatchTST
+title: PatchTST Time Series Forecasting in Python
 ---
 
 The PatchTST model is an efficient Transformer-based model for

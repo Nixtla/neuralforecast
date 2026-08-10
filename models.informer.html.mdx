@@ -1,8 +1,8 @@
 ---
 description: >-
-  Informer: Efficient Transformer with ProbSparse attention for long-sequence time series forecasting. Reduces O(L^2) complexity for scalable predictions.
+  Build long horizon forecasts with Informer in NeuralForecast. Learn ProbSparse attention, architecture, parameters, and a complete Python workflow.
 output-file: models.informer.html
-title: Informer
+title: Informer Time Series Forecasting in Python
 ---
 
 The Informer model tackles the vanilla Transformer computational

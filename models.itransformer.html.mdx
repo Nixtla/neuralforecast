@@ -1,8 +1,8 @@
 ---
 description: >-
-  iTransformer: Inverted Transformer architecture for multivariate time series forecasting with attention on time points and feed-forward on series dimensions.
+  Build multivariate forecasts with iTransformer in NeuralForecast. Learn its inverted attention architecture, parameters, and Python workflow.
 output-file: models.itransformer.html
-title: iTransformer
+title: iTransformer Time Series Forecasting in Python
 ---
 
 The iTransformer model simply takes the Transformer architecture but it
