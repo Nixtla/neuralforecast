@@ -489,6 +489,7 @@ class Autoformer(BaseModel):
         encoder_layers: int = 2,
         decoder_layers: int = 1,
         MovingAvg_window: int = 25,
+        temporal_embedding: str = "native",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5000,
@@ -577,6 +578,7 @@ class Autoformer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
@@ -584,6 +586,7 @@ class Autoformer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=False,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
 
         # Encoder

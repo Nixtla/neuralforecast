@@ -56,6 +56,11 @@ class VanillaTransformer(BaseModel):
         activation (str): activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].
         encoder_layers (int): number of layers for the TCN encoder.
         decoder_layers (int): number of layers for the MLP decoder.
+        temporal_embedding (str): temporal encoder for exogenous features.
+            ``"native"`` (default) uses a linear projection (``TimeFeatureEmbedding``).
+            ``"torchembed"`` uses composable cyclic (sin/cos) encoders from
+            `torchembed <https://github.com/liodon-ai/torchembed>`_.
+            Requires ``pip install torchembed>=0.3.1``.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
         valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
@@ -115,6 +120,7 @@ class VanillaTransformer(BaseModel):
         activation: str = "gelu",
         encoder_layers: int = 2,
         decoder_layers: int = 1,
+        temporal_embedding: str = "native",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 5000,
@@ -200,6 +206,7 @@ class VanillaTransformer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=True,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
         self.dec_embedding = DataEmbedding(
             self.dec_in,
@@ -207,6 +214,7 @@ class VanillaTransformer(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=True,
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
 
         # Encoder

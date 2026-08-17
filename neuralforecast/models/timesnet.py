@@ -196,6 +196,7 @@ class TimesNet(BaseModel):
         top_k: int = 5,
         num_kernels: int = 6,
         encoder_layers: int = 2,
+        temporal_embedding: str = "native",
         loss=MAE(),
         valid_loss=None,
         max_steps: int = 1000,
@@ -284,6 +285,7 @@ class TimesNet(BaseModel):
             hidden_size=hidden_size,
             pos_embedding=True,  # Original implementation uses true
             dropout=dropout,
+            temporal_embedding=temporal_embedding,
         )
         self.encoder_layers = encoder_layers
         self.layer_norm = nn.LayerNorm(hidden_size)
