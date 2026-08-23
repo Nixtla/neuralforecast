@@ -832,7 +832,7 @@ class PatchTST(BaseModel):
         stride (int): stride of patch.
         revin (bool): bool to use RevIn.
         revin_affine (bool): bool to use affine in RevIn.
-        revin_subtract_last (bool): bool to use substract last in RevIn.
+        revin_subtract_last (bool): bool to use subtract last in RevIn.
         activation (str): activation from ['gelu','relu'].
         res_attention (bool): bool to use residual attention.
         batch_normalization (bool): bool to use batch normalization.
