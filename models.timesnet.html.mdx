@@ -10,7 +10,7 @@ intraperiod and interperiod temporal variations.
 
 The architecture has the following distinctive features: - An embedding
 layer that maps the input sequence into a latent space. - Transformation
-of 1D time seires into 2D tensors, based on periods found by FFT. - A
+of 1D time series into 2D tensors, based on periods found by FFT. - A
 convolutional Inception block that captures temporal variations at
 different scales and between periods.
 

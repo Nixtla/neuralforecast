@@ -623,8 +623,8 @@ complexity capable of accommodating different size datasets. As residual
 connections allow for the network to skip the non-linear transformation
 of input $\mathbf{a}$ and context $\mathbf{c}$.
 
-The Gated Linear Unit (GLU) provides the flexibility of supressing
-unnecesary parts of the GRN. Consider GRN’s output $\gamma$ then GLU
+The Gated Linear Unit (GLU) provides the flexibility of suppressing
+unnecessary parts of the GRN. Consider GRN’s output $\gamma$ then GLU
 transformation is defined by:
 
 $$\mathrm{GLU}(\gamma) = \sigma(\mathbf{W}_{4}\gamma +b_{4}) \odot (\mathbf{W}_{5}\gamma +b_{5})$$
@@ -677,4 +677,3 @@ $\mathrm{InterpretableMultiHead}(Q,K,V) = \tilde{H} W_{M}$. The
 mechanism has a great resemblence to a single attention layer, but it
 allows for $M$ multiple attention weights, and can be therefore be
 interpreted as the average ensemble of $M$ single attention layers.
-
