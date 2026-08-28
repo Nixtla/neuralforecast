@@ -374,7 +374,7 @@ class FourierCrossAttention(nn.Module):
             xqk_ft = torch.complex(xqk_ft, torch.zeros_like(xqk_ft))
         else:
             raise Exception(
-                "{} actiation function is not implemented".format(self.activation)
+                "{} activation function is not implemented".format(self.activation)
             )
         xqkv_ft = torch.einsum("bhxy,bhey->bhex", xqk_ft, xk_ft_)
         xqkvw = torch.einsum("bhex,heox->bhox", xqkv_ft, self.weights1)

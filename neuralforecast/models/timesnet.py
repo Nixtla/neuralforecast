@@ -159,7 +159,7 @@ class TimesNet(BaseModel):
         drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full batch.
         alias (str): optional (default=None), Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional (default=None), User specified optimizer instead of the default choice (Adam).
-        optimizer_kwargs (dict): optional (defualt=None), List of parameters used by the user specified `optimizer`.
+        optimizer_kwargs (dict): optional (default=None), List of parameters used by the user specified `optimizer`.
         lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
         lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
         dataloader_kwargs (dict): optional (default=None), List of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.

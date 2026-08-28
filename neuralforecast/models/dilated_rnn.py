@@ -294,7 +294,7 @@ class DilatedRNN(BaseModel):
         input_size (int): maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon
         inference_input_size (int): maximum sequence length for truncated inference. Default None uses input_size history.
         cell_type (str): type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'.
-        dilations (int list): dilations betweem layers.
+        dilations (int list): dilations between layers.
         encoder_hidden_size (int): units for the RNN's hidden state size.
         context_size (int): size of context vector for each timestamp on the forecasting window.
         decoder_hidden_size (int): size of hidden layer for the MLP decoder.

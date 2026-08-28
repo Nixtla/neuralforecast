@@ -641,7 +641,7 @@ class _MultiheadAttention(nn.Module):
             lsa=lsa,
         )
 
-        # Poject output
+        # Project output
         self.to_out = nn.Sequential(
             nn.Linear(n_heads * d_v, hidden_size), nn.Dropout(proj_dropout)
         )
@@ -704,7 +704,7 @@ class _MultiheadAttention(nn.Module):
 class _ScaledDotProductAttention(nn.Module):
     """
     Scaled Dot-Product Attention module (Attention is all you need by Vaswani et al., 2017) with optional residual attention from previous layer
-    (Realformer: Transformer likes residual attention by He et al, 2020) and locality self sttention (Vision Transformer for Small-Size Datasets
+    (Realformer: Transformer likes residual attention by He et al, 2020) and locality self attention (Vision Transformer for Small-Size Datasets
     by Lee et al, 2021)
     """
 

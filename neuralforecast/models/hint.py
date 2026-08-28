@@ -203,7 +203,7 @@ class HINT:
         HINT trains on the entire hierarchical dataset, by minimizing a composite log
         likelihood objective. HINT framework integrates `TemporalNorm` into the neural
         forecast architecture for a scale-decoupled optimization that robustifies
-        cross-learning the hierachy's series scales.
+        cross-learning the hierarchy's series scales.
 
         Args:
             dataset (TimeSeriesDataset): NeuralForecast's `TimeSeriesDataset` see details [here](./tsdataset.html)

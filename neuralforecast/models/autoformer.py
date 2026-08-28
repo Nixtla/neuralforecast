@@ -399,7 +399,7 @@ class Autoformer(BaseModel):
     The Autoformer model tackles the challenge of finding reliable dependencies on intricate temporal patterns of long-horizon forecasting.
 
     The architecture has the following distinctive features:
-    - In-built progressive decomposition in trend and seasonal compontents based on a moving average filter.
+    - In-built progressive decomposition in trend and seasonal components based on a moving average filter.
     - Auto-Correlation mechanism that discovers the period-based dependencies by
     calculating the autocorrelation and aggregating similar sub-series based on the periodicity.
     - Classic encoder-decoder proposed by Vaswani et al. (2017) with a multi-head attention mechanism.

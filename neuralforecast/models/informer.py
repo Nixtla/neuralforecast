@@ -103,7 +103,7 @@ class ProbAttention(nn.Module):
         K_sample = K_expand[:, :, torch.arange(L_Q).unsqueeze(1), index_sample, :]
         Q_K_sample = torch.matmul(Q.unsqueeze(-2), K_sample.transpose(-2, -1)).squeeze()
 
-        # find the Top_k query with sparisty measurement
+        # find the Top_k query with sparsity measurement
         M = Q_K_sample.max(-1)[0] - torch.div(Q_K_sample.sum(-1), L_K)
         M_top = M.topk(n_top, sorted=False)[1]
 
@@ -212,7 +212,7 @@ class Informer(BaseModel):
         activation (str): activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU'].
         encoder_layers (int): number of layers for the TCN encoder.
         decoder_layers (int): number of layers for the MLP decoder.
-        distil (bool): wether the Informer decoder uses bottlenecks.
+        distil (bool): whether the Informer decoder uses bottlenecks.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
         valid_loss (PyTorch module): instantiated valid loss class from [losses collection](./losses.pytorch.html).
         max_steps (int): maximum number of training steps.
