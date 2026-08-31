@@ -399,7 +399,7 @@ class Autoformer(BaseModel):
     The Autoformer model tackles the challenge of finding reliable dependencies on intricate temporal patterns of long-horizon forecasting.
 
     The architecture has the following distinctive features:
-    - In-built progressive decomposition in trend and seasonal compontents based on a moving average filter.
+    - In-built progressive decomposition in trend and seasonal components based on a moving average filter.
     - Auto-Correlation mechanism that discovers the period-based dependencies by
     calculating the autocorrelation and aggregating similar sub-series based on the periodicity.
     - Classic encoder-decoder proposed by Vaswani et al. (2017) with a multi-head attention mechanism.
@@ -452,7 +452,7 @@ class Autoformer(BaseModel):
         lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
         lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
         dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
-        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
         - [Wu, Haixu, Jiehui Xu, Jianmin Wang, and Mingsheng Long. "Autoformer: Decomposition transformers with auto-correlation for long-term series forecasting"](https://proceedings.neurips.cc/paper/2021/hash/bcc0d400288793e8bdcd7c19a8ac0c2b-Abstract.html)
