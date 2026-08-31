@@ -30,7 +30,7 @@ from torch.distributions import (
 
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
-    Auxiliary funtion to handle divide by 0
+    Auxiliary function to handle divide by 0
     """
     div = a / b
     return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
@@ -371,7 +371,7 @@ class SMAPE(BasePointLoss):
     absolute values for the prediction and observed value at a
     given time, then averages these devations over the length
     of the series. This allows the SMAPE to have bounds between
-    0% and 200% which is desireble compared to normal MAPE that
+    0% and 200% which is desirable compared to normal MAPE that
     may be undetermined when the target is zero.
 
     ```math
@@ -1034,7 +1034,7 @@ class Tweedie(Distribution):
     The Tweedie distribution is a compound probability, special case of exponential
     dispersion models EDMs defined by its mean-variance relationship.
     The distribution particularly useful to model sparse series as the probability has
-    possitive mass at zero but otherwise is continuous.
+    positive mass at zero but otherwise is continuous.
 
     ```math
     Y \sim \mathrm{ED}(\mu,\sigma^{2}) \qquad
@@ -2847,7 +2847,7 @@ class HuberLoss(BasePointLoss):
 
     The Huber loss, employed in robust regression, is a loss function that
     exhibits reduced sensitivity to outliers in data when compared to the
-    squared error loss. This function is also refered as SmoothL1.
+    squared error loss. This function is also referred to as SmoothL1.
 
     The Huber loss function is quadratic for small errors and linear for large
     errors, with equal values and slopes of the different sections at the two
@@ -3302,7 +3302,7 @@ class Accuracy(BasePointLoss):
     r"""Accuracy
 
     Computes the accuracy between categorical `y` and `y_hat`.
-    This evaluation metric is only meant for evalution, as it
+    This evaluation metric is only meant for evaluation, as it
     is not differentiable.
 
     ```math

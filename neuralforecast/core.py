@@ -1268,7 +1268,7 @@ class NeuralForecast:
 
         if is_dataset_local_files and df is None:
             raise ValueError(
-                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediciton."
+                "When the model has been trained on a dataset that is split between multiple files, you must pass in a specific dataframe for prediction."
             )
 
         # Process new dataset but does not store it.
@@ -2712,7 +2712,7 @@ class NeuralForecast:
         except (ImportError, RuntimeError):
             pass
 
-        # Standarize path without '/'
+        # Standardize path without '/'
         if path[-1] == "/":
             path = path[:-1]
 
@@ -2821,7 +2821,7 @@ class NeuralForecast:
         Returns:
             result (NeuralForecast): Instantiated `NeuralForecast` class.
         """
-        # Standarize path without '/'
+        # Standardize path without '/'
         if path[-1] == "/":
             path = path[:-1]
 

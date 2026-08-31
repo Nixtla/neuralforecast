@@ -294,7 +294,7 @@ class DilatedRNN(BaseModel):
         input_size (int): maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon
         inference_input_size (int): maximum sequence length for truncated inference. Default None uses input_size history.
         cell_type (str): type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'.
-        dilations (int list): dilations betweem layers.
+        dilations (int list): dilations between layers.
         encoder_hidden_size (int): units for the RNN's hidden state size.
         context_size (int): size of context vector for each timestamp on the forecasting window.
         decoder_hidden_size (int): size of hidden layer for the MLP decoder.
@@ -330,7 +330,7 @@ class DilatedRNN(BaseModel):
         lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
         lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified `lr_scheduler`.
         dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
-        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
         - [DilatedRNN: Dilated Recurrent Neural Networks for Time-Series Forecasting](https://arxiv.org/pdf/1710.02224)
