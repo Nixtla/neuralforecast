@@ -374,7 +374,7 @@ class FourierCrossAttention(nn.Module):
             xqk_ft = torch.complex(xqk_ft, torch.zeros_like(xqk_ft))
         else:
             raise Exception(
-                "{} actiation function is not implemented".format(self.activation)
+                "{} activation function is not implemented".format(self.activation)
             )
         xqkv_ft = torch.einsum("bhxy,bhey->bhex", xqk_ft, xk_ft_)
         xqkvw = torch.einsum("bhex,heox->bhox", xqkv_ft, self.weights1)
@@ -448,7 +448,7 @@ class FEDformer(BaseModel):
         lr_scheduler (Subclass of 'torch.optim.lr_scheduler.LRScheduler'): optional, user specified lr_scheduler instead of the default choice (StepLR).
         lr_scheduler_kwargs (dict): optional, list of parameters used by the user specified lr_scheduler.
         dataloader_kwargs (dict): optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`.
-        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
+        **trainer_kwargs (int):  keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer).
 
     References:
         - [Tian Zhou, et al. "FEDformer: Frequency Enhanced Decomposed Transformer for Long-term Series Forecasting" Proceedings of the AAAI conference on artificial intelligence. Vol. 37. No. 9. 2023."](https://arxiv.org/abs/2201.12740)

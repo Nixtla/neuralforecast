@@ -11,7 +11,7 @@ import numpy as np
 
 def _divide_no_nan(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     """
-    Auxiliary funtion to handle divide by 0
+    Auxiliary function to handle divide by 0
     """
     div = a / b
     div[div != div] = 0.0
