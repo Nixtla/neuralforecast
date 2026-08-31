@@ -208,11 +208,11 @@ model = AutoNHITS(
 ### 3.c Train model and predict with `Core` class
 
 Next, we use the `Neuralforecast` class to train the `Auto` model. In
-this step, `Auto` models will automatically perform hyperparamter tuning
-training multiple models with different hyperparameters, producing the
-forecasts on the validation set, and evaluating them. The best
-configuration is selected based on the error on a validation set. Only
-the best model is stored and used during inference.
+this step, `Auto` models will automatically perform hyperparameter
+tuning, training multiple models with different hyperparameters,
+producing the forecasts on the validation set, and evaluating them. The
+best configuration is selected based on the error on a validation set.
+Only the best model is stored and used during inference.
 
 ```python
 from neuralforecast import NeuralForecast
