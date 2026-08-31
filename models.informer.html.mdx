@@ -135,7 +135,7 @@ Name | Type | Description | Default
 `activation` | <code>[str](#str)</code> | activation from ['ReLU', 'Softplus', 'Tanh', 'SELU', 'LeakyReLU', 'PReLU', 'Sigmoid', 'GELU']. | <code>'gelu'</code>
 `encoder_layers` | <code>[int](#int)</code> | number of layers for the TCN encoder. | <code>2</code>
 `decoder_layers` | <code>[int](#int)</code> | number of layers for the MLP decoder. | <code>1</code>
-`distil` | <code>[bool](#bool)</code> | wether the Informer decoder uses bottlenecks. | <code>True</code>
+`distil` | <code>[bool](#bool)</code> | whether the Informer decoder uses bottlenecks. | <code>True</code>
 `loss` | <code>PyTorch module</code> | instantiated train loss class from [losses collection](./losses.pytorch.html). | <code>[MAE](#neuralforecast.losses.pytorch.MAE)()</code>
 `valid_loss` | <code>PyTorch module</code> | instantiated valid loss class from [losses collection](./losses.pytorch.html). | <code>None</code>
 `max_steps` | <code>[int](#int)</code> | maximum number of training steps. | <code>5000</code>

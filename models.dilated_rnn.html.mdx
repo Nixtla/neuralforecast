@@ -103,7 +103,7 @@ Name | Type | Description | Default
 `input_size` | <code>[int](#int)</code> | maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon | <code>-1</code>
 `inference_input_size` | <code>[int](#int)</code> | maximum sequence length for truncated inference. Default None uses input_size history. | <code>None</code>
 `cell_type` | <code>[str](#str)</code> | type of RNN cell to use. Options: 'GRU', 'RNN', 'LSTM', 'ResLSTM', 'AttentiveLSTM'. | <code>'LSTM'</code>
-`dilations` | <code>int list</code> | dilations betweem layers. | <code>\[[1, 2], [4, 8]\]</code>
+`dilations` | <code>int list</code> | dilations between layers. | <code>\[[1, 2], [4, 8]\]</code>
 `encoder_hidden_size` | <code>[int](#int)</code> | units for the RNN's hidden state size. | <code>128</code>
 `context_size` | <code>[int](#int)</code> | size of context vector for each timestamp on the forecasting window. | <code>10</code>
 `decoder_hidden_size` | <code>[int](#int)</code> | size of hidden layer for the MLP decoder. | <code>128</code>
@@ -139,7 +139,7 @@ Name | Type | Description | Default
 `lr_scheduler` | <code>Subclass of 'torch.optim.lr_scheduler.LRScheduler'</code> | optional, user specified lr_scheduler instead of the default choice (StepLR). | <code>None</code>
 `lr_scheduler_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters used by the user specified `lr_scheduler`. | <code>None</code>
 `dataloader_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. | <code>None</code>
-`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
+`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
 
 <details class="references" open markdown="1">
 <summary>References</summary>
