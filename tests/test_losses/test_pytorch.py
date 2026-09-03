@@ -110,6 +110,16 @@ def test_MAE_complete_mask():
     assert loss == (3 / 6), "Should be 3/6"
 
 
+def test_MAE_infinite_predictions():
+    y = torch.tensor([[[10.0], [20.0]]])
+    mask = torch.tensor([[[1.0], [0.0]]])
+
+    for prediction in [float("inf"), float("-inf")]:
+        y_hat = torch.full_like(y, prediction)
+        assert torch.isposinf(MAE()(y=y, y_hat=y_hat))
+        assert torch.isposinf(MAE()(y=y, y_hat=y_hat, mask=mask))
+
+
 # Incomplete mask and complete horizon_weight
 def test_MAE_incomplete_mask():
     # Only 1 error and points is masked.

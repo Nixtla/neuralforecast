@@ -33,13 +33,14 @@ def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     Auxiliary function to handle divide by 0
     """
     div = a / b
-    return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
+    return torch.nan_to_num(div, nan=0.0, posinf=float("inf"), neginf=float("-inf"))
 
 
 def _weighted_mean(losses, weights):
     """
     Compute weighted mean of losses per datapoint.
     """
+    losses = torch.where(weights != 0, losses, 0.0)
     return _divide_no_nan(torch.sum(losses * weights), torch.sum(weights))
 
 
