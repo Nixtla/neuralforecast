@@ -30,16 +30,28 @@ from torch.distributions import (
 
 def _divide_no_nan(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
     """
-    Auxiliary function to handle divide by 0
+    Auxiliary function to handle divide by 0.
+
+    Guards the denominator only: entries where `b == 0` yield 0, while a
+    non-finite numerator is propagated. Sanitizing the quotient instead would
+    turn a diverged model's `inf`/`nan` loss into 0, silently making it the
+    best-scoring model.
     """
-    div = a / b
-    return torch.nan_to_num(div, nan=0.0, posinf=0.0, neginf=0.0)
+    zero_denom = b == 0
+    b_safe = torch.where(zero_denom, torch.ones_like(b), b)
+    return torch.where(zero_denom, torch.zeros_like(a * b_safe), a / b_safe)
 
 
 def _weighted_mean(losses, weights):
     """
     Compute weighted mean of losses per datapoint.
+
+    Masks entries with zero weight so that `nan * 0` and `inf * 0` become 0
+    instead of contaminating the reduction. Non-finite losses at *weighted*
+    entries are propagated on purpose, so a diverged model does not report a
+    finite loss.
     """
+    losses = torch.where(weights != 0, losses, torch.zeros_like(losses))
     return _divide_no_nan(torch.sum(losses * weights), torch.sum(weights))
 
 
@@ -886,7 +898,8 @@ def weighted_average(
     """Computes the weighted average of a given tensor across a given dim.
 
     Masks values associated with weight zero, meaning instead of `nan * 0 = nan`
-    you will get `0 * 0 = 0`.
+    you will get `0 * 0 = 0`. A total weight of zero averages to zero, and a
+    non-finite value at a weighted entry is propagated rather than hidden.
 
     Args:
         x (torch.Tensor): Input tensor, of which the average must be computed.
@@ -898,12 +911,9 @@ def weighted_average(
     """
     if weights is not None:
         weighted_tensor = torch.where(weights != 0, x * weights, torch.zeros_like(x))
-        sum_weights = torch.clamp(
-            weights.sum(dim=dim) if dim else weights.sum(), min=1.0
-        )
-        return (
-            weighted_tensor.sum(dim=dim) if dim else weighted_tensor.sum()
-        ) / sum_weights
+        if dim is not None:
+            return _divide_no_nan(weighted_tensor.sum(dim=dim), weights.sum(dim=dim))
+        return _divide_no_nan(weighted_tensor.sum(), weights.sum())
     else:
         return x.mean(dim=dim)
 
