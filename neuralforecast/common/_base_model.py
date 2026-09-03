@@ -842,6 +842,17 @@ class BaseModel(pl.LightningModule):
         totals = self.all_gather(stacked.sum(dim=0)).reshape(-1, 2).sum(dim=0)
         loss_sum, count = totals.tolist()
         avg_loss = loss_sum / count
+        if not math.isfinite(avg_loss):
+            # `ptl/val_loss` is the metric hyperparameter search ranks trials on.
+            # A diverged model must rank worst, so report +inf: nan does not
+            # order reliably (`nan < x` is always False), which would let a
+            # broken trial win the search.
+            warnings.warn(
+                f"Validation loss is not finite ({avg_loss}), reporting inf instead. "
+                "The model likely diverged; check the learning rate, the scaler "
+                "and the input data for extreme values."
+            )
+            avg_loss = float("inf")
         self.log(
             "ptl/val_loss",
             avg_loss,
@@ -2056,6 +2067,16 @@ class BaseModel(pl.LightningModule):
             print("outsample_y", torch.isnan(outsample_y).sum())
             raise Exception("Loss is NaN, training stopped.")
 
+        if torch.isinf(loss):
+            # Under mixed precision an overflowed loss is
+            # expected and GradScaler recovers by skipping the step. Without it
+            # the parameters turn to NaN and the check above stops training.
+            warnings.warn(
+                f"Training loss is infinite ({loss.item()}). The model is "
+                "diverging; check the learning rate, the scaler and the input "
+                "data for extreme values."
+            )
+
         train_loss_log = loss.detach().item()
         self.log(
             "train_loss",
@@ -2162,9 +2183,8 @@ class BaseModel(pl.LightningModule):
         valid_loss_sum = torch.sum(valid_loss * batch_sizes)
         valid_loss = valid_loss_sum / batch_size
 
-        if torch.isnan(valid_loss):
-            raise Exception("Loss is NaN, training stopped.")
-
+        # `on_validation_epoch_end`reports it as inf so a diverged trial scores worst instead of
+        # erroring out the whole hyperparameter search.
         valid_loss_log = valid_loss.detach()
         self.log(
             "valid_loss",
