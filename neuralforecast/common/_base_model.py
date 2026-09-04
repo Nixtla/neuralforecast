@@ -3,9 +3,10 @@ __all__ = ["DistributedConfig", "BaseModel"]
 
 import inspect
 import math
+import os
 import random
 import warnings
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
@@ -110,6 +111,26 @@ def _resolve_cat_emb_dim(strategy: Union[str, int], cardinality: int) -> int:
         f"Unknown cat_emb_dim strategy '{strategy}'. "
         "Use one of 'fastai', 'sqrt', 'half', or an integer."
     )
+
+
+@contextmanager
+def _local_rendezvous_addr():
+    """Pin the torchrun rendezvous address to loopback for local-mode training.
+
+    ``torchrun`` resolves the rendezvous host with ``socket.getfqdn()``, which on
+    some machines (macOS in particular) returns an IPv6 reverse-DNS name that
+    cannot be resolved back to an address. The TCPStore client then retries until
+    it times out (300s, twice) and training fails. In local mode every process
+    runs on this machine, so loopback is always the right address.
+    """
+    if "PET_LOCAL_ADDR" in os.environ:
+        yield
+        return
+    os.environ["PET_LOCAL_ADDR"] = "127.0.0.1"
+    try:
+        yield
+    finally:
+        os.environ.pop("PET_LOCAL_ADDR", None)
 
 
 class BaseModel(pl.LightningModule):
@@ -694,21 +715,23 @@ class BaseModel(pl.LightningModule):
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
         use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
-        model = TorchDistributor(
+        distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
             use_gpu=use_gpu,
-        ).run(
-            train_fn,
-            model_cls=type(self),
-            model_params=self.hparams,
-            datamodule=datamodule,
-            trainer_kwargs=self.trainer_kwargs,
-            num_tasks=num_tasks,
-            num_proc_per_task=num_proc_per_task,
-            val_size=val_size,
-            test_size=test_size,
         )
+        with _local_rendezvous_addr() if local_mode else nullcontext():
+            model = distributor.run(
+                train_fn,
+                model_cls=type(self),
+                model_params=self.hparams,
+                datamodule=datamodule,
+                trainer_kwargs=self.trainer_kwargs,
+                num_tasks=num_tasks,
+                num_proc_per_task=num_proc_per_task,
+                val_size=val_size,
+                test_size=test_size,
+            )
         return model
 
     def _fit(

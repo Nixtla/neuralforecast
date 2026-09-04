@@ -1,3 +1,4 @@
+import os
 from types import SimpleNamespace
 
 import fugue.api as fa
@@ -65,3 +66,24 @@ def test_distributed_simulate_initializes_static_scalers(monkeypatch):
     result = nf._simulate_distributed(None, None, None, engine, n_paths=1)
 
     assert result.shape == (14, 4)
+
+
+def test_local_rendezvous_addr_pins_loopback():
+    from neuralforecast.common._base_model import _local_rendezvous_addr
+
+    os.environ.pop("PET_LOCAL_ADDR", None)
+    with _local_rendezvous_addr():
+        assert os.environ["PET_LOCAL_ADDR"] == "127.0.0.1"
+    assert "PET_LOCAL_ADDR" not in os.environ
+
+
+def test_local_rendezvous_addr_respects_user_value():
+    from neuralforecast.common._base_model import _local_rendezvous_addr
+
+    os.environ["PET_LOCAL_ADDR"] = "10.0.0.1"
+    try:
+        with _local_rendezvous_addr():
+            assert os.environ["PET_LOCAL_ADDR"] == "10.0.0.1"
+        assert os.environ["PET_LOCAL_ADDR"] == "10.0.0.1"
+    finally:
+        os.environ.pop("PET_LOCAL_ADDR", None)
