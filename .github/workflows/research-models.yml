@@ -33,4 +33,41 @@ jobs:
       - name: Fetch reviewed source revisions
         run: python scripts/fetch_research_sources.py "$NF_RESEARCH_SOURCES" DAG KITE GLAFF APT RAG4CTS
       - name: Real NF fit-predict-persistence and source/transport contracts
-        run: python -m pytest -q -o addopts='' tests/test_research_models.py tests/test_exogenous_models.py -m 'not optional'
+        run: python -m pytest -q -o addopts='' tests/test_research_models.py tests/test_research_backend_smoke.py tests/test_exogenous_models.py -m 'not optional'
+  official-backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [moirai2, chronosx, baguants]
+    env:
+      NF_BACKEND_SMOKE: ${{ matrix.backend }}
+      NF_RESEARCH_SOURCES: ${{ github.workspace }}/.research-sources
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install separate uni2ts environment
+        if: matrix.backend == 'moirai2'
+        run: |
+          python -m pip install 'torch==2.4.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'uni2ts @ git+https://github.com/SalesforceAIResearch/uni2ts@cfd46d4510ed8896f263116f32928eede05b0a75' pytest
+      - name: Install separate ChronosX environment
+        if: matrix.backend == 'chronosx'
+        run: |
+          python -m pip install 'torch==2.6.0' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy<2' 'chronosx @ git+https://github.com/amazon-science/chronos-forecasting@2b52bfc500e3ebab1ce846f0a2a60ee5ef2a14a7' pytest
+      - name: Install separate BaguanTS environment
+        if: matrix.backend == 'baguants'
+        run: |
+          python -m pip install 'torch==2.9.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install 'numpy<2' 'lightning==2.5.1' 'einops==0.8.1' scipy pyyaml scikit-learn pytest
+          python scripts/fetch_research_sources.py "$NF_RESEARCH_SOURCES" BaguanTS
+      - name: Official architecture checkpoint roundtrip and worker contracts
+        run: python -m pytest --noconftest -q -o addopts='' tests/test_research_backend_smoke.py
