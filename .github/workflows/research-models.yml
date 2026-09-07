@@ -1,0 +1,36 @@
+name: Research exogenous models batch 2
+on:
+  pull_request:
+    paths:
+      - 'neuralforecast/**'
+      - 'tests/test_research*'
+      - 'scripts/fetch_research_sources.py'
+      - '.github/workflows/research-models.yml'
+  push:
+    branches: ['feat/exogenous-models-batch2-*']
+permissions:
+  contents: read
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NF_RESEARCH_SOURCES: ${{ github.workspace }}/.research-sources
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install CPU runtime and source dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . pytest einops reformer-pytorch matplotlib
+      - name: Fetch reviewed source revisions
+        run: python scripts/fetch_research_sources.py "$NF_RESEARCH_SOURCES" DAG KITE GLAFF APT RAG4CTS
+      - name: Real NF fit-predict-persistence and source/transport contracts
+        run: python -m pytest -q -o addopts='' tests/test_research_models.py tests/test_exogenous_models.py -m 'not optional'

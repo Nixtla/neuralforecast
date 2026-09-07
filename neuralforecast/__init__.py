@@ -26,6 +26,7 @@ from .core import MODEL_FILENAME_DICT as _model_filename_dict  # noqa: E402
 for _model_name in (
     "CrossLinear", "TimerXL", "TinyTimeMixer", "Chronos2",
     "Moirai", "MoiraiMoE", "TimesFM", "Toto",
+    "DAG", "KITE", "GLAFF", "APT", "Moirai2", "ChronosX", "BaguanTS", "RAG4CTS",
 ):
     _model_filename_dict[_model_name.lower()] = getattr(_models, _model_name)
 del _models, _model_filename_dict, _model_name
