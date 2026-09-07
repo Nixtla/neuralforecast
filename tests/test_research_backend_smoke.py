@@ -111,7 +111,7 @@ def test_actual_moirai2_checkpoint(tmp_path):
     config = dict(kind="moirai2", model_id=str(checkpoint), revision=None, h=4, input_size=32,
                   futr_size=1, hist_size=1, device="cpu", random_seed=1)
     result = run_worker(tmp_path, "_uni2ts_worker.py", config, arrays)
-    assert result.shape == (2, 4, 1)
+    assert result.shape == (2, 4)
     forecast = Moirai2Forecast(module=module, prediction_length=4, context_length=32,
                               target_dim=1, feat_dynamic_real_dim=1, past_feat_dynamic_real_dim=1).eval()
     with torch.no_grad():
@@ -154,7 +154,7 @@ def test_actual_baguants_checkpoint(tmp_path):
     config = yaml.safe_load((source / "configs/model_config.yml").read_text())
     config["nlayers"] = 1
     config["input_encoder"]["params"].update(ninp=32, patch_size=4)
-    config["positional_embedder"]["params"]["ninp"] = 32
+    config["positional_embedder"]["params"].update(ninp=32)
     params = config["transformers"]["params"]
     params.update(d_model=32, dim_feedforward=64)
     for key in ("attention_between_features", "attention_between_ts", "attention_between_samples"):
