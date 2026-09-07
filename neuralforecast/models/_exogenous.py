@@ -1,6 +1,6 @@
 """Shared NeuralForecast window validation for the exogenous model adapters."""
 
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 
@@ -51,7 +51,7 @@ class ExogenousModel(BaseModel):
         valid_loss = loss if valid_loss is None else valid_loss
         if not isinstance(loss, (MAE, MSE)) or not isinstance(valid_loss, (MAE, MSE)):
             raise ValueError("These adapters currently support MAE() and MSE() only.")
-        options = dict(
+        options: dict[str, Any] = dict(
             val_check_steps=100,
             batch_size=32,
             valid_batch_size=None,

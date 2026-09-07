@@ -17,23 +17,31 @@ import torch
 def main(directory: str) -> None:
     directory = Path(directory)
     config = json.loads((directory / "config.json").read_text(encoding="utf-8"))
-    names = {"moirai": "Moirai", "moirai_moe": "MoiraiMoE"}
+    names = {"moirai": "Moirai", "moirai_moe": "MoiraiMoE", "moirai2": "Moirai2"}
     prefix = names[config["kind"]]
     package = importlib.import_module("uni2ts.model." + config["kind"])
     torch.manual_seed(config["random_seed"])
     options = {"revision": config["revision"]} if config["revision"] is not None else {}
     module = getattr(package, prefix + "Module").from_pretrained(config["model_id"], **options)
-    forecast = getattr(package, prefix + "Forecast")(
+    forecast_options = dict(
         module=module, prediction_length=config["h"], context_length=config["input_size"],
         target_dim=1, feat_dynamic_real_dim=config["futr_size"],
-        past_feat_dynamic_real_dim=config["hist_size"], patch_size=config["patch_size"],
-        num_samples=config["num_samples"],
-    ).to(config["device"]).eval()
+        past_feat_dynamic_real_dim=config["hist_size"],
+    )
+    if config["kind"] != "moirai2":
+        forecast_options.update(patch_size=config["patch_size"], num_samples=config["num_samples"])
+    forecast = getattr(package, prefix + "Forecast")(**forecast_options).to(config["device"]).eval()
     with np.load(directory / "inputs.npz", allow_pickle=False) as payload:
         inputs = {key: torch.from_numpy(payload[key].copy()).to(config["device"]) for key in payload.files}
     with torch.no_grad():
-        samples = forecast(**inputs)
-        prediction = samples.mean(dim=1).cpu().numpy()
+        output = forecast(**inputs)
+        if config["kind"] == "moirai2":
+            median = np.flatnonzero(np.isclose(np.asarray(module.quantile_levels, dtype=float), 0.5))
+            if len(median) != 1:
+                raise ValueError("Moirai2 must expose exactly one median quantile.")
+            prediction = output[:, int(median[0])].cpu().numpy()
+        else:
+            prediction = output.mean(dim=1).cpu().numpy()
     np.savez(directory / "outputs.npz", prediction=prediction)
 
 
