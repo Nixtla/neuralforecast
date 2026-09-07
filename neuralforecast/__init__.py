@@ -17,3 +17,15 @@ logging.getLogger("pytorch_lightning.utilities.rank_zero").addFilter(
 
 from .common._base_model import DistributedConfig  # noqa: F401, E402
 from .core import NeuralForecast  # noqa: E402
+
+# Register optional adapters after core is initialized, without importing their
+# external packages. This keeps NeuralForecast.save/load's filename lookup valid.
+from . import models as _models  # noqa: E402
+from .core import MODEL_FILENAME_DICT as _model_filename_dict  # noqa: E402
+
+for _model_name in (
+    "CrossLinear", "TimerXL", "TinyTimeMixer", "Chronos2",
+    "Moirai", "MoiraiMoE", "TimesFM", "Toto",
+):
+    _model_filename_dict[_model_name.lower()] = getattr(_models, _model_name)
+del _models, _model_filename_dict, _model_name

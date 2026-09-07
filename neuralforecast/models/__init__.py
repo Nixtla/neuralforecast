@@ -43,3 +43,13 @@ from .rmok import RMoK
 from .timexer import TimeXer
 from .xlstm import xLSTM
 from .xlinear import XLinear
+
+from .crosslinear import CrossLinear
+from .timerxl import TimerXL
+from .tinytimemixer import TinyTimeMixer
+from .foundation import Chronos2, Moirai, MoiraiMoE, TimesFM, Toto
+
+__all__ += [
+    "CrossLinear", "TimerXL", "TinyTimeMixer", "Chronos2",
+    "Moirai", "MoiraiMoE", "TimesFM", "Toto",
+]
