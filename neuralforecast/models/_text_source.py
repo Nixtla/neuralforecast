@@ -65,7 +65,7 @@ def text_source(source_dir: str, kind: str):
                 filename = str(root / relative)
                 tree = ast.parse(content, filename=filename)
                 for node in ast.walk(tree):
-                    if isinstance(node, ast.ImportFrom) and node.level == 0:
+                    if isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
                         if node.module.split(".")[0] in {"layers", "utils", "models"}:
                             node.module = prefix + "." + node.module
                     elif isinstance(node, ast.Import):

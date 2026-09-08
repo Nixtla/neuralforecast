@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      NF_TEXT_SOURCE_ROOT: ${{ runner.temp }}/nf-text-sources
+      NF_TEXT_SOURCE_ROOT: /tmp/nf-text-sources
       OMP_NUM_THREADS: '1'
       HF_HUB_OFFLINE: '1'
       TRANSFORMERS_OFFLINE: '1'
