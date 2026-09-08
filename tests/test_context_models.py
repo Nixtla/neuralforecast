@@ -17,6 +17,7 @@ import pytest
 import torch
 
 from neuralforecast import NeuralForecast
+from neuralforecast.losses.pytorch import MAE, MQLoss, DistributionLoss
 from neuralforecast.models import Aurora, ChatTime, GPT4MTS, LangTime, TabPFNTS, UniTime, VoT
 from neuralforecast.models._context_source import SOURCES, official_module
 
@@ -181,7 +182,8 @@ def test_gpt4mts_local_language_checkpoint(sources, gpt2_path):
                if "ln" not in name and "wpe" not in name)
 
 
-def test_actual_aurora_checkpoint_and_text_condition(sources, tmp_path, monkeypatch):
+@pytest.mark.parametrize("probabilistic", [False, True])
+def test_actual_aurora_checkpoint_and_text_condition(sources, tmp_path, monkeypatch, probabilistic):
     """Real tiny BERT/ViT/Aurora, trained four synthetic steps, not published weights."""
     from transformers import BertConfig, ViTConfig, ViTImageProcessor, BertTokenizerFast
     module = official_module(sources / "Aurora", "Aurora")
@@ -219,15 +221,34 @@ def test_actual_aurora_checkpoint_and_text_condition(sources, tmp_path, monkeypa
     net.eval().save_pretrained(checkpoint)
     model = Aurora(h=4, input_size=16, source_dir=str(sources / "Aurora"),
         model_id=str(checkpoint), tokenizer_path=str(bert), contexts=["demand up", "demand down"],
-        stat_exog_list=["context_id"], num_samples=2, inference_token_len=4)
+        stat_exog_list=["context_id"], num_samples=7 if probabilistic else 2, inference_token_len=4,
+        loss=MQLoss(quantiles=[0.9, 0.1, 0.5]) if probabilistic else MAE())
     model._get_backend()  # Lazy construction consumes RNG; compare sampling after load.
     batch = window(model)
+    backend, _ = model._get_backend()
+    generate = backend.generate
+    captured = []
+    def capture(**kwargs):
+        samples = generate(**kwargs)
+        captured.append(samples.detach().cpu())
+        return samples
+    monkeypatch.setattr(backend, "generate", capture)
     torch.manual_seed(7); original = model(batch)
+    if probabilistic:
+        expected_q = torch.quantile(torch.cat(captured).float(), model.loss.quantiles.cpu(), dim=1).permute(1, 2, 0)
+        torch.testing.assert_close(original, expected_q)
+        assert (original[..., 0] > original[..., 1]).any()  # q=.9 exceeds q=.1
+        assert original.shape == (2, 4, 3)
+    else:
+        assert original.shape == (2, 4, 1)
     torch.manual_seed(7); changed = model({**batch, "stat_exog": 1 - batch["stat_exog"]})
-    assert original.shape == (2, 4, 1) and torch.isfinite(original).all()
+    assert torch.isfinite(original).all()
     assert not torch.allclose(original, changed, atol=1e-7, rtol=1e-7)
     torch.manual_seed(7)
     torch.testing.assert_close(original, model({**batch, "outsample_y": torch.full((2, 4, 1), 1e9)}))
+    changed_history = batch["insample_y"].clone(); changed_history[1] += 99
+    torch.manual_seed(7)
+    torch.testing.assert_close(original[:1], model({**batch, "insample_y": changed_history})[:1])
     # Reference persistence, not external-weight serialization.
     frame, static = frames(model)
     nf = NeuralForecast(models=[model], freq="D")
@@ -236,8 +257,10 @@ def test_actual_aurora_checkpoint_and_text_condition(sources, tmp_path, monkeypa
     nf.save(path=str(path), save_dataset=True)
     loaded = NeuralForecast.load(path=str(path))
     loaded.models[0]._get_backend()
-    torch.manual_seed(13); expected = nf.predict()["Aurora"].to_numpy()
-    torch.manual_seed(13); actual = loaded.predict()["Aurora"].to_numpy()
+    columns = ["Aurora" + name for name in model.loss.output_names]
+    assert loaded.models[0].loss.output_names == model.loss.output_names
+    torch.manual_seed(13); expected = nf.predict()[columns].to_numpy()
+    torch.manual_seed(13); actual = loaded.predict()[columns].to_numpy()
     np.testing.assert_allclose(expected, actual, rtol=1e-5, atol=1e-6)
 
 
@@ -286,7 +309,8 @@ def test_actual_chattime_api_with_controlled_generation(sources, tmp_path, monke
         model(batch)
 
 
-def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch):
+@pytest.mark.parametrize("probabilistic", [False, True])
+def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch, probabilistic):
     """Official preprocessing/worker/pipeline; gated TabPFN regressor methods are doubles."""
     if not os.environ.get("NF_TEST_TABPFN"):
         pytest.skip("NF_TEST_TABPFN=1 in dedicated optional-package CI")
@@ -311,17 +335,21 @@ def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch):
         # Columns are the declared covariate followed by the running index.
         assert isinstance(X, np.ndarray) and X.shape == (4, 2)
         values = X[:, 0] + self._nf_y.mean()
-        return {"median": values, "mean": values, "quantiles": [values for _ in quantiles]}
+        return {"median": values, "mean": values, "quantiles": [values + 10 * (q - 0.5) for q in quantiles]}
     monkeypatch.setattr(tabpfn.TabPFNRegressor, "__init__", init)
     monkeypatch.setattr(tabpfn.TabPFNRegressor, "fit", fit)
     monkeypatch.setattr(tabpfn.TabPFNRegressor, "predict", predict)
     checkpoint = tmp_path / "tabpfn-v3-regressor-v3_default.ckpt"
     checkpoint.write_bytes(b"explicit checkpoint path; regressor is controlled in this test")
-    model = TabPFNTS(h=4, input_size=16, model_id=str(checkpoint), futr_exog_list=["schedule"])
+    model = TabPFNTS(h=4, input_size=16, model_id=str(checkpoint), futr_exog_list=["schedule"],
+        loss=MQLoss(quantiles=[0.9, 0.1, 0.5]) if probabilistic else MAE())
     batch = window(model)
     original = model(batch)
     assert isinstance(model._get_backend(), tabpfn_time_series.TabPFNTSPipeline)
-    assert original.shape == (2, 4, 1) and len(seen) == 2
+    assert original.shape == (2, 4, 3 if probabilistic else 1) and len(seen) == 2
+    if probabilistic:
+        reference = batch["futr_exog"][:, 16:, :1] + batch["insample_y"].mean(dim=1, keepdim=True)
+        torch.testing.assert_close(original, reference + 10 * (model.loss.quantiles - 0.5))
     assert seen[0][0].shape == (16, 2)
     np.testing.assert_allclose(seen[0][0][:, 0], batch["futr_exog"][0, :16, 0].numpy())
     changed = batch["futr_exog"].clone(); changed[:, 16:] += 2
@@ -332,10 +360,12 @@ def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch):
     frame, _ = frames(model)
     nf = NeuralForecast(models=[model], freq="D"); nf.fit(df=frame)
     future = nf.make_future_dataframe(); future["schedule"] = 0.25
-    expected = nf.predict(futr_df=future)["TabPFNTS"].to_numpy()
+    columns = ["TabPFNTS" + name for name in model.loss.output_names]
+    expected = nf.predict(futr_df=future)[columns].to_numpy()
     nf.save(path=str(tmp_path / "nf"), save_dataset=True)
     loaded = NeuralForecast.load(path=str(tmp_path / "nf"))
-    np.testing.assert_allclose(expected, loaded.predict(futr_df=future)["TabPFNTS"])
+    assert loaded.models[0].loss.output_names == model.loss.output_names
+    np.testing.assert_allclose(expected, loaded.predict(futr_df=future)[columns])
 
 
 @pytest.mark.parametrize("cls", [Aurora, ChatTime, TabPFNTS])
@@ -361,3 +391,67 @@ assert all(MODEL_FILENAME_DICT[c.__name__.lower()] is c for c in (VoT,GPT4MTS,Un
 """
     result = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, timeout=60)
     assert result.returncode == 0, result.stderr
+
+
+@pytest.mark.parametrize("quantiles", [[], [0.0], [1.0], [-0.1], [1.1], [float("nan")], [float("inf")]])
+def test_native_quantile_configuration_is_validated(quantiles, tmp_path):
+    checkpoint = tmp_path / "local.ckpt"; checkpoint.touch()
+    with pytest.raises(ValueError, match="quantiles"):
+        TabPFNTS(h=1, input_size=4, model_id=str(checkpoint), futr_exog_list=["x"],
+                 loss=MQLoss(quantiles=quantiles))
+
+
+def test_native_quantile_loss_and_output_guards(tmp_path):
+    checkpoint = tmp_path / "local.ckpt"; checkpoint.touch()
+    options = dict(h=1, input_size=4, model_id=str(checkpoint), futr_exog_list=["x"])
+    qs = [0.9, 0.1, 0.5]
+    for invalid in [MAE(), MQLoss(quantiles=[0.1, 0.5, 0.9])]:
+        with pytest.raises(ValueError, match="valid_loss"):
+            TabPFNTS(**options, loss=MQLoss(quantiles=qs), valid_loss=invalid)
+    with pytest.raises(ValueError, match="MAE"):
+        TabPFNTS(**options, loss=DistributionLoss(distribution="Normal"))
+    model = TabPFNTS(**options, loss=MQLoss(quantiles=qs))
+    batch = window(model, count=1)
+    good = torch.tensor([[[9., 1., 5.]]])
+    torch.testing.assert_close(model._quantile_output(good, batch["insample_y"]), good)
+    for invalid in [good[..., :1], good * float("nan"), good * float("inf"), -good]:
+        with pytest.raises(ValueError):
+            model._quantile_output(invalid, batch["insample_y"])
+    for options in [dict(quantiles=[0.5]), dict(quantile=0.5)]:
+        with pytest.raises(ValueError, match="construction"):
+            model.predict(dataset=None, **options)
+    with pytest.raises(ValueError, match="Gradient"):
+        model.predict(dataset=None, explainer_config={})
+    with pytest.raises(ValueError, match="inference-only"):
+        TabPFNTS(h=1, input_size=4, model_id=str(checkpoint), futr_exog_list=["x"],
+                 loss=MQLoss(quantiles=qs), max_steps=1)
+    # Other pretrained context models must not silently acquire quantile heads.
+    (tmp_path / "model.safetensors").touch()
+    with pytest.raises(ValueError, match="MAE"):
+        ChatTime(h=1, input_size=4, source_dir=str(tmp_path), model_id=str(tmp_path),
+                 contexts=["external"], stat_exog_list=["context_id"], loss=MQLoss(quantiles=qs))
+    with pytest.raises(ValueError, match="num_samples"):
+        Aurora(h=1, input_size=4, source_dir=str(tmp_path), model_id=str(tmp_path),
+               tokenizer_path=str(tmp_path), contexts=["external"], stat_exog_list=["context_id"],
+               num_samples=1, loss=MQLoss(quantiles=qs))
+
+
+def test_tabpfnts_rejects_missing_quantile_columns_and_future_labels(tmp_path):
+    """Output contract only: this controlled pipeline is not the real regressor."""
+    from types import SimpleNamespace
+    checkpoint = tmp_path / "local.ckpt"; checkpoint.touch()
+    model = TabPFNTS(h=1, input_size=4, model_id=str(checkpoint), futr_exog_list=["x"],
+                    loss=MQLoss(quantiles=[0.9, 0.1, 0.5]))
+    seen = []
+    def predict_df(context_df, future_df, quantiles):
+        assert "target" in context_df and "target" not in future_df
+        seen.append((context_df.copy(), future_df.copy()))
+        return pd.DataFrame({q: [10 * q] for q in reversed(quantiles)})
+    model.__dict__["_backend"] = SimpleNamespace(predict_df=predict_df)
+    batch = window(model, count=1)
+    expected = torch.tensor([[[9., 1., 5.]]])
+    torch.testing.assert_close(model({**batch, "outsample_y": torch.full((1, 1, 1), 1e9)}), expected)
+    assert len(seen) == 1 and len(seen[0][0]) == 4 and len(seen[0][1]) == 1
+    model.__dict__["_backend"] = SimpleNamespace(predict_df=lambda **kw: pd.DataFrame({"target": [0.]}))
+    with pytest.raises(ValueError, match="quantile column"):
+        model(batch)

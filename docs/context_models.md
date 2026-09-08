@@ -1,24 +1,25 @@
 # Remaining external-context forecasting integrations
 
-This change addresses all nine previously unstarted candidates in the live
-`Forecasting Papers / 예측모델` catalog. Seven integrations are implemented below;
-SCENARIODIFF and KairosAgent are investigated but blocked, as recorded at the end.
-SpecTF/TGForecaster belong to PR #5 and are deliberately not duplicated.
+The original integration addressed nine previously unstarted candidates: seven
+integrations below and two source blockers. SpecTF/TGForecaster belong to PR #5
+and are deliberately not duplicated. PR #6 merged these seven adapters into main
+at `7cbc99e85a9303c34dbf557a3a0a175630366c6d`.
 
-Baseline main: `e5e78363f477d56ed7c86636430b23bcfdedbfcf`. Registration in this
-branch is not main deployment, nor evidence of a paper's published accuracy.
+The native-quantile follow-up extends the existing Aurora and TabPFNTS adapters;
+it does not add duplicate model classes or replace their official architectures.
+An open feature PR is not main deployment or evidence of published accuracy.
 
 ## What is implemented
 
-| Class | Actual official implementation | External inputs here | NF fitting |
+| Class | Actual official implementation | External inputs here | NF fitting/output |
 |---|---|---|---|
 | `VoT` | PatchTST_clip's forecast=2 path, trend and seasonal text fusion | Historical event/text embeddings | Supervised point-loss training |
 | `GPT4MTS` | Official GPT4MTS patch/text fusion with GPT-2 | Historical text embeddings matching the backbone width | Supervised point-loss training |
 | `UniTime` | Official UniTime and UniTimeGPT2 | Per-series domain descriptions selected by a static context ID | Forecast-horizon training |
 | `LangTime` | Official LTPratrainedModel, patch encoder, linear adapter and GPT-2 | Per-series external instructions selected by a static context ID | Forecast-horizon training |
-| `Aurora` | Official AuroraForPrediction.generate, including its BERT/ViT/flow architecture | Per-series external text selected by a static context ID | Inference only; sample mean point forecast and sample quantiles |
+| `Aurora` | Official AuroraForPrediction.generate, including its BERT/ViT/flow architecture | Per-series external text selected by a static context ID | Inference only; sample mean by default, optional native sample quantiles |
 | `ChatTime` | Official discretizer, serializer, prompt and Llama forecasting API | Per-series external text selected by a static context ID | Inference only, original sample median |
-| `TabPFNTS` | Official TabPFN-TS preprocessing, feature/predictor pipeline in LOCAL mode | Numerical known-future columns, including their historical values | Local inference/in-context regression; native pipeline quantiles |
+| `TabPFNTS` | Official TabPFN-TS preprocessing, feature/predictor pipeline in LOCAL mode | Numerical known-future columns, including their historical values | Local inference; median by default, optional official regressor quantiles |
 
 These are different architectures, not renamed generic regressors. Text embedding
 coordinates are numerical tensors but must come from an appropriate fixed text
@@ -26,17 +27,14 @@ encoder; they are **not** a claim of arbitrary exchange-rate/inventory-regressor
 support. Aurora's image is generated from the target, not an independent external
 image input. Text encoding/reasoning happens outside these NF adapters.
 
-The trainable adapters and ChatTime remain point-output integrations. Aurora and
-TabPFNTS additionally expose their backend-native predictive uncertainty through
-`NeuralForecast.predict(quantiles=[...])`: Aurora computes requested quantiles from
-the same generated sample trajectories used for its point forecast, while TabPFNTS
-forwards the requested quantiles to the official pipeline. This does not introduce
-trainable probabilistic NF loss heads, Auto tuning wrappers, categorical embedding
-APIs or untested distributed/gradient-explanation paths. Complete history and
-identity NF scaling are required. Preprocess embeddings consistently across train
-and test. Only the four description-based classes use `stat_exog_list` as shown
-above; these IDs select external text, not arbitrary numeric static features.
-Invalid IDs and non-finite forecasts fail explicitly.
+All seven support one target per series and MAE/MSE point-output scoring. Only
+Aurora and TabPFNTS additionally accept `MQLoss` to expose native quantiles as
+specified below. Auto tuning wrappers, categorical embedding APIs, distributed
+fitting and gradient explanations for frozen backends are not supported.
+Complete history and identity NF scaling are required. Preprocess embeddings
+consistently across train and test. Only the four description-based classes use
+`stat_exog_list` as shown above; these IDs select external text, not arbitrary
+numeric static features. Invalid IDs and non-finite forecasts fail explicitly.
 
 ## Explicit local setup
 
@@ -128,18 +126,13 @@ from neuralforecast.models import Aurora, ChatTime, TabPFNTS
 
 aurora = Aurora(h=12, input_size=96, source_dir=str(sources / "Aurora"),
                 model_id="/local/official-aurora", tokenizer_path="/local/bert-tokenizer",
-                contexts=contexts, stat_exog_list=["context_id"], num_samples=100)
+                contexts=contexts, stat_exog_list=["context_id"], num_samples=20)
 chattime = ChatTime(h=12, input_size=96, source_dir=str(sources / "ChatTime"),
                     model_id="/local/official-chattime", contexts=contexts,
                     stat_exog_list=["context_id"], num_samples=8)
 tabpfn = TabPFNTS(h=12, input_size=96,
                   model_id="/local/tabpfn-v3-regressor-v3_default.ckpt",
                   futr_exog_list=["holiday", "planned_production"])
-
-# Both Aurora and TabPFNTS support backend-native quantile output.
-quantile_forecast = NeuralForecast(models=[aurora], freq="D")
-quantile_forecast.fit(df=df, static_df=static_df)
-quantiles = quantile_forecast.predict(quantiles=[0.1, 0.5, 0.9])
 ```
 
 For TabPFNTS, provide each feature's historical values in `df` and origin-known
@@ -154,10 +147,63 @@ are rejected. The example checkpoint is a path schema, not a bundled file.
 Aurora/ChatTime require local safetensors directories with architecture-compatible,
 trained weights and matching tokenizers. Generic language-model weights are not
 ChatTime forecast weights. Their `fit` registers history; positive `max_steps`
-does not fine-tune these backends and is rejected. Aurora's default point forecast
-is the sample mean and requested quantiles are calculated from its generated sample
-paths; ChatTime uses its original median across parsed numerical samples.
-Unparseable or non-finite outputs raise instead of being replaced by baseline forecasts.
+does not fine-tune these backends and is rejected. Aurora returns the sample mean
+by default; ChatTime uses its original median across parsed numerical samples.
+Unparseable or non-finite outputs raise instead of being replaced by baselines.
+
+## Native probabilistic forecasts: Aurora and TabPFNTS
+
+Select the output at construction, then use the normal NF prediction API:
+
+```python
+from neuralforecast import NeuralForecast
+from neuralforecast.losses.pytorch import MQLoss
+from neuralforecast.models import Aurora, TabPFNTS
+
+quantiles = [0.1, 0.5, 0.9]
+tabpfn = TabPFNTS(
+    h=12, input_size=96,
+    model_id="/local/tabpfn-v3-regressor-v3_default.ckpt",
+    futr_exog_list=["holiday", "planned_production"],
+    loss=MQLoss(quantiles=quantiles),
+)
+nf = NeuralForecast(models=[tabpfn], freq="D")
+nf.fit(df=df)
+forecast = nf.predict(futr_df=futr_df)
+# Output columns follow the configured MQLoss output_names, not a point column.
+
+# Aurora uses static descriptions rather than arbitrary numerical covariates.
+aurora = Aurora(
+    h=12, input_size=96, source_dir=str(sources / "Aurora"),
+    model_id="/local/official-aurora", tokenizer_path="/local/bert-tokenizer",
+    contexts=contexts, stat_exog_list=["context_id"], num_samples=100,
+    loss=MQLoss(quantiles=quantiles),
+)
+```
+
+Aurora computes each requested marginal empirical quantile from the **actual
+samples returned by its official flow generator**, instead of collapsing those
+samples to a mean. TabPFNTS forwards the configured grid to the **official LOCAL
+pipeline/regressor** and returns its quantile columns rather than only `target`.
+The reviewed TabPFN worker uses numeric quantile column labels; the adapter
+selects by those labels and preserves the configured NF output order.
+
+MAE/MSE point defaults remain unchanged. Other existing adapters are not opted
+into quantile support. `MQLoss` here specifies an inference output contract, not
+NF fine-tuning of pretrained weights. These are marginal quantile forecasts,
+not an exposed parametric density or a promise of a calibrated joint path
+ distribution. No residual interval, generic Gaussian head or conformal wrapper
+is used. Aurora's finite-sample tail estimates depend on `num_samples`; the
+minimum of two samples is an interface guard, not evidence of tail accuracy.
+
+Use distinct finite quantiles strictly inside (0, 1); any explicit `valid_loss`
+must be MQLoss with the same ordered grid. Missing, non-finite or crossing native
+quantiles raise. Configure the grid in the constructor; runtime
+`predict(quantiles=...)` and its legacy singular alias are deliberately rejected.
+Existing complete-history, identity-scaling and trusted local-checkpoint
+restrictions still apply. Saving NF persists the grid/configuration and local
+references, not external model weights. GPU/MPS and distributed execution have
+not been validated for this extension.
 
 ## Deliberate integration boundaries and compatibility edits
 
@@ -177,15 +223,12 @@ Unparseable or non-finite outputs raise instead of being replaced by baseline fo
 - Aurora uses the original generated-image/text encoding, prototype retrieval and
   flow sampler. Its period selector aggregates batches, so windows run separately.
   The wrapper exposes static descriptions, not timestamped news streams or an
-  arbitrary dynamic numeric input. BERT context is limited to 125 tokens. Native
-  quantiles are empirical quantiles over the generated sample trajectories.
+  arbitrary dynamic numeric input. BERT context is limited to 125 tokens.
 - ChatTime retains original serialization and autoregressive chunking. NumPy 2's
   removed `np.NaN` spelling becomes `np.nan`; loading is local safetensors/float32
   before explicit device placement instead of automatic half-precision dispatch.
   The checkpoint/tokenizer are trusted local inputs; arbitrary remote model code
   is not enabled by the adapter.
-- TabPFNTS passes requested quantile levels to the official LOCAL pipeline and
-  returns its `target` point forecast plus the corresponding quantile columns.
 
 ## Persistence and validation
 
@@ -205,10 +248,14 @@ and saved/reloaded as safetensors; actual ChatTime API and tiny Llama/tokenizer
 loading with **controlled generated responses**; official TabPFN-TS preprocessing,
 workers and NF persistence with **controlled gated-regressor methods**. The latter
 two are routing/compatibility tests, not pretrained numerical forecast execution.
-`tests/test_context_probabilistic.py` additionally verifies the NF point-plus-quantile
-column contract for Aurora samples and TabPFN-TS pipeline quantiles, including reset
-to point-only prediction. Tiny models/checkpoints use synthetic inputs and are not
-published model weights.
+Tiny models/checkpoints use synthetic inputs and are not published model weights.
+
+Both Aurora and the official TabPFN pipeline tests run point and quantile modes.
+Aurora quantiles are compared against captured real generator samples; TabPFN's
+controlled regressor returns distinct quantiles to test their transport/order,
+external-condition sensitivity, future-label exclusion and NF save/reload.
+Separate guard tests cover invalid grids/losses/shapes/values, crossing quantiles,
+singleton dimensions, missing quantile columns and rejection of unsupported APIs.
 
 The dedicated workflow uses Python 3.11, Torch 2.9.1 CPU and Lightning 2.5.6, checks
 package consistency, and uploads JUnit results. Check the workflow for the exact
@@ -219,8 +266,13 @@ pretrained checkpoint accuracy and paper-score reproduction are not asserted.
 
 | Candidate | Evidence and blocker, checked 2026-09-08 | Unblocking requirement |
 |---|---|---|
+| ApolloPFN | Paper https://arxiv.org/abs/2603.15802 and author publication were inspected; no author-confirmed executable implementation/checkpoint was located. | Accessible author-confirmed source and compatible weights/training instructions |
+| DiTS | Paper https://arxiv.org/abs/2602.06597 was inspected; no author-confirmed executable implementation was located. | Accessible official implementation with input/output and checkpoint instructions |
+| COSMIC | Paper https://arxiv.org/abs/2506.03128 and author page were inspected; no verified COSMIC source/checkpoint was located. The paper's TTM baseline link is not COSMIC code. | Author-confirmed COSMIC implementation/checkpoint |
 | KairosAgent | https://foundation-model-research.github.io/KairosAgent/ lists the paper but no verified forecasting implementation was found. The similarly named Kairos TSFM is a different project. | Author-confirmed executable repository and its actual forecast/input interface |
-| SCENARIODIFF | The catalog's official link is https://anonymous.4open.science/r/ScenarioDiff_ICDM-2C4C . The code endpoint could not be retrieved in this environment, so implementation, dependencies and checkpoint interface were not audited. This is an access blocker, not a claim that code does not exist. | Accessible official source snapshot and compatible training/checkpoint instructions |
+| SCENARIODIFF | Paper https://arxiv.org/abs/2608.17164 points to https://anonymous.4open.science/r/ScenarioDiff_ICDM-2C4C . The code endpoint could not be retrieved in this environment, so implementation, dependencies and checkpoint interface were not audited. This is an access blocker, not a claim that code does not exist. | Accessible official source snapshot and compatible training/checkpoint instructions |
 
-No placeholder classes for these two are registered. The catalog's main-based
-`my_forecast` flags are not changed by an unmerged feature branch.
+ApolloPFN, DiTS and COSMIC are source-verification blockers, not proof that code
+can never become available. No placeholder classes are registered for blocked
+models. A model's probabilistic capability and the fork's implemented output are
+separate facts; a catalog must not infer the latter merely from a paper title.

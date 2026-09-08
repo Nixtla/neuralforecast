@@ -2,9 +2,11 @@
 
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from neuralforecast import NeuralForecast
+from neuralforecast.losses.pytorch import MAE, MQLoss
 from neuralforecast.models import Aurora, TabPFNTS
 
 
@@ -50,7 +52,8 @@ def _series_frame(length=8):
     )
 
 
-def test_aurora_quantiles_use_generated_samples(tmp_path):
+@pytest.mark.parametrize("probabilistic", [False, True])
+def test_aurora_quantiles_use_generated_samples(tmp_path, probabilistic):
     checkpoint = tmp_path / "aurora"
     checkpoint.mkdir()
     (checkpoint / "model.safetensors").write_bytes(b"test")
@@ -67,23 +70,25 @@ def test_aurora_quantiles_use_generated_samples(tmp_path):
         stat_exog_list=["context_id"],
         num_samples=5,
         accelerator="cpu",
+        loss=MQLoss(quantiles=[0.1, 0.5, 0.9]) if probabilistic else MAE(),
     )
     nf = NeuralForecast(models=[model], freq="D")
     nf.models[0].__dict__["_backend"] = (_AuroraBackend(), _Tokenizer())
     static = pd.DataFrame({"unique_id": ["a"], "context_id": [0.0]})
     nf.fit(df=_series_frame(), static_df=static)
 
-    forecast = nf.predict(quantiles=[0.1, 0.5, 0.9])
+    forecast = nf.predict()
     columns = [column for column in forecast.columns if column.startswith("Aurora")]
-    assert len(columns) == 4 and columns[0] == "Aurora"
+    assert columns == [f"Aurora{name}" for name in nf.models[0].loss.output_names]
     np.testing.assert_allclose(
         forecast[columns].to_numpy(),
-        np.tile([2.0, 0.4, 2.0, 3.6], (2, 1)),
+        np.tile([0.4, 2.0, 3.6] if probabilistic else [2.0], (2, 1)),
         atol=1e-6,
     )
 
 
-def test_tabpfnts_quantiles_use_official_pipeline_columns(tmp_path):
+@pytest.mark.parametrize("probabilistic", [False, True])
+def test_tabpfnts_quantiles_use_official_pipeline_columns(tmp_path, probabilistic):
     checkpoint = tmp_path / "tabpfn.ckpt"
     checkpoint.write_bytes(b"test")
     model = TabPFNTS(
@@ -92,6 +97,7 @@ def test_tabpfnts_quantiles_use_official_pipeline_columns(tmp_path):
         model_id=str(checkpoint),
         futr_exog_list=["schedule"],
         accelerator="cpu",
+        loss=MQLoss(quantiles=[0.1, 0.5, 0.9]) if probabilistic else MAE(),
     )
     frame = _series_frame()
     frame["schedule"] = np.arange(len(frame), dtype=np.float32)
@@ -101,15 +107,11 @@ def test_tabpfnts_quantiles_use_official_pipeline_columns(tmp_path):
     future = nf.make_future_dataframe()
     future["schedule"] = [8.0, 9.0]
 
-    forecast = nf.predict(futr_df=future, quantiles=[0.1, 0.5, 0.9])
+    forecast = nf.predict(futr_df=future)
     columns = [column for column in forecast.columns if column.startswith("TabPFNTS")]
-    assert len(columns) == 4 and columns[0] == "TabPFNTS"
+    assert columns == [f"TabPFNTS{name}" for name in nf.models[0].loss.output_names]
     np.testing.assert_allclose(
         forecast[columns].to_numpy(),
-        [[18.0, 17.2, 18.0, 18.8], [19.0, 18.2, 19.0, 19.8]],
+        [[17.2, 18.0, 18.8], [18.2, 19.0, 19.8]] if probabilistic else [[18.0], [19.0]],
         atol=1e-6,
     )
-
-    point = nf.predict(futr_df=future)
-    assert [column for column in point.columns if column.startswith("TabPFNTS")] == ["TabPFNTS"]
-    np.testing.assert_allclose(point["TabPFNTS"].to_numpy(), [18.0, 19.0])

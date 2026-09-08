@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import torch
 
+from ..losses.pytorch import MQLoss
 from ._context_source import official_module
 from ._exogenous import ExogenousModel, PretrainedExogenousModel
 
@@ -64,16 +65,6 @@ def _context_indices(model, batch, y):
 def _context_schema(model):
     if model.stat_exog_size != 1:
         raise ValueError("Provide exactly one stat_exog_list column containing context_id.")
-
-
-def _native_quantile_output(output, y, h, quantiles):
-    output = torch.as_tensor(output, device=y.device, dtype=y.dtype)
-    expected = (y.shape[0], h, 1 + len(quantiles))
-    if output.shape != expected:
-        raise ValueError(f"Backend returned unexpected forecast shape {tuple(output.shape)}.")
-    if not torch.isfinite(output).all():
-        raise ValueError("Backend returned non-finite forecasts.")
-    return output
 
 
 class VoT(ExogenousModel):
@@ -279,13 +270,14 @@ class Aurora(PretrainedExogenousModel):
     """Official Aurora local-checkpoint inference with BERT text conditions.
 
     stat_exog_list contains one context_id selecting contexts. No future text,
-    model weights or tokenizer are downloaded automatically. Point forecasts use
-    the sample mean; requested quantiles use the same generated sample paths.
+    model weights or tokenizer are downloaded automatically. MAE/MSE returns the
+    sample mean; loss=MQLoss(...) returns empirical marginal quantiles instead.
     """
 
     EXOGENOUS_HIST = False
     EXOGENOUS_FUTR = False
     EXOGENOUS_STAT = True
+
     NATIVE_QUANTILES = True
 
     def __init__(self, h, input_size, source_dir, model_id, tokenizer_path, contexts,
@@ -300,6 +292,8 @@ class Aurora(PretrainedExogenousModel):
                          stat_exog_list=stat_exog_list, **_options(kwargs))
         _context_schema(self)
         self.inference_token_len = inference_token_len
+        if isinstance(self.loss, MQLoss) and self.num_samples < 2:
+            raise ValueError("Aurora quantiles require num_samples >= 2.")
 
     def _load_backend(self):
         from transformers import BertTokenizerFast
@@ -319,7 +313,6 @@ class Aurora(PretrainedExogenousModel):
         self._complete_history(mask)
         ids = _context_indices(self, windows_batch, y)
         model, tokenizer = self._get_backend()
-        quantiles = self.loss.quantiles
         outputs = []
         # The upstream pseudo-image period selector pools a batch. Isolate windows.
         with torch.inference_mode():
@@ -332,17 +325,18 @@ class Aurora(PretrainedExogenousModel):
                     inference_token_len=self.inference_token_len)
                 if sample.shape != (1, self.num_samples, self.h):
                     raise ValueError(f"Unexpected Aurora sample shape: {tuple(sample.shape)}")
-                point = sample.mean(1)
-                if quantiles is None:
-                    outputs.append(point.to(y.device))
-                    continue
-                qs = torch.tensor(quantiles, device=sample.device, dtype=sample.dtype)
-                quantile_values = torch.quantile(sample, qs, dim=1).permute(1, 2, 0)
-                outputs.append(torch.cat((point.unsqueeze(-1), quantile_values), dim=-1).to(y.device))
-        output = torch.cat(outputs)
-        if quantiles is None:
-            return self._point_output(output, y)
-        return _native_quantile_output(output, y, self.h, quantiles)
+                if not torch.isfinite(sample).all():
+                    raise ValueError("Aurora returned non-finite forecast samples.")
+                if isinstance(self.loss, MQLoss):
+                    # Marginal empirical quantiles, not residual/conformal intervals.
+                    qs = self.loss.quantiles.to(device=sample.device, dtype=torch.float32)
+                    output = torch.quantile(sample.float(), qs, dim=1).permute(1, 2, 0)
+                else:
+                    output = sample.mean(1)
+                outputs.append(output.to(y.device))
+        if isinstance(self.loss, MQLoss):
+            return self._quantile_output(torch.cat(outputs), y)
+        return self._point_output(torch.cat(outputs), y)
 
 
 class ChatTime(PretrainedExogenousModel):
@@ -389,10 +383,12 @@ class TabPFNTS(PretrainedExogenousModel):
     model_id is an explicit local compatible TabPFN regressor checkpoint file.
     Only the running index is engineered; provide true calendar values through
     futr_exog_list because NF windows do not carry the original datetime index.
-    Native pipeline quantiles are returned when requested.
+    With loss=MQLoss(...), return the official regressor's requested quantiles;
+    MAE/MSE retains the original median point forecast.
     """
 
     EXOGENOUS_HIST = False
+
     NATIVE_QUANTILES = True
 
     def __init__(self, h, input_size, model_id, **kwargs):
@@ -417,8 +413,8 @@ class TabPFNTS(PretrainedExogenousModel):
         y, mask, _, futr = self._inputs(windows_batch)
         self._complete_history(mask)
         pipeline = self._get_backend()
-        quantiles = self.loss.quantiles
-        requested_quantiles = [0.5] if quantiles is None else quantiles
+        quantile_mode = isinstance(self.loss, MQLoss)
+        quantiles = self.loss.quantiles.detach().cpu().tolist() if quantile_mode else [0.5]
         dates = pd.date_range("2000-01-01", periods=self.input_size + self.h, freq="s")
         output = []
         for i in range(len(y)):
@@ -428,13 +424,14 @@ class TabPFNTS(PretrainedExogenousModel):
             history = frame.iloc[:self.input_size].copy()
             history["target"] = y[i, :, 0].detach().cpu().numpy()
             future = frame.iloc[self.input_size:].copy()  # Never includes target labels.
-            result = pipeline.predict_df(context_df=history, future_df=future,
-                                         quantiles=requested_quantiles)
-            if quantiles is None:
-                output.append(result["target"].to_numpy())
+            result = pipeline.predict_df(context_df=history, future_df=future, quantiles=quantiles)
+            if quantile_mode:
+                # The pinned official worker returns numeric quantile column labels.
+                if not result.columns.is_unique or any(q not in result.columns for q in quantiles):
+                    raise ValueError("TabPFN-TS did not return each requested quantile column exactly once.")
+                output.append(result.loc[:, quantiles].to_numpy())
             else:
-                output.append(result[["target", *quantiles]].to_numpy())
-        output = np.stack(output)
-        if quantiles is None:
-            return self._point_output(output, y)
-        return _native_quantile_output(output, y, self.h, quantiles)
+                output.append(result["target"].to_numpy())
+        if quantile_mode:
+            return self._quantile_output(np.stack(output), y)
+        return self._point_output(np.stack(output), y)

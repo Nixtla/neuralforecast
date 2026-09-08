@@ -1,45 +1,20 @@
 """Shared NeuralForecast window validation for the exogenous model adapters."""
 
-import math
 from typing import Any, Optional
 
 import torch
 
 from ..common._base_model import BaseModel
-from ..losses.pytorch import MAE, MSE, quantiles_to_outputs
-
-
-class _NativeQuantileMAE(MAE):
-    """Inference metadata for pretrained backends that natively return quantiles."""
-
-    def __init__(self):
-        super().__init__()
-        self.quantiles: Optional[list[float]] = None
-
-    def update_quantile(self, q=None):
-        if q is None:
-            self.quantiles = None
-            self.outputsize_multiplier = 1
-            self.output_names = [""]
-            return
-        try:
-            quantiles = [float(value) for value in q]
-        except (TypeError, ValueError) as exc:
-            raise ValueError("quantiles must be a nonempty sequence of numbers in (0, 1).") from exc
-        if not quantiles or any(not math.isfinite(value) or not 0 < value < 1 for value in quantiles):
-            raise ValueError("quantiles must be a nonempty sequence of numbers in (0, 1).")
-        quantiles, names = quantiles_to_outputs(quantiles)
-        self.quantiles = list(quantiles)
-        self.outputsize_multiplier = 1 + len(self.quantiles)
-        self.output_names = [""] + names
+from ..losses.pytorch import MAE, MSE, MQLoss
 
 
 class ExogenousModel(BaseModel):
     """Point-forecast base; the standard NeuralForecast trainer remains in charge.
 
-    Only numerical historical/future covariates and MAE/MSE are supported.
-    Static/categorical inputs and probabilistic loss heads are rejected rather
-    than silently ignored. Additional keyword arguments are BaseModel options.
+    Numerical historical/future covariates and MAE/MSE are supported by default.
+    Only explicitly opted-in adapters accept native MQLoss quantile outputs.
+    Unsupported inputs and loss heads fail rather than being silently ignored.
+    Additional keyword arguments are BaseModel options.
     """
 
     EXOGENOUS_HIST = True
@@ -48,6 +23,7 @@ class ExogenousModel(BaseModel):
     EXOGENOUS_CAT = False
     MULTIVARIATE = False
     RECURRENT = False
+    NATIVE_QUANTILES = False
 
     def __init__(
         self,
@@ -75,8 +51,17 @@ class ExogenousModel(BaseModel):
                 raise ValueError("Covariate names must be nonempty strings.")
         loss = MAE() if loss is None else loss
         valid_loss = loss if valid_loss is None else valid_loss
-        if not isinstance(loss, (MAE, MSE)) or not isinstance(valid_loss, (MAE, MSE)):
-            raise ValueError("These adapters currently support MAE() and MSE() only.")
+        if self.NATIVE_QUANTILES and isinstance(loss, MQLoss):
+            qs = loss.quantiles.detach()
+            if (qs.ndim != 1 or qs.numel() == 0 or not torch.isfinite(qs).all()
+                    or ((qs <= 0) | (qs >= 1)).any()
+                    or qs.unique().numel() != qs.numel()
+                    or len(set(loss.output_names)) != qs.numel()):
+                raise ValueError("MQLoss requires distinct finite quantiles in (0, 1) with unique output names.")
+            if not isinstance(valid_loss, MQLoss) or not torch.equal(qs, valid_loss.quantiles.detach()):
+                raise ValueError("valid_loss must be MQLoss with the same quantiles and ordering as loss.")
+        elif not isinstance(loss, (MAE, MSE)) or not isinstance(valid_loss, (MAE, MSE)):
+            raise ValueError("These adapters support MAE() and MSE(); only native-quantile adapters also accept MQLoss().")
         options: dict[str, Any] = dict(
             val_check_steps=100,
             batch_size=32,
@@ -149,6 +134,20 @@ class ExogenousModel(BaseModel):
             raise ValueError("Backend returned non-finite forecasts.")
         return output
 
+    def _quantile_output(self, output, y):
+        """Validate native marginal quantiles in the configured MQLoss order."""
+        if not self.NATIVE_QUANTILES or not isinstance(self.loss, MQLoss):
+            raise ValueError("Native quantile output requires an opted-in adapter with MQLoss.")
+        output = torch.as_tensor(output, device=y.device, dtype=y.dtype)
+        if output.shape != (y.shape[0], self.h, self.loss.outputsize_multiplier):
+            raise ValueError(f"Backend returned unexpected quantile shape {tuple(output.shape)}.")
+        if not torch.isfinite(output).all():
+            raise ValueError("Backend returned non-finite quantiles.")
+        order = self.loss.quantiles.argsort().to(output.device)
+        if (output.index_select(-1, order).diff(dim=-1) < 0).any():
+            raise ValueError("Backend returned crossing quantiles.")
+        return output
+
 
 class PretrainedExogenousModel(ExogenousModel):
     """Inference-only adapter. fit validates inputs but does not fine-tune weights.
@@ -159,7 +158,6 @@ class PretrainedExogenousModel(ExogenousModel):
     """
 
     DEFAULT_MODEL_ID = ""
-    NATIVE_QUANTILES = False
 
     def __init__(
         self,
@@ -178,11 +176,6 @@ class PretrainedExogenousModel(ExogenousModel):
             raise ValueError("Early stopping is unavailable for inference-only adapters.")
         if not isinstance(num_samples, int) or num_samples < 1:
             raise ValueError("num_samples must be a positive integer.")
-        if self.NATIVE_QUANTILES and kwargs.get("loss") is None:
-            native_loss = _NativeQuantileMAE()
-            kwargs["loss"] = native_loss
-            if kwargs.get("valid_loss") is None:
-                kwargs["valid_loss"] = native_loss
         super().__init__(h=h, input_size=input_size, max_steps=0, **kwargs)
         self.model_id = model_id or self.DEFAULT_MODEL_ID
         self.revision = revision
@@ -214,6 +207,8 @@ class PretrainedExogenousModel(ExogenousModel):
     def predict(self, *args, **kwargs):
         if kwargs.get("explainer_config") is not None:
             raise ValueError("Gradient explanations are unavailable for pretrained adapters.")
-        if kwargs.get("quantiles") is not None and not isinstance(self.loss, _NativeQuantileMAE):
+        if kwargs.get("quantiles") is not None or "quantile" in kwargs:
+            if self.NATIVE_QUANTILES:
+                raise ValueError("Configure loss=MQLoss(quantiles=...) at construction, then call predict() without quantiles.")
             raise ValueError("This adapter exposes point forecasts only.")
         return super().predict(*args, **kwargs)
