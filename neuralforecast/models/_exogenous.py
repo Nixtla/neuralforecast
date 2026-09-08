@@ -1,11 +1,37 @@
 """Shared NeuralForecast window validation for the exogenous model adapters."""
 
+import math
 from typing import Any, Optional
 
 import torch
 
 from ..common._base_model import BaseModel
-from ..losses.pytorch import MAE, MSE
+from ..losses.pytorch import MAE, MSE, quantiles_to_outputs
+
+
+class _NativeQuantileMAE(MAE):
+    """Inference metadata for pretrained backends that natively return quantiles."""
+
+    def __init__(self):
+        super().__init__()
+        self.quantiles = None
+
+    def update_quantile(self, q=None):
+        if q is None:
+            self.quantiles = None
+            self.outputsize_multiplier = 1
+            self.output_names = [""]
+            return
+        try:
+            quantiles = [float(value) for value in q]
+        except (TypeError, ValueError) as exc:
+            raise ValueError("quantiles must be a nonempty sequence of numbers in (0, 1).") from exc
+        if not quantiles or any(not math.isfinite(value) or not 0 < value < 1 for value in quantiles):
+            raise ValueError("quantiles must be a nonempty sequence of numbers in (0, 1).")
+        quantiles, names = quantiles_to_outputs(quantiles)
+        self.quantiles = list(quantiles)
+        self.outputsize_multiplier = 1 + len(self.quantiles)
+        self.output_names = [""] + names
 
 
 class ExogenousModel(BaseModel):
@@ -133,6 +159,7 @@ class PretrainedExogenousModel(ExogenousModel):
     """
 
     DEFAULT_MODEL_ID = ""
+    NATIVE_QUANTILES = False
 
     def __init__(
         self,
@@ -151,6 +178,11 @@ class PretrainedExogenousModel(ExogenousModel):
             raise ValueError("Early stopping is unavailable for inference-only adapters.")
         if not isinstance(num_samples, int) or num_samples < 1:
             raise ValueError("num_samples must be a positive integer.")
+        if self.NATIVE_QUANTILES and kwargs.get("loss") is None:
+            native_loss = _NativeQuantileMAE()
+            kwargs["loss"] = native_loss
+            if kwargs.get("valid_loss") is None:
+                kwargs["valid_loss"] = native_loss
         super().__init__(h=h, input_size=input_size, max_steps=0, **kwargs)
         self.model_id = model_id or self.DEFAULT_MODEL_ID
         self.revision = revision
@@ -182,6 +214,6 @@ class PretrainedExogenousModel(ExogenousModel):
     def predict(self, *args, **kwargs):
         if kwargs.get("explainer_config") is not None:
             raise ValueError("Gradient explanations are unavailable for pretrained adapters.")
-        if kwargs.get("quantiles") is not None:
+        if kwargs.get("quantiles") is not None and not isinstance(self.loss, _NativeQuantileMAE):
             raise ValueError("This adapter exposes point forecasts only.")
         return super().predict(*args, **kwargs)
