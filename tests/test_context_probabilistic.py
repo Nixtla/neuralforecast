@@ -66,6 +66,7 @@ def test_aurora_quantiles_use_generated_samples(tmp_path):
         contexts=["demand context"],
         stat_exog_list=["context_id"],
         num_samples=5,
+        accelerator="cpu",
     )
     nf = NeuralForecast(models=[model], freq="D")
     nf.models[0].__dict__["_backend"] = (_AuroraBackend(), _Tokenizer())
@@ -90,6 +91,7 @@ def test_tabpfnts_quantiles_use_official_pipeline_columns(tmp_path):
         input_size=4,
         model_id=str(checkpoint),
         futr_exog_list=["schedule"],
+        accelerator="cpu",
     )
     frame = _series_frame()
     frame["schedule"] = np.arange(len(frame), dtype=np.float32)
