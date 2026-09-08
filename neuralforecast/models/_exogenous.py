@@ -14,7 +14,7 @@ class _NativeQuantileMAE(MAE):
 
     def __init__(self):
         super().__init__()
-        self.quantiles = None
+        self.quantiles: Optional[list[float]] = None
 
     def update_quantile(self, q=None):
         if q is None:
