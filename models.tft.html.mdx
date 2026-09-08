@@ -1,8 +1,8 @@
 ---
 description: >-
-  TFT: Temporal Fusion Transformer with interpretable multi-horizon forecasting. LSTM encoder, multi-head attention, variable selection for complex time series.
+  Build interpretable forecasts with Temporal Fusion Transformer in NeuralForecast using static, historic, and future variables in Python.
 output-file: models.tft.html
-title: TFT
+title: Temporal Fusion Transformer Forecasting in Python
 ---
 
 In summary Temporal Fusion Transformer (TFT) combines gating layers, an
@@ -130,7 +130,7 @@ Name | Type | Description | Default
 `lr_scheduler` | <code>Subclass of 'torch.optim.lr_scheduler.LRScheduler'</code> | optional, user specified lr_scheduler instead of the default choice (StepLR). | <code>None</code>
 `lr_scheduler_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters used by the user specified `lr_scheduler`. | <code>None</code>
 `dataloader_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. | <code>None</code>
-`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
+`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
 
 <details class="references" open markdown="1">
 <summary>References</summary>
@@ -623,8 +623,8 @@ complexity capable of accommodating different size datasets. As residual
 connections allow for the network to skip the non-linear transformation
 of input $\mathbf{a}$ and context $\mathbf{c}$.
 
-The Gated Linear Unit (GLU) provides the flexibility of supressing
-unnecesary parts of the GRN. Consider GRN’s output $\gamma$ then GLU
+The Gated Linear Unit (GLU) provides the flexibility of suppressing
+unnecessary parts of the GRN. Consider GRN’s output $\gamma$ then GLU
 transformation is defined by:
 
 $$\mathrm{GLU}(\gamma) = \sigma(\mathbf{W}_{4}\gamma +b_{4}) \odot (\mathbf{W}_{5}\gamma +b_{5})$$
@@ -662,7 +662,7 @@ To avoid information bottlenecks from the classic Seq2Seq architecture,
 TFT incorporates a decoder-encoder attention mechanism inherited
 transformer architectures ([Li et. al
 2019](https://arxiv.org/abs/1907.00235), [Vaswani et. al
-2017](https://arxiv.org/abs/1706.03762)). It transform the the outputs
+2017](https://arxiv.org/abs/1706.03762)). It transforms the outputs
 of the LSTM encoded temporal features, and helps the decoder better
 capture long-term relationships.
 
@@ -677,5 +677,3 @@ $\mathrm{InterpretableMultiHead}(Q,K,V) = \tilde{H} W_{M}$. The
 mechanism has a great resemblence to a single attention layer, but it
 allows for $M$ multiple attention weights, and can be therefore be
 interpreted as the average ensemble of $M$ single attention layers.
-
-

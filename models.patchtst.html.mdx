@@ -1,8 +1,8 @@
 ---
 description: >-
-  PatchTST: Efficient Transformer model for multivariate forecasting using patched time series and channel-independence for scalable long-term predictions.
+  Build long horizon forecasts with PatchTST in NeuralForecast. Learn how temporal patches and channel independence work, then run a complete Python example.
 output-file: models.patchtst.html
-title: PatchTST
+title: PatchTST Time Series Forecasting in Python
 ---
 
 The PatchTST model is an efficient Transformer-based model for
@@ -114,7 +114,7 @@ Name | Type | Description | Default
 `stride` | <code>[int](#int)</code> | stride of patch. | <code>8</code>
 `revin` | <code>[bool](#bool)</code> | bool to use RevIn. | <code>True</code>
 `revin_affine` | <code>[bool](#bool)</code> | bool to use affine in RevIn. | <code>False</code>
-`revin_subtract_last` | <code>[bool](#bool)</code> | bool to use substract last in RevIn. | <code>True</code>
+`revin_subtract_last` | <code>[bool](#bool)</code> | bool to use subtract last in RevIn. | <code>True</code>
 `activation` | <code>[str](#str)</code> | activation from ['gelu','relu']. | <code>'gelu'</code>
 `res_attention` | <code>[bool](#bool)</code> | bool to use residual attention. | <code>True</code>
 `batch_normalization` | <code>[bool](#bool)</code> | bool to use batch normalization. | <code>False</code>
@@ -143,7 +143,7 @@ Name | Type | Description | Default
 `lr_scheduler` | <code>Subclass of 'torch.optim.lr_scheduler.LRScheduler'</code> | optional, user specified lr_scheduler instead of the default choice (StepLR). | <code>None</code>
 `lr_scheduler_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters used by the user specified `lr_scheduler`. | <code>None</code>
 `dataloader_kwargs` | <code>[dict](#dict)</code> | optional, list of parameters passed into the PyTorch Lightning dataloader by the `TimeSeriesDataLoader`. | <code>None</code>
-`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lighning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
+`**trainer_kwargs` | <code>[int](#int)</code> | keyword trainer arguments inherited from [PyTorch Lightning's trainer](https://pytorch-lightning.readthedocs.io/en/stable/api/pytorch_lightning.trainer.trainer.Trainer.html?highlight=trainer). | <code>{}</code>
 
 <details class="references" open markdown="1">
 <summary>References</summary>
