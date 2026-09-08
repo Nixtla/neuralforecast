@@ -16,9 +16,9 @@ branch is not main deployment, nor evidence of a paper's published accuracy.
 | `GPT4MTS` | Official GPT4MTS patch/text fusion with GPT-2 | Historical text embeddings matching the backbone width | Supervised point-loss training |
 | `UniTime` | Official UniTime and UniTimeGPT2 | Per-series domain descriptions selected by a static context ID | Forecast-horizon training |
 | `LangTime` | Official LTPratrainedModel, patch encoder, linear adapter and GPT-2 | Per-series external instructions selected by a static context ID | Forecast-horizon training |
-| `Aurora` | Official AuroraForPrediction.generate, including its BERT/ViT/flow architecture | Per-series external text selected by a static context ID | Inference only, sample mean |
+| `Aurora` | Official AuroraForPrediction.generate, including its BERT/ViT/flow architecture | Per-series external text selected by a static context ID | Inference only; sample mean point forecast and sample quantiles |
 | `ChatTime` | Official discretizer, serializer, prompt and Llama forecasting API | Per-series external text selected by a static context ID | Inference only, original sample median |
-| `TabPFNTS` | Official TabPFN-TS preprocessing, feature/predictor pipeline in LOCAL mode | Numerical known-future columns, including their historical values | Local inference/in-context regression, no NF gradient training |
+| `TabPFNTS` | Official TabPFN-TS preprocessing, feature/predictor pipeline in LOCAL mode | Numerical known-future columns, including their historical values | Local inference/in-context regression; native pipeline quantiles |
 
 These are different architectures, not renamed generic regressors. Text embedding
 coordinates are numerical tensors but must come from an appropriate fixed text
@@ -26,12 +26,17 @@ encoder; they are **not** a claim of arbitrary exchange-rate/inventory-regressor
 support. Aurora's image is generated from the target, not an independent external
 image input. Text encoding/reasoning happens outside these NF adapters.
 
-All seven support one target per series and MAE/MSE point-output scoring, not
-probabilistic NF loss heads, Auto tuning wrappers, categorical embedding APIs or
-untested distributed/gradient-explanation paths. Complete history and identity NF
-scaling are required. Preprocess embeddings consistently across train and test.
-Only the four description-based classes use `stat_exog_list` as shown above; these IDs select external text, not arbitrary
-numeric static features. Invalid IDs and non-finite forecasts fail explicitly.
+The trainable adapters and ChatTime remain point-output integrations. Aurora and
+TabPFNTS additionally expose their backend-native predictive uncertainty through
+`NeuralForecast.predict(quantiles=[...])`: Aurora computes requested quantiles from
+the same generated sample trajectories used for its point forecast, while TabPFNTS
+forwards the requested quantiles to the official pipeline. This does not introduce
+trainable probabilistic NF loss heads, Auto tuning wrappers, categorical embedding
+APIs or untested distributed/gradient-explanation paths. Complete history and
+identity NF scaling are required. Preprocess embeddings consistently across train
+and test. Only the four description-based classes use `stat_exog_list` as shown
+above; these IDs select external text, not arbitrary numeric static features.
+Invalid IDs and non-finite forecasts fail explicitly.
 
 ## Explicit local setup
 
@@ -123,13 +128,18 @@ from neuralforecast.models import Aurora, ChatTime, TabPFNTS
 
 aurora = Aurora(h=12, input_size=96, source_dir=str(sources / "Aurora"),
                 model_id="/local/official-aurora", tokenizer_path="/local/bert-tokenizer",
-                contexts=contexts, stat_exog_list=["context_id"], num_samples=20)
+                contexts=contexts, stat_exog_list=["context_id"], num_samples=100)
 chattime = ChatTime(h=12, input_size=96, source_dir=str(sources / "ChatTime"),
                     model_id="/local/official-chattime", contexts=contexts,
                     stat_exog_list=["context_id"], num_samples=8)
 tabpfn = TabPFNTS(h=12, input_size=96,
                   model_id="/local/tabpfn-v3-regressor-v3_default.ckpt",
                   futr_exog_list=["holiday", "planned_production"])
+
+# Both Aurora and TabPFNTS support backend-native quantile output.
+quantile_forecast = NeuralForecast(models=[aurora], freq="D")
+quantile_forecast.fit(df=df, static_df=static_df)
+quantiles = quantile_forecast.predict(quantiles=[0.1, 0.5, 0.9])
 ```
 
 For TabPFNTS, provide each feature's historical values in `df` and origin-known
@@ -144,9 +154,10 @@ are rejected. The example checkpoint is a path schema, not a bundled file.
 Aurora/ChatTime require local safetensors directories with architecture-compatible,
 trained weights and matching tokenizers. Generic language-model weights are not
 ChatTime forecast weights. Their `fit` registers history; positive `max_steps`
-does not fine-tune these backends and is rejected. Aurora returns the sample mean;
-ChatTime uses its original median across parsed numerical samples. Unparseable or
-non-finite outputs raise instead of being replaced by baseline forecasts.
+does not fine-tune these backends and is rejected. Aurora's default point forecast
+is the sample mean and requested quantiles are calculated from its generated sample
+paths; ChatTime uses its original median across parsed numerical samples.
+Unparseable or non-finite outputs raise instead of being replaced by baseline forecasts.
 
 ## Deliberate integration boundaries and compatibility edits
 
@@ -166,12 +177,15 @@ non-finite outputs raise instead of being replaced by baseline forecasts.
 - Aurora uses the original generated-image/text encoding, prototype retrieval and
   flow sampler. Its period selector aggregates batches, so windows run separately.
   The wrapper exposes static descriptions, not timestamped news streams or an
-  arbitrary dynamic numeric input. BERT context is limited to 125 tokens.
+  arbitrary dynamic numeric input. BERT context is limited to 125 tokens. Native
+  quantiles are empirical quantiles over the generated sample trajectories.
 - ChatTime retains original serialization and autoregressive chunking. NumPy 2's
   removed `np.NaN` spelling becomes `np.nan`; loading is local safetensors/float32
   before explicit device placement instead of automatic half-precision dispatch.
   The checkpoint/tokenizer are trusted local inputs; arbitrary remote model code
   is not enabled by the adapter.
+- TabPFNTS passes requested quantile levels to the official LOCAL pipeline and
+  returns its `target` point forecast plus the corresponding quantile columns.
 
 ## Persistence and validation
 
@@ -191,7 +205,10 @@ and saved/reloaded as safetensors; actual ChatTime API and tiny Llama/tokenizer
 loading with **controlled generated responses**; official TabPFN-TS preprocessing,
 workers and NF persistence with **controlled gated-regressor methods**. The latter
 two are routing/compatibility tests, not pretrained numerical forecast execution.
-Tiny models/checkpoints use synthetic inputs and are not published model weights.
+`tests/test_context_probabilistic.py` additionally verifies the NF point-plus-quantile
+column contract for Aurora samples and TabPFN-TS pipeline quantiles, including reset
+to point-only prediction. Tiny models/checkpoints use synthetic inputs and are not
+published model weights.
 
 The dedicated workflow uses Python 3.11, Torch 2.9.1 CPU and Lightning 2.5.6, checks
 package consistency, and uploads JUnit results. Check the workflow for the exact
