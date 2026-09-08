@@ -1,6 +1,6 @@
 """Load pinned, explicitly supplied official model sources, without vendoring.
 
-All imported local source files and Aurora's constructor JSONs are hash checked.
+All imported local source files and Aurora's constructor resources are hash checked.
 This is namespace isolation and compatibility checking, not a security sandbox.
 No source/checkpoint downloads or package installations happen in this loader.
 """
@@ -46,7 +46,8 @@ SOURCES: dict[str, dict[str, Any]] = {'VoT': {'repository': 'decisionintelligenc
  'Aurora': {'repository': 'decisionintelligence/Aurora',
             'revision': 'a247760abbc9d17a861bc365c032368d317815f2',
             'entry': 'aurora/modeling_aurora.py',
-            'files': {'aurora/bert_config/config.json': '45a2321a7ecfdaaf60a6c1fd7f5463994cc8907d',
+            'files': {'aurora/bert_config/vocab.txt': 'fb140275c155a9c7c5a3b3e0e77a9e839594a938',
+                      'aurora/bert_config/config.json': '45a2321a7ecfdaaf60a6c1fd7f5463994cc8907d',
                       'aurora/bert_config/tokenizer.json': '949a6f013d67eb8a5b4b5b46026217b888021b88',
                       'aurora/bert_config/tokenizer_config.json': 'e5c73d8a50df1f56fb5b0b8002d7cf4010afdccb',
                       'aurora/vit_config/config.json': '254071bbf72dd0fd535b61768d9cd87adcb776f4',

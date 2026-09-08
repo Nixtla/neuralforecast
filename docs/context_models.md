@@ -42,7 +42,7 @@ versions (in particular older ChronosX environments).
 ```sh
 python -m pip install -e .
 python -m pip install 'transformers==4.48.3' 'huggingface-hub==0.36.0' \
-  'reformer-pytorch==1.4.4' 'einops==0.8.1' 'accelerate>=1,<2' sentencepiece matplotlib
+  'reformer-pytorch==1.4.4' 'einops==0.8.1' 'accelerate>=1,<2' sentencepiece scikit-learn matplotlib
 python scripts/fetch_context_sources.py "$HOME/nf-context-sources"
 ```
 
@@ -73,7 +73,7 @@ checkpoint, but its randomly initialized GPT-2 must be trained.
 | https://github.com/PriorLabs/tabpfn-time-series | `e1c9d6afdf949e41a175009241300665eec07573` |
 
 The source loader checks every imported local Python file and Aurora's constructor
-JSON files against recorded Git blob hashes, including transitive local imports.
+JSON/vocabulary resources against recorded Git blob hashes, including transitive local imports.
 Only reviewed local imports and the small compatibility edits below are changed
 in memory. No global `layers`/`utils` import replacement is used. This is import
 isolation and compatibility checking, **not a security sandbox**. Use trusted
