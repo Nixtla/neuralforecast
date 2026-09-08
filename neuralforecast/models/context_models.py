@@ -66,6 +66,16 @@ def _context_schema(model):
         raise ValueError("Provide exactly one stat_exog_list column containing context_id.")
 
 
+def _native_quantile_output(output, y, h, quantiles):
+    output = torch.as_tensor(output, device=y.device, dtype=y.dtype)
+    expected = (y.shape[0], h, 1 + len(quantiles))
+    if output.shape != expected:
+        raise ValueError(f"Backend returned unexpected forecast shape {tuple(output.shape)}.")
+    if not torch.isfinite(output).all():
+        raise ValueError("Backend returned non-finite forecasts.")
+    return output
+
+
 class VoT(ExogenousModel):
     """Official VoT PatchTST text-fusion forecasting stage, trained with point loss.
 
@@ -269,12 +279,14 @@ class Aurora(PretrainedExogenousModel):
     """Official Aurora local-checkpoint inference with BERT text conditions.
 
     stat_exog_list contains one context_id selecting contexts. No future text,
-    model weights or tokenizer are downloaded automatically. Output is sample mean.
+    model weights or tokenizer are downloaded automatically. Point forecasts use
+    the sample mean; requested quantiles use the same generated sample paths.
     """
 
     EXOGENOUS_HIST = False
     EXOGENOUS_FUTR = False
     EXOGENOUS_STAT = True
+    NATIVE_QUANTILES = True
 
     def __init__(self, h, input_size, source_dir, model_id, tokenizer_path, contexts,
                  inference_token_len=48, stat_exog_list=None, **kwargs):
@@ -307,6 +319,7 @@ class Aurora(PretrainedExogenousModel):
         self._complete_history(mask)
         ids = _context_indices(self, windows_batch, y)
         model, tokenizer = self._get_backend()
+        quantiles = self.loss.quantiles
         outputs = []
         # The upstream pseudo-image period selector pools a batch. Isolate windows.
         with torch.inference_mode():
@@ -319,8 +332,17 @@ class Aurora(PretrainedExogenousModel):
                     inference_token_len=self.inference_token_len)
                 if sample.shape != (1, self.num_samples, self.h):
                     raise ValueError(f"Unexpected Aurora sample shape: {tuple(sample.shape)}")
-                outputs.append(sample.mean(1).to(y.device))
-        return self._point_output(torch.cat(outputs), y)
+                point = sample.mean(1)
+                if quantiles is None:
+                    outputs.append(point.to(y.device))
+                    continue
+                qs = torch.tensor(quantiles, device=sample.device, dtype=sample.dtype)
+                quantile_values = torch.quantile(sample, qs, dim=1).permute(1, 2, 0)
+                outputs.append(torch.cat((point.unsqueeze(-1), quantile_values), dim=-1).to(y.device))
+        output = torch.cat(outputs)
+        if quantiles is None:
+            return self._point_output(output, y)
+        return _native_quantile_output(output, y, self.h, quantiles)
 
 
 class ChatTime(PretrainedExogenousModel):
@@ -367,9 +389,11 @@ class TabPFNTS(PretrainedExogenousModel):
     model_id is an explicit local compatible TabPFN regressor checkpoint file.
     Only the running index is engineered; provide true calendar values through
     futr_exog_list because NF windows do not carry the original datetime index.
+    Native pipeline quantiles are returned when requested.
     """
 
     EXOGENOUS_HIST = False
+    NATIVE_QUANTILES = True
 
     def __init__(self, h, input_size, model_id, **kwargs):
         super().__init__(h=h, input_size=input_size, model_id=_local_path(model_id, directory=False),
@@ -393,6 +417,8 @@ class TabPFNTS(PretrainedExogenousModel):
         y, mask, _, futr = self._inputs(windows_batch)
         self._complete_history(mask)
         pipeline = self._get_backend()
+        quantiles = self.loss.quantiles
+        requested_quantiles = [0.5] if quantiles is None else quantiles
         dates = pd.date_range("2000-01-01", periods=self.input_size + self.h, freq="s")
         output = []
         for i in range(len(y)):
@@ -402,6 +428,13 @@ class TabPFNTS(PretrainedExogenousModel):
             history = frame.iloc[:self.input_size].copy()
             history["target"] = y[i, :, 0].detach().cpu().numpy()
             future = frame.iloc[self.input_size:].copy()  # Never includes target labels.
-            result = pipeline.predict_df(context_df=history, future_df=future, quantiles=[0.5])
-            output.append(result["target"].to_numpy())
-        return self._point_output(np.stack(output), y)
+            result = pipeline.predict_df(context_df=history, future_df=future,
+                                         quantiles=requested_quantiles)
+            if quantiles is None:
+                output.append(result["target"].to_numpy())
+            else:
+                output.append(result[["target", *quantiles]].to_numpy())
+        output = np.stack(output)
+        if quantiles is None:
+            return self._point_output(output, y)
+        return _native_quantile_output(output, y, self.h, quantiles)
