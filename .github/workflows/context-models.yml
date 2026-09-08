@@ -1,0 +1,80 @@
+name: Remaining context and covariate models
+on:
+  pull_request:
+    paths:
+      - 'neuralforecast/models/context_models.py'
+      - 'neuralforecast/models/_context_source.py'
+      - 'neuralforecast/models/__init__.py'
+      - 'neuralforecast/__init__.py'
+      - 'scripts/fetch_context_sources.py'
+      - 'tests/test_context_models.py'
+      - '.github/workflows/context-models.yml'
+permissions:
+  contents: read
+jobs:
+  official-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NF_CONTEXT_SOURCE_ROOT: /tmp/nf-context-sources
+      OMP_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      TABPFN_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install supported CPU runtime
+        run: |
+          python -m pip install 'torch==2.9.1' 'torchvision==0.24.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . 'pytorch-lightning==2.5.6' 'transformers==4.48.3' 'huggingface-hub==0.36.0' 'reformer-pytorch==1.4.4' 'einops==0.8.1' 'accelerate>=1,<2' sentencepiece scipy matplotlib pytest ruff mypy
+          python -m pip check
+      - name: Fetch explicit reviewed source revisions
+        run: python scripts/fetch_context_sources.py "$NF_CONTEXT_SOURCE_ROOT"
+      - name: Static checks
+        run: |
+          python -m ruff check neuralforecast/models/context_models.py neuralforecast/models/_context_source.py scripts/fetch_context_sources.py tests/test_context_models.py
+          python -m mypy --follow-imports=silent neuralforecast/models/context_models.py neuralforecast/models/_context_source.py
+      - name: Actual source and NF tests, plus first-batch regressions
+        run: python -m pytest -q -o addopts='' tests/test_context_models.py tests/test_exogenous_models.py -m 'not optional' -k 'not tabpfnts_official_pipeline' --junitxml=context-source-tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: context-source-test-results
+          path: context-source-tests.xml
+          retention-days: 7
+  tabpfn-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NF_TEST_TABPFN: '1'
+      OMP_NUM_THREADS: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+      TABPFN_DISABLE_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install official TabPFN-TS without downloading gated checkpoints
+        run: |
+          python -m pip install 'torch==2.9.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . 'pytorch-lightning==2.5.6' 'tabpfn-time-series @ git+https://github.com/PriorLabs/tabpfn-time-series@e1c9d6afdf949e41a175009241300665eec07573' pytest
+          python -m pip check
+      - name: Official preprocessing and worker, controlled gated regressor
+        run: python -m pytest -q -o addopts='' tests/test_context_models.py -k tabpfnts_official_pipeline --junitxml=tabpfn-pipeline-tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tabpfn-pipeline-test-results
+          path: tabpfn-pipeline-tests.xml
+          retention-days: 7

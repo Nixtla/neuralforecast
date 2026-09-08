@@ -24,6 +24,7 @@ from . import models as _models  # noqa: E402
 from .core import MODEL_FILENAME_DICT as _model_filename_dict  # noqa: E402
 
 for _model_name in (
+    "VoT", "GPT4MTS", "UniTime", "LangTime", "Aurora", "ChatTime", "TabPFNTS",
     "CrossLinear", "TimerXL", "TinyTimeMixer", "Chronos2",
     "Moirai", "MoiraiMoE", "TimesFM", "Toto",
     "DAG", "KITE", "GLAFF", "APT", "Moirai2", "ChronosX", "BaguanTS", "RAG4CTS",
