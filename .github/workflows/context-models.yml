@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'neuralforecast/models/context_models.py'
+      - 'neuralforecast/models/_exogenous.py'
       - 'neuralforecast/models/_context_source.py'
       - 'neuralforecast/models/__init__.py'
       - 'neuralforecast/__init__.py'
@@ -39,8 +40,8 @@ jobs:
         run: python scripts/fetch_context_sources.py "$NF_CONTEXT_SOURCE_ROOT"
       - name: Static checks
         run: |
-          python -m ruff check neuralforecast/models/context_models.py neuralforecast/models/_context_source.py scripts/fetch_context_sources.py tests/test_context_models.py
-          python -m mypy --follow-imports=silent neuralforecast/models/context_models.py neuralforecast/models/_context_source.py
+          python -m ruff check neuralforecast/models/context_models.py neuralforecast/models/_exogenous.py neuralforecast/models/_context_source.py scripts/fetch_context_sources.py tests/test_context_models.py
+          python -m mypy --follow-imports=silent neuralforecast/models/context_models.py neuralforecast/models/_exogenous.py neuralforecast/models/_context_source.py
       - name: Actual source and NF tests, plus first-batch regressions
         run: python -m pytest -q -o addopts='' tests/test_context_models.py tests/test_exogenous_models.py -m 'not optional' -k 'not tabpfnts_official_pipeline' --junitxml=context-source-tests.xml
       - uses: actions/upload-artifact@v4
