@@ -10,6 +10,10 @@ import subprocess
 import sys
 
 SOURCES = {
+    "SpecTF": ("hiepnh137/SpecTF", "85185c7b883fed7de40098d76ce6782ba1eba016",
+               ["models", "layers", "utils"]),
+    "TGForecaster": ("VEWOXIC/TGTSF", "fdf10ceea422c0bf13b0013c9d6ca48179bf9de7",
+                     ["models", "layers"]),
     "DAG": ("decisionintelligence/DAG", "0758990e2c73bb54138ea3e7b11a35cbc5476bcc",
             ["ts_benchmark/baselines/dag", "ts_benchmark/baselines/time_series_library/utils"]),
     "KITE": ("decisionintelligence/KITE", "3140ee824cbd80c5ec7fdf2b54666210519d0b39",

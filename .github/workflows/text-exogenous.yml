@@ -1,0 +1,46 @@
+name: Text exogenous models
+on:
+  pull_request:
+    paths:
+      - 'neuralforecast/models/text_models.py'
+      - 'neuralforecast/models/_text_source.py'
+      - 'neuralforecast/models/__init__.py'
+      - 'neuralforecast/__init__.py'
+      - 'scripts/fetch_research_sources.py'
+      - 'tests/test_text_models.py'
+      - '.github/workflows/text-exogenous.yml'
+permissions:
+  contents: read
+jobs:
+  official-source-cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NF_TEXT_SOURCE_ROOT: ${{ runner.temp }}/nf-text-sources
+      OMP_NUM_THREADS: '1'
+      HF_HUB_OFFLINE: '1'
+      TRANSFORMERS_OFFLINE: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install supported CPU runtime
+        run: |
+          python -m pip install 'torch==2.9.1' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . 'torch==2.9.1' 'pytorch-lightning==2.5.6' 'reformer-pytorch==1.4.4' 'einops==0.8.1' pytest
+          python -m pip check
+      - name: Fetch pinned official code without weights or datasets
+        run: python scripts/fetch_research_sources.py "$NF_TEXT_SOURCE_ROOT" SpecTF TGForecaster
+      - name: Check actual source and NeuralForecast roundtrips
+        run: |
+          python -c "import torch, pytorch_lightning as pl; print('Torch:', torch.__version__, 'Lightning:', pl.__version__)"
+          python -m pytest -q -o addopts='' tests/test_text_models.py tests/test_exogenous_models.py -m 'not optional' --junitxml=text-exogenous-tests.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: text-exogenous-results
+          path: text-exogenous-tests.xml
+          retention-days: 7
