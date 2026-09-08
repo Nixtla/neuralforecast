@@ -307,9 +307,10 @@ def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch):
         seen.append((X.copy(), np.asarray(y).copy()))
         return self
     def predict(self, X, quantiles, **kwargs):
-        assert "target" not in X.columns
-        assert "covariate_0" in X.columns
-        values = X["covariate_0"].to_numpy() + self._nf_y.mean()
+        # The official worker removes target and converts features to ndarray.
+        # Columns are the declared covariate followed by the running index.
+        assert isinstance(X, np.ndarray) and X.shape == (4, 2)
+        values = X[:, 0] + self._nf_y.mean()
         return {"median": values, "mean": values, "quantiles": [values for _ in quantiles]}
     monkeypatch.setattr(tabpfn.TabPFNRegressor, "__init__", init)
     monkeypatch.setattr(tabpfn.TabPFNRegressor, "fit", fit)
@@ -321,7 +322,8 @@ def test_tabpfnts_official_pipeline_local_only(tmp_path, monkeypatch):
     original = model(batch)
     assert isinstance(model._get_backend(), tabpfn_time_series.TabPFNTSPipeline)
     assert original.shape == (2, 4, 1) and len(seen) == 2
-    assert seen[0][0].shape[0] == 16
+    assert seen[0][0].shape == (16, 2)
+    np.testing.assert_allclose(seen[0][0][:, 0], batch["futr_exog"][0, :16, 0].numpy())
     changed = batch["futr_exog"].clone(); changed[:, 16:] += 2
     torch.testing.assert_close(model({**batch, "futr_exog": changed}), original + 2)
     torch.testing.assert_close(model({**batch, "outsample_y": torch.full((2, 4, 1), 1e9)}), original)
