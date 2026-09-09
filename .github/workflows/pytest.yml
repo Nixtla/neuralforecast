@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-14-xlarge, windows-latest]
+        os: [ubuntu-latest, macos-14, windows-latest]
         python-version: ['3.10', '3.11', '3.12', '3.13']
         exclude:
           # Ray doesn't have Windows wheels for Python 3.13
@@ -43,11 +43,11 @@ jobs:
         run: uv sync --group dev --group aws --extra spark
 
       - name: Override torch and numpy version on MacOS due to compatibility issues with MPS in github runners on newer MacOS versions
-        if: matrix.os == 'macos-13' || matrix.os == 'macos-14-xlarge'
+        if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
         run: uv pip install --system "torch>=2.0.0,<=2.6.0" "numpy<2.0.0"
 
       - name: Run pytest (macos)
-        if: runner.os == 'macOS' && matrix.os == 'macos-14-xlarge'
+        if: runner.os == 'macOS' && matrix.os == 'macos-14'
         env:
           PYTORCH_ENABLE_MPS_FALLBACK: 1
           PYTORCH_MPS_HIGH_WATERMARK_RATIO: 0.0

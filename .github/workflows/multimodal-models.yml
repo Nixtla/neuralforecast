@@ -1,0 +1,56 @@
+name: Multimodal and covariate models batch 3
+on:
+  push:
+    branches: [feat/exogenous-models-batch3-10-20260908]
+  pull_request:
+    paths: ['neuralforecast/models/*', 'tests/test_multimodal*', '.github/workflows/multimodal-models.yml']
+permissions:
+  contents: read
+jobs:
+  sources:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Snapshot code only, without credentials, datasets or weights
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, tarfile
+          repos = {
+              'neuralforecast': 'immanuelk1m/neuralforecast',
+              'Aurora': 'decisionintelligence/Aurora',
+              'SpecTF': 'hiepnh137/SpecTF',
+              'VoT': 'decisionintelligence/VoT',
+              'ChatTime': 'ForestsKing/ChatTime',
+              'LangTime': 'niuwz/LangTime',
+              'GPT4MTS': 'Flora-jia-jfr/GPT4MTS-Prompt-based-Large-Language-Model-for-Multimodal-Time-series-Forecasting',
+              'TGForecaster': 'VEWOXIC/TGTSF',
+              'UniTime': 'liuxu77/UniTime',
+              'CITRASFM': 'hitachi-ais/citras-fm',
+              'TabPFNTS': 'PriorLabs/tabpfn-time-series',
+          }
+          output = pathlib.Path('source-snapshots'); output.mkdir()
+          manifest = {}
+          for name, repo in repos.items():
+              root = pathlib.Path('/tmp') / ('nf-source-' + name)
+              subprocess.run(['git', 'clone', '--depth', '1', '--filter=blob:none', '--no-checkout', 'https://github.com/' + repo + '.git', str(root)], check=True)
+              revision = subprocess.check_output(['git', '-C', str(root), 'rev-parse', 'HEAD'], text=True).strip()
+              names = subprocess.check_output(['git', '-C', str(root), 'ls-tree', '-r', '--name-only', 'HEAD'], text=True).splitlines()
+              selected = [p for p in names if pathlib.Path(p).suffix in ('.py', '.md', '.toml', '.yml', '.yaml', '.json', '.txt', '.sh') or pathlib.Path(p).name in ('LICENSE', 'NOTICE', 'AGENTS.md')]
+              selected = [p for p in selected if not any(part.lower() in ('dataset', 'datasets', 'checkpoints', '.git', 'node_modules', 'data') for part in pathlib.Path(p).parts)]
+              with (output / (name + '.tar')).open('wb') as archive:
+                  subprocess.run(['git', '-C', str(root), 'archive', 'HEAD', '--', *selected], check=True, stdout=archive)
+              manifest[name] = {'repository': repo, 'revision': revision, 'files': len(selected)}
+          (output / 'manifest.json').write_text(json.dumps(manifest, indent=2))
+          print(json.dumps(manifest, indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: multimodal-source-snapshots
+          path: source-snapshots/
+          retention-days: 3
