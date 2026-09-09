@@ -29,7 +29,10 @@ class iTransformer(BaseModel):
         h (int): Forecast horizon.
         input_size (int): autorregresive inputs size, y=[1,2,3,4] input_size=2 -> y_[t-2:t]=[1,2].
         n_series (int): number of time-series.
-        futr_exog_list (str list): future exogenous columns.
+        futr_exog_list (str list, optional): future exogenous columns known ahead across the forecast horizon.
+            Each future covariate sequence over the forecast horizon `h` is embedded as an inverted token
+            via a linear projection layer, allowing cross-variable self-attention between target series and
+            future covariates.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
@@ -72,7 +75,7 @@ class iTransformer(BaseModel):
     """
 
     # Class attributes
-    EXOGENOUS_FUTR = False
+    EXOGENOUS_FUTR = True
     EXOGENOUS_HIST = False
     EXOGENOUS_STAT = False
     MULTIVARIATE = True
@@ -170,9 +173,15 @@ class iTransformer(BaseModel):
         self.use_norm = use_norm
 
         # Architecture
+        # Inverted embedding for target series: projects lookback length (input_size) -> hidden_size
         self.enc_embedding = DataEmbedding_inverted(
             input_size, self.hidden_size, self.dropout
         )
+
+        # Inverted embedding for future exogenous variables: projects horizon length (h) -> hidden_size
+        if self.futr_exog_size > 0:
+            self.futr_embedding = nn.Linear(h, self.hidden_size)
+            self.futr_dropout = nn.Dropout(self.dropout)
 
         self.encoder = TransEncoder(
             [
@@ -198,7 +207,17 @@ class iTransformer(BaseModel):
             self.hidden_size, h * self.loss.outputsize_multiplier, bias=True
         )
 
-    def forecast(self, x_enc):
+    def forecast(self, x_enc, futr_exog=None):
+        """Generate forecasts from lookback series and optional future covariates.
+
+        Args:
+            x_enc (torch.Tensor): Lookback target sequences of shape [batch_size, input_size, n_series].
+            futr_exog (torch.Tensor, optional): Future exogenous covariates of shape
+                [batch_size, futr_exog_size, input_size + h, n_series].
+
+        Returns:
+            dec_out (torch.Tensor): Forecast tensor of shape [batch_size, h * outputsize_multiplier, n_series].
+        """
         if self.use_norm:
             # Normalization from Non-stationary Transformer
             means = x_enc.mean(1, keepdim=True).detach()
@@ -208,25 +227,41 @@ class iTransformer(BaseModel):
             )
             x_enc /= stdev
 
-        _, _, N = x_enc.shape  # B L N
-        # B: batch_size;       E: hidden_size;
-        # L: input_size;       S: horizon(h);
-        # N: number of variate (tokens), can also includes covariates
+        _, _, N = x_enc.shape  # B: batch_size, L: input_size, N: n_series
 
-        # Embedding
-        # B L N -> B N E                (B L N -> B L E in the vanilla Transformer)
-        enc_out = self.enc_embedding(
-            x_enc, None
-        )  # covariates (e.g timestamp) can be also embedded as tokens
+        # Inverted embedding for target series: B L N -> B N E
+        enc_out = self.enc_embedding(x_enc, None)
 
-        # B N E -> B N E                (B L E -> B L E in the vanilla Transformer)
-        # the dimensions of embedded time series has been inverted, and then processed by native attn, layernorm and ffn modules
-        enc_out, attns = self.encoder(enc_out, attn_mask=None)
+        # Inverted embedding for future exogenous variables
+        if self.futr_exog_size > 0 and futr_exog is not None:
+            if futr_exog.ndim == 3:
+                futr_exog = futr_exog.unsqueeze(-1)
 
-        # B N E -> B N S -> B S N
-        dec_out = self.projector(enc_out).permute(0, 2, 1)[
-            :, :, :N
-        ]  # filter the covariates
+            # Extract future horizon: [B, F, L + h, N] -> [B, F, h, N]
+            futr = futr_exog[:, :, self.input_size :, :]
+            B_f, F_f, h_f, N_f = futr.shape
+
+            # Reshape each feature for each series as a token: [B, N * F, h]
+            futr = futr.permute(0, 3, 1, 2).reshape(B_f, N_f * F_f, h_f)
+
+            if self.use_norm:
+                f_means = futr.mean(-1, keepdim=True).detach()
+                futr = futr - f_means
+                f_stdev = torch.sqrt(
+                    torch.var(futr, dim=-1, keepdim=True, unbiased=False) + 1e-5
+                )
+                futr /= f_stdev
+
+            futr_tokens = self.futr_dropout(self.futr_embedding(futr))
+            tokens = torch.cat([enc_out, futr_tokens], dim=1)
+        else:
+            tokens = enc_out
+
+        # Inverted Transformer encoder: attention across variates
+        enc_out, attns = self.encoder(tokens, attn_mask=None)
+
+        # Project only the first N tokens (target series) to forecast horizon
+        dec_out = self.projector(enc_out[:, :N, :]).permute(0, 2, 1)
 
         if self.use_norm:
             # De-Normalization from Non-stationary Transformer
@@ -244,9 +279,11 @@ class iTransformer(BaseModel):
         return dec_out
 
     def forward(self, windows_batch):
+        # Extract lookback targets [B, L, N] and future covariates [B, F, L + h, N]
         insample_y = windows_batch["insample_y"]
+        futr_exog = windows_batch.get("futr_exog", None)
 
-        y_pred = self.forecast(insample_y)
+        y_pred = self.forecast(insample_y, futr_exog=futr_exog)
         y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
 
         return y_pred
