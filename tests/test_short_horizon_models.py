@@ -305,3 +305,25 @@ def test_searchcast_rejects_unsupported_training_options():
     model = SearchCast(h=4, input_size=16, loss=MSE())
     with pytest.raises(RuntimeError, match="fitted"):
         model(windows(length=16))
+
+
+def test_dualformer_device_patch_preserves_delay_aggregation():
+    source_module = forecast_source(source("Dualformer"), "Dualformer")
+    layer = source_module.AutoCorrelation(mask_flag=False, factor=1).eval()
+    generator = torch.Generator().manual_seed(31)
+    values = torch.randn(2, 2, 3, 16, generator=generator)
+    correlation = torch.randn(2, 2, 3, 16, generator=generator)
+    scores, delays = correlation.mean((1, 2)).topk(2, dim=-1)
+    weights = scores.softmax(-1)
+    expected = torch.stack([
+        sum(weights[b, k] * torch.roll(values[b], -int(delays[b, k]), -1)
+            for k in range(2)) for b in range(2)
+    ])
+    torch.testing.assert_close(layer.time_delay_agg_inference(values, correlation), expected)
+    # Exercise the second device-only replacement too, with per-channel lags.
+    scores, delays = correlation.topk(2, dim=-1)
+    weights = scores.softmax(-1)
+    index = (torch.arange(16)[None, None, None, :, None] + delays[..., None, :]) % 16
+    gathered = torch.gather(values[..., None].expand(-1, -1, -1, -1, 2), 3, index)
+    expected_full = (gathered * weights[..., None, :]).sum(-1)
+    torch.testing.assert_close(layer.time_delay_agg_full(values, correlation), expected_full)

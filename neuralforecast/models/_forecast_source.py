@@ -75,6 +75,20 @@ def forecast_source(source_dir, kind):
                 module.__package__ = prefix
                 module.__spec__ = importlib.machinery.ModuleSpec(prefix, loader=None, is_package=True)
                 sys.modules[prefix] = module
+            if kind == "Dualformer":
+                # Upstream allocates two delay-index tensors on default CUDA.
+                # Change placement only, in this private import; never edit the
+                # checkout, patch torch globally, or alter the model algorithm.
+                path = root / "layers" / "AutoCorrelation.py"
+                code = path.read_text(encoding="utf-8")
+                old = ".repeat(batch, head, channel, 1).cuda()"
+                if code.count(old) != 2:
+                    raise ValueError("Dualformer device compatibility patch no longer matches the pinned source.")
+                code = code.replace(old, ".repeat(batch, head, channel, 1).to(values.device)")
+                ac_spec = importlib.util.spec_from_file_location("layers.AutoCorrelation", path)
+                autocorrelation = importlib.util.module_from_spec(ac_spec)
+                sys.modules[ac_spec.name] = autocorrelation
+                exec(compile(code, str(path), "exec"), autocorrelation.__dict__)
             spec = importlib.util.spec_from_file_location(name, filename)
             module = importlib.util.module_from_spec(spec)
             sys.modules[name] = module

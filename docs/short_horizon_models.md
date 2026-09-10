@@ -134,6 +134,15 @@ and future lists. SearchCast's reviewed method models series through shared or
 separate Ridge fits, not through a separate numerical-exogenous-input API; that
 unsupported pathway is rejected.
 
+### Dualformer device compatibility
+
+The reviewed upstream AutoCorrelation creates delay indices with unconditional
+`.cuda()` in two methods. The loader changes only those allocations to
+`.to(values.device)` inside its privately loaded module. This enables CPU and
+non-default GPU placement without changing the attention computation. The
+source checkout stays unmodified; a source mismatch raises an error. Tests
+compare both patched aggregation paths against independent roll/gather formulas.
+
 ### TimesFM3 details
 
 The adapter calls `timesfm3.TimesFM3Forecaster(ModelConfig(...)).predict_batch`,
