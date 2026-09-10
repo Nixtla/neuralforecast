@@ -29,6 +29,7 @@ for _model_name in (
     "Moirai", "MoiraiMoE", "TimesFM", "Toto",
     "DAG", "KITE", "GLAFF", "APT", "Moirai2", "ChronosX", "BaguanTS", "RAG4CTS",
     "SpecTF", "TGForecaster",
+    "TimesFM3", "SeesawNet", "Dualformer", "SearchCast",
 ):
     _model_filename_dict[_model_name.lower()] = getattr(_models, _model_name)
 del _models, _model_filename_dict, _model_name
