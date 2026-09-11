@@ -218,6 +218,12 @@ class LSTM(BaseModel):
             )
             if self.h > self.input_size:
                 self.upsample_sequence = nn.Linear(self.input_size, self.h)
+        elif self.decoder_activation != "ReLU":
+            warnings.warn(
+                "decoder_activation is ignored when recurrent=True, since the model "
+                "has no MLP decoder: the output is a linear projection of the "
+                "recurrent state."
+            )
 
     def forward(self, windows_batch):
 

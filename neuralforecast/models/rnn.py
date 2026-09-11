@@ -216,6 +216,12 @@ class RNN(BaseModel):
             self.proj = nn.Linear(
                 self.encoder_hidden_size, self.loss.outputsize_multiplier
             )
+            if self.decoder_activation != "ReLU":
+                warnings.warn(
+                    "decoder_activation is ignored when recurrent=True, since the "
+                    "model has no MLP decoder: the output is a linear projection of "
+                    "the recurrent state."
+                )
         else:
             self.mlp_decoder = MLP(
                 in_features=self.encoder_hidden_size + self.futr_exog_size,

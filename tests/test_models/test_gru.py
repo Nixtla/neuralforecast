@@ -1,9 +1,11 @@
+import pytest
+
 from neuralforecast.auto import AutoGRU, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import GRU
 
-from .test_helpers import check_args
+from .test_helpers import assert_no_decoder_activation_warning, check_args
 
 
 def test_gru(suppress_warnings):
@@ -34,3 +36,16 @@ def test_autogru(setup_dataset):
     my_config['encoder_hidden_size'] = 8
     model = AutoGRU(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
+
+
+def test_gru_decoder_activation_ignored_when_recurrent():
+    kwargs = dict(h=4, input_size=8, max_steps=1)
+
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        GRU(**kwargs, recurrent=True, decoder_activation="Tanh")
+
+    # No warning when the argument is left at its default, or when it is honored
+    assert_no_decoder_activation_warning(GRU, **kwargs, recurrent=True)
+    assert_no_decoder_activation_warning(
+        GRU, **kwargs, recurrent=False, decoder_activation="Tanh"
+    )

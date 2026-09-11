@@ -4,6 +4,7 @@
 __all__ = ['DeepAR']
 
 
+import warnings
 from typing import Optional
 
 import torch
@@ -185,6 +186,12 @@ class DeepAR(BaseModel):
             dropout=self.encoder_dropout,
             batch_first=True,
         )
+
+        if decoder_hidden_layers == 0 and decoder_activation != "ReLU":
+            warnings.warn(
+                "decoder_activation is ignored when decoder_hidden_layers=0, since "
+                "the decoder is then a single linear layer."
+            )
 
         # Decoder MLP
         self.decoder = MLP(

@@ -1,8 +1,10 @@
+import pytest
+
 from neuralforecast.auto import AutoDeepAR, DeepAR, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 
-from .test_helpers import check_args
+from .test_helpers import assert_no_decoder_activation_warning, check_args
 
 
 def test_deepar(suppress_warnings):
@@ -34,3 +36,20 @@ def test_autodeepar(setup_dataset):
     my_config['lstm_hidden_size'] = 8
     model = AutoDeepAR(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
+
+
+def test_deepar_decoder_activation_ignored_without_hidden_layers():
+    kwargs = dict(h=4, input_size=8, max_steps=1)
+
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        DeepAR(**kwargs, decoder_hidden_layers=0, decoder_activation="Tanh")
+
+    # No warning when the argument is left at its default, or when it is honored
+    assert_no_decoder_activation_warning(DeepAR, **kwargs, decoder_hidden_layers=0)
+    assert_no_decoder_activation_warning(
+        DeepAR,
+        **kwargs,
+        decoder_hidden_layers=2,
+        decoder_hidden_size=8,
+        decoder_activation="Tanh",
+    )
