@@ -26,6 +26,7 @@ class DeepAR(BaseModel):
         lstm_dropout (float): LSTM dropout.
         decoder_hidden_layers (int): number of decoder MLP hidden layers. Default: 0 for linear layer.
         decoder_hidden_size (int): decoder MLP hidden size. Default: 0 for linear layer.
+        decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity). Unused when `decoder_hidden_layers=0`, since the decoder is then a single linear layer.
         trajectory_samples (int): number of Monte Carlo trajectories during inference.
         stat_exog_list (str list): static exogenous columns.
         cat_exog_list (str list): exogenous columns (from `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
@@ -84,6 +85,7 @@ class DeepAR(BaseModel):
         lstm_dropout: float = 0.1,
         decoder_hidden_layers: int = 0,
         decoder_hidden_size: int = 0,
+        decoder_activation: str = "ReLU",
         trajectory_samples: int = 100,
         stat_exog_list=None,
         cat_exog_list=None,
@@ -190,7 +192,7 @@ class DeepAR(BaseModel):
             out_features=self.loss.outputsize_multiplier,
             hidden_size=decoder_hidden_size,
             num_layers=decoder_hidden_layers + 1,
-            activation="ReLU",
+            activation=decoder_activation,
             dropout=0.0,
         )
 
