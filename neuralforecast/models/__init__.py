@@ -44,30 +44,49 @@ from .timexer import TimeXer
 from .xlstm import xLSTM
 from .xlinear import XLinear
 
-from .context_models import VoT, GPT4MTS, UniTime, LangTime, Aurora, ChatTime, TabPFNTS
+from .vot import VoT
+from .gpt4mts import GPT4MTS
+from .unitime import UniTime
+from .langtime import LangTime
+from .aurora import Aurora
+from .chattime import ChatTime
+from .tabpfnts import TabPFNTS
 
 __all__ += ["VoT", "GPT4MTS", "UniTime", "LangTime", "Aurora", "ChatTime", "TabPFNTS"]
 
 from .crosslinear import CrossLinear
 from .timerxl import TimerXL
 from .tinytimemixer import TinyTimeMixer
-from .foundation import Chronos2, Moirai, MoiraiMoE, TimesFM, Toto
+from .chronos2 import Chronos2
+from .moirai import Moirai
+from .moiraimoe import MoiraiMoE
+from .timesfm import TimesFM
+from .toto import Toto
 
 __all__ += [
     "CrossLinear", "TimerXL", "TinyTimeMixer", "Chronos2",
     "Moirai", "MoiraiMoE", "TimesFM", "Toto",
 ]
 
-from .research import DAG, KITE, GLAFF, APT
-from .research_foundation import Moirai2, ChronosX, BaguanTS, RAG4CTS
+from .dag import DAG
+from .kite import KITE
+from .glaff import GLAFF
+from .apt import APT
+from .moirai2 import Moirai2
+from .chronosx import ChronosX
+from .baguants import BaguanTS
+from .rag4cts import RAG4CTS
 
 __all__ += ["DAG", "KITE", "GLAFF", "APT", "Moirai2", "ChronosX", "BaguanTS", "RAG4CTS"]
 
-from .text_models import SpecTF, TGForecaster
+from .spectf import SpecTF
+from .tgforecaster import TGForecaster
 
 __all__ += ["SpecTF", "TGForecaster"]
 
-from .short_horizon import TimesFM3, SeesawNet, Dualformer
+from .timesfm3 import TimesFM3
+from .seesawnet import SeesawNet
+from .dualformer import Dualformer
 from .searchcast import SearchCast
 
 __all__ += ["TimesFM3", "SeesawNet", "Dualformer", "SearchCast"]
