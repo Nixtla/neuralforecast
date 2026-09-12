@@ -1,15 +1,24 @@
+import numpy as np
 import pandas as pd
 import pytest
+from ray.tune.search.variant_generator import generate_variants
 
 import neuralforecast.foundation_lora as foundation_lora
-from neuralforecast.benchmark import sample_ray_configs
+
+
+def _sample(space, n=5, seed=42):
+    random_state = np.random.RandomState(seed)
+    return [
+        next(generate_variants(space, random_state=random_state))[1]
+        for _ in range(n)
+    ]
 
 
 def test_chronos2_lora_search_space_is_sampleable():
     space = foundation_lora.get_foundation_lora_config(
         "Chronos2", h=16, fixed={"backend_device": "cuda"}
     )
-    configs = sample_ray_configs(space, n=5, seed=42)
+    configs = _sample(space)
     assert {config["lora_r"] for config in configs} <= {4, 8, 16}
     assert {config["lora_batch_size"] for config in configs} <= {8, 16, 32}
     assert all("max_steps" not in config for config in configs)
