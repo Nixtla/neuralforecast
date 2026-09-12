@@ -787,6 +787,12 @@ def spark_session():
         # Spark needs a Hadoop/winutils setup on Windows (HADOOP_HOME); the
         # distributed suite is not run there.
         pytest.skip("Distributed (Spark) tests are not run on Windows.")
+    if sys.platform == "darwin":
+        # torchrun's rendezvous resolves its own host with socket.getfqdn(), which
+        # on the macOS runners intermittently returns an unresolvable IPv6
+        # reverse-DNS name (`...ip6.arpa`). The rendezvous TCPStore then blocks for
+        # two 300s timeouts before the run fails. Covered on Linux instead.
+        pytest.skip("Distributed (Spark) tests are flaky on macOS runners.")
     pytest.importorskip("pyspark")
     pytest.importorskip("fugue")
     from pyspark.sql import SparkSession
