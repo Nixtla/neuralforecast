@@ -89,6 +89,13 @@ def _moirai(h, fixed):
     }
 
 
+def _timesfm(h, fixed):
+    return {
+        "input_size": tune.choice(_input_sizes(h)),
+        "xreg_ridge": tune.loguniform(1e-6, 1e1),
+    }
+
+
 def _toto(h, fixed):
     return {
         "input_size": tune.choice(_input_sizes(h)),
@@ -173,7 +180,7 @@ _BUILDERS = {
     "Chronos2": _context_only,
     "Moirai": _moirai,
     "MoiraiMoE": _moirai,
-    "TimesFM": _context_only,
+    "TimesFM": _timesfm,
     "Toto": _toto,
     "Moirai2": _moirai2,
     "ChronosX": _chronosx,
