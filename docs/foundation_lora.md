@@ -1,34 +1,35 @@
 # Foundation LoRA
 
-`neuralforecast.foundation_lora` exposes LoRA only where this fork can call a verified native fine-tuning API. It does not add a generic correction layer around pretrained forecasts.
+`neuralforecast.foundation_lora` exposes LoRA only where a reviewed official implementation provides a real parameter-efficient fine-tuning path. It does not add a forecast correction layer and call that LoRA.
 
-## Supported model
+## Supported models
 
-| Model | LoRA path | Status |
+| Model | Verified LoRA path | Status |
 | --- | --- | --- |
 | Chronos2 | official `Chronos2Pipeline.fit(..., finetune_mode="lora")` | supported |
-| Moirai / MoiraiMoE / Moirai2 | separate `uni2ts` inference worker in this fork | unsupported |
-| TimesFM / TimesFM3 | inference adapter path | unsupported |
-| Toto | inference adapter path | unsupported |
-| ChronosX / BaguanTS / RAG4CTS | fixed external checkpoint/source contracts | unsupported |
+| TimesFM 2.5 | official HuggingFace `TimesFm2_5ModelForPrediction` + PEFT example | supported |
+| Moirai / MoiraiMoE / Moirai2 | `uni2ts` has training infrastructure, but no reviewed official LoRA path | unsupported |
+| TimesFM3 | current official 3.0 inference API; no reviewed official LoRA path | unsupported |
+| Toto | inference adapter path; no reviewed official LoRA path | unsupported |
+| ChronosX / BaguanTS / RAG4CTS | fixed external checkpoint/source contracts; no reviewed official LoRA path | unsupported |
 | Aurora / ChatTime | LLM/context protocol excluded from the commodity benchmark | excluded |
 | TabPFNTS | local in-context regression adapter | unsupported |
 
-Chronos2 support follows the official Amazon Chronos implementation, which exposes native full and LoRA fine-tuning in `Chronos2Pipeline.fit`.
+Chronos2 support follows Amazon's official Chronos implementation. TimesFM 2.5 support follows Google's official `timesfm-forecasting/examples/finetuning/` LoRA workflow.
 
-## Optional dependency
+## Optional dependencies
 
-LoRA requires `peft` in the benchmark environment:
+LoRA requires PEFT. TimesFM 2.5 also requires a Transformers version exposing `TimesFm2_5ModelForPrediction`.
 
 ```bash
-pip install peft
+pip install peft transformers
 ```
 
-`peft` stays optional and is not added to NeuralForecast's mandatory dependencies. The wrapper raises `ImportError` when it is missing. This prevents the upstream Chronos fallback from silently changing a requested LoRA run into full fine-tuning.
+These packages stay optional and are not added to NeuralForecast's mandatory dependencies. The wrapper raises `ImportError` when a required optional package is missing. Chronos2 therefore cannot silently fall back from requested LoRA to full fine-tuning.
 
 ## Search space
 
-`get_foundation_lora_config("Chronos2", h=16, fixed=...)` starts from the existing Chronos2 inference context-length space and adds:
+`get_foundation_lora_config(model, h=16, fixed=...)` starts from the model's existing inference context search and adds:
 
 - learning rate: log-uniform `1e-5` to `3e-4`;
 - LoRA rank: `4, 8, 16`;
@@ -36,7 +37,9 @@ pip install peft
 - LoRA dropout: `0.0, 0.05, 0.1`;
 - fine-tuning batch size: `8, 16, 32`.
 
-The target modules match the official Chronos2 default LoRA targets:
+### Chronos2 target modules
+
+The target modules match the official Chronos2 default LoRA configuration:
 
 - `self_attention.q`;
 - `self_attention.k`;
@@ -44,18 +47,30 @@ The target modules match the official Chronos2 default LoRA targets:
 - `self_attention.o`;
 - `output_patch_embedding.output_layer`.
 
-Model ID, revision and device remain fixed inputs rather than HPO dimensions.
+### TimesFM 2.5 target modules
+
+The official TimesFM fine-tuning example uses:
+
+```text
+target_modules = all-linear
+```
+
+The LoRA protocol therefore applies PEFT to every linear layer. The default LoRA checkpoint is `google/timesfm-2.5-200m-transformers`, which is the Transformers representation used by the official fine-tuning example. This is separate from the `google/timesfm-2.5-200m-pytorch` inference adapter default.
+
+`xreg_ridge` is removed from the TimesFM LoRA search because the current no-exogenous commodity experiment does not use the XReg inference path.
 
 ## Training contract
 
-`fit_foundation_lora` receives training rows only. It calls the official pipeline with:
+Both protocols receive training rows only. The benchmark's following 16-week validation block is evaluation-only.
+
+Chronos2 calls the official pipeline with:
 
 ```text
 finetune_mode = lora
 validation_inputs = None
 ```
 
-The benchmark's 16-week validation block therefore remains evaluation-only and cannot control early stopping or checkpoint selection.
+TimesFM 2.5 follows the official random-window training approach. Every optimizer step samples `(input_size, horizon)` windows from the available training series, computes the native Transformers forecasting loss, clips gradients, updates the PEFT parameters and advances a cosine scheduler. Seed 42 controls window sampling. Validation targets never enter this loop.
 
 Example:
 
@@ -88,8 +103,10 @@ model = fit_foundation_lora(
 
 ## Successive-halving boundary
 
-The current official `Chronos2Pipeline.fit` method creates its own Hugging Face trainer and calls `trainer.train()` without exposing `resume_from_checkpoint`. This module does not emulate resumable SH by restarting optimizer state and calling it a checkpoint continuation.
+The benchmark only claims checkpoint continuation when optimizer and scheduler state can be resumed correctly.
 
-For the commodity benchmark, Chronos2-LoRA should therefore be evaluated as a one-rung, 1000-step Phase 1 protocol until the upstream fine-tuning API exposes a verified resumable path or this fork adds a narrow native trainer hook. The selected LoRA configuration is then retrained from the base checkpoint on each Phase 2 fold.
+The reviewed Chronos2 pipeline creates its own HuggingFace trainer and invokes `trainer.train()` without exposing a resume parameter through `Chronos2Pipeline.fit`. The reviewed TimesFM 2.5 example is an ordinary stand-alone training loop and does not define the NeuralForecast checkpoint-resume contract used by the scratch models.
 
-This limitation is protocol metadata and should stay visible in the integrated leaderboard (`training_protocol=LoRA`).
+For this reason foundation LoRA candidates use a single 1000-step Phase 1 rung. Ten LoRA configurations are evaluated on the same first/middle/last folds and ranked by the same 48-point pooled RMSE. The selected configuration is retrained from the base checkpoint for 1000 steps on every Phase 2 fold.
+
+This limitation remains visible through `training_protocol=LoRA` in the integrated leaderboard. A later change may add resumable LoRA SH after the relevant native trainer state can be restored and regression-tested.
