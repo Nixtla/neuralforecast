@@ -20,11 +20,15 @@ WORKERS = ROOT / "neuralforecast/models"
 
 
 def worker_module(name):
-    sys.path.insert(0, str(WORKERS))
-    spec = importlib.util.spec_from_file_location(name, WORKERS / (name + ".py"))
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    worker_path = str(WORKERS)
+    sys.path.insert(0, worker_path)
+    try:
+        spec = importlib.util.spec_from_file_location(name, WORKERS / (name + ".py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        sys.path.remove(worker_path)
 
 
 def payload():
