@@ -115,8 +115,16 @@ def _lora_params(config):
     return config, params
 
 
+def _seed():
+    np.random.seed(42)
+    torch.manual_seed(42)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(42)
+
+
 def _fit_chronos2(model_cls, config, params, train, h, steps, output_dir):
     _require_package("peft")
+    _seed()
     adapter = model_cls(**config)
     pipeline = adapter._get_backend()
     if not callable(getattr(pipeline, "fit", None)):
@@ -141,6 +149,8 @@ def _fit_chronos2(model_cls, config, params, train, h, steps, output_dir):
         batch_size=params["batch_size"],
         output_dir=output_dir,
         remove_printer_callback=True,
+        seed=42,
+        data_seed=42,
     )
     return adapter
 
@@ -151,11 +161,13 @@ def _fit_timesfm(config, params, train, h, steps):
     from peft import LoraConfig, get_peft_model
     from transformers import TimesFm2_5ModelForPrediction
 
+    _seed()
     values = np.asarray(train["y"], dtype=np.float32)
     input_size = int(config.pop("input_size"))
     if len(values) < input_size + h:
         raise ValueError("TimesFM LoRA requires input_size + horizon training rows.")
     model_id = config.pop("model_id", "google/timesfm-2.5-200m-transformers")
+    revision = config.pop("revision", None)
     device = str(
         torch.device(
             config.pop(
@@ -164,15 +176,16 @@ def _fit_timesfm(config, params, train, h, steps):
         )
     )
     config.pop("h", None)
-    config.pop("revision", None)
     if config:
         raise ValueError(f"unsupported TimesFM LoRA fixed arguments: {sorted(config)}")
 
     dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
+    hub_kwargs = {"revision": revision} if revision is not None else {}
     model = TimesFm2_5ModelForPrediction.from_pretrained(
         model_id,
         torch_dtype=dtype,
         device_map=device,
+        **hub_kwargs,
     )
     input_size = min(input_size, int(model.config.context_length))
     model = get_peft_model(
