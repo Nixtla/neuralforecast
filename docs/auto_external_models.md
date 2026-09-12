@@ -82,7 +82,7 @@ The inference spaces cover these adapters:
 
 - `Chronos2`: context length.
 - `Moirai`, `MoiraiMoE`: context, explicit patch size, sample count.
-- `TimesFM`: context length.
+- `TimesFM`: context length and XReg Ridge penalty.
 - `Toto`: context and sample count.
 - `Moirai2`: context only; official patch/sample settings remain fixed.
 - `ChronosX`: sample count only; checkpoint `hidden_dim`, `num_layers` and context
