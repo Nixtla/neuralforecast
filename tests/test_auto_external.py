@@ -96,6 +96,56 @@ def _autos():
     ]
 
 
+def _inference_fixed():
+    return {
+        "Chronos2": {},
+        "Moirai": {"backend_python": "/env/bin/python"},
+        "MoiraiMoE": {"backend_python": "/env/bin/python"},
+        "TimesFM": {},
+        "Toto": {},
+        "Moirai2": {"backend_python": "/env/bin/python"},
+        "ChronosX": {
+            "input_size": 96,
+            "model_id": "/weights/chronosx",
+            "backend_python": "/env/bin/python",
+            "hidden_dim": 256,
+            "num_layers": 1,
+            "hist_exog_list": ["inventory"],
+        },
+        "BaguanTS": {
+            "input_size": 96,
+            "source_dir": "/src/baguants",
+            "config_path": "/weights/baguants.yaml",
+            "model_id": "/weights/baguants.pt",
+            "backend_python": "/env/bin/python",
+            "futr_exog_list": ["inventory"],
+        },
+        "RAG4CTS": {
+            "input_size": 96,
+            "source_dir": "/src/rag4cts",
+            "futr_exog_list": ["inventory"],
+        },
+        "TimesFM3": {},
+        "Aurora": {
+            "source_dir": "/src/aurora",
+            "model_id": "/weights/aurora",
+            "tokenizer_path": "/weights/tokenizer",
+            "contexts": ["energy"],
+            "stat_exog_list": ["context_id"],
+        },
+        "ChatTime": {
+            "source_dir": "/src/chattime",
+            "model_id": "/weights/chattime",
+            "contexts": ["energy"],
+            "stat_exog_list": ["context_id"],
+        },
+        "TabPFNTS": {
+            "model_id": "/weights/tabpfn.ckpt",
+            "futr_exog_list": ["inventory"],
+        },
+    }
+
+
 def test_all_external_auto_wrappers_build_search_configs():
     autos = _autos()
     assert len(autos) == 15
@@ -135,6 +185,17 @@ def test_external_auto_schema_guards_fail_before_hpo():
             source_dir="/src/tg",
             futr_exog_list=["a", "b", "c"],
         )
+
+
+@pytest.mark.parametrize("name", INFERENCE_TUNING_MODELS)
+def test_every_inference_model_builds_a_separate_space(name):
+    config = get_inference_tuning_config(
+        name,
+        h=12,
+        fixed=_inference_fixed()[name],
+    )
+    assert config["max_steps"] == 0
+    assert "learning_rate" not in config
 
 
 def test_inference_models_have_separate_spaces():
