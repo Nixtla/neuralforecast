@@ -19,6 +19,8 @@ class TimesFM(PretrainedExogenousModel):
     Args:
         h (int): Forecast horizon.
         input_size (int): Complete context length.
+        xreg_ridge (float): Positive XReg Ridge penalty. Default 1e-3 preserves
+            the previous adapter behavior.
         **kwargs: PretrainedExogenousModel options and futr_exog_list.
 
     Requires:
@@ -30,6 +32,17 @@ class TimesFM(PretrainedExogenousModel):
 
     DEFAULT_MODEL_ID = "google/timesfm-2.5-200m-pytorch"
     EXOGENOUS_HIST = False
+
+    def __init__(self, h, input_size, xreg_ridge=1e-3, **kwargs):
+        if (
+            not isinstance(xreg_ridge, (int, float))
+            or isinstance(xreg_ridge, bool)
+            or not np.isfinite(xreg_ridge)
+            or xreg_ridge <= 0
+        ):
+            raise ValueError("xreg_ridge must be a positive finite number.")
+        super().__init__(h=h, input_size=input_size, **kwargs)
+        self.xreg_ridge = float(xreg_ridge)
 
     def _load_backend(self):
         try:
@@ -75,7 +88,7 @@ class TimesFM(PretrainedExogenousModel):
                     inputs=inputs,
                     dynamic_numerical_covariates=covariates,
                     xreg_mode="xreg + timesfm",
-                    ridge=1e-3,
+                    ridge=self.xreg_ridge,
                     force_on_cpu=True,
                 )
             outputs.append(np.asarray(result[0])[-self.h :])
