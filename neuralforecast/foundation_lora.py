@@ -11,6 +11,7 @@ import torch
 from ray import tune
 
 from .inference_tuning import get_inference_tuning_config
+from .losses.pytorch import MAE
 
 __all__ = [
     "FOUNDATION_LORA_MODELS",
@@ -35,6 +36,33 @@ class _TimesFMLoRA:
     model: object
     input_size: int
     device: str
+
+    def __post_init__(self):
+        self.loss = MAE()
+        self.test_size = 0
+        self.val_size = 0
+
+    def set_test_size(self, test_size):
+        self.test_size = test_size
+
+    def predict(self, dataset, test_size=None, step_size=1, **kwargs):
+        if step_size != 1:
+            raise ValueError("TimesFM LoRA benchmark prediction requires step_size=1.")
+        h = self.test_size if test_size is None else test_size
+        values = dataset.temporal[:, dataset.y_idx].detach().cpu().numpy()
+        if h < 1 or len(values) < self.input_size + h:
+            raise ValueError("TimesFM LoRA prediction history is too short.")
+        context = torch.as_tensor(
+            values[-h - self.input_size : -h],
+            dtype=torch.float32,
+            device=self.device,
+        ).unsqueeze(0)
+        with torch.no_grad():
+            output = self.model(past_values=context)
+        prediction = output.mean_predictions[0, :h].float().cpu().numpy()
+        if len(prediction) != h or not np.isfinite(prediction).all():
+            raise RuntimeError("TimesFM LoRA returned invalid predictions.")
+        return prediction.reshape(-1, 1)
 
 
 def get_foundation_lora_config(model, h, fixed=None, backend="ray"):
@@ -128,7 +156,13 @@ def _fit_timesfm(config, params, train, h, steps):
     if len(values) < input_size + h:
         raise ValueError("TimesFM LoRA requires input_size + horizon training rows.")
     model_id = config.pop("model_id", "google/timesfm-2.5-200m-transformers")
-    device = str(torch.device(config.pop("backend_device", "cuda" if torch.cuda.is_available() else "cpu")))
+    device = str(
+        torch.device(
+            config.pop(
+                "backend_device", "cuda" if torch.cuda.is_available() else "cpu"
+            )
+        )
+    )
     config.pop("h", None)
     config.pop("revision", None)
     if config:
@@ -166,7 +200,10 @@ def _fit_timesfm(config, params, train, h, steps):
         )
         future = torch.as_tensor(
             np.stack(
-                [values[start + input_size : start + input_size + h] for start in starts]
+                [
+                    values[start + input_size : start + input_size + h]
+                    for start in starts
+                ]
             ),
             device=device,
         )
@@ -204,22 +241,6 @@ def fit_foundation_lora(model_cls, config, train, h, steps, output_dir):
 
 def predict_foundation_lora(fitted, dataset, h):
     """Return point predictions from a fitted LoRA protocol."""
-    if isinstance(fitted, _TimesFMLoRA):
-        values = dataset.temporal[:, dataset.y_idx].detach().cpu().numpy()
-        if len(values) < fitted.input_size + h:
-            raise ValueError("TimesFM LoRA prediction history is too short.")
-        context = torch.as_tensor(
-            values[-h - fitted.input_size : -h],
-            dtype=torch.float32,
-            device=fitted.device,
-        ).unsqueeze(0)
-        with torch.no_grad():
-            output = fitted.model(past_values=context)
-        prediction = output.mean_predictions[0, :h].float().cpu().numpy()
-        if len(prediction) != h or not np.isfinite(prediction).all():
-            raise RuntimeError("TimesFM LoRA returned invalid predictions.")
-        return prediction
-
     fitted.set_test_size(h)
     values = fitted.predict(dataset, test_size=h, step_size=1)
     output_size = len(fitted.loss.output_names)
