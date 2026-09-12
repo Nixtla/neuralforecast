@@ -1,13 +1,5 @@
 """Backward-compatible imports for context-conditioned forecasting adapters."""
 
-from ._context_utils import (
-    _context_indices,
-    _context_schema,
-    _contexts,
-    _local_path,
-    _options,
-    _positive,
-)
 from .aurora import Aurora
 from .chattime import ChatTime
 from .gpt4mts import GPT4MTS
