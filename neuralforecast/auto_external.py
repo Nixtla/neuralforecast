@@ -73,6 +73,7 @@ def _training_space(low=1e-5, high=3e-3, scaler="identity"):
     return {
         "learning_rate": tune.loguniform(low, high),
         "max_steps": tune.choice([500, 1000, 2000]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
         "batch_size": tune.choice([16, 32, 64]),
         "windows_batch_size": tune.choice([16, 32, 64]),
         "early_stop_patience_steps": 5,
@@ -404,6 +405,7 @@ def _gpt4mts_space(h, width, backbone_path):
         space["gpt_layers"] = tune.choice([1, 2, 4])
         space["freeze_backbone"] = False
     else:
+        space["n_heads"] = None  # The checkpoint defines its attention heads.
         space["gpt_layers"] = 2
         space["freeze_backbone"] = tune.choice([False, True])
     return space

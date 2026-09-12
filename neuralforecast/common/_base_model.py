@@ -437,7 +437,8 @@ class BaseModel(pl.LightningModule):
 
         # Batch sizes
         if self.MULTIVARIATE and n_series is not None:
-            self.batch_size = max(batch_size, n_series)
+            # None disables a redundant series-batch search for joint models.
+            self.batch_size = n_series if batch_size is None else max(batch_size, n_series)
             if valid_batch_size is not None:
                 valid_batch_size = max(valid_batch_size, n_series)
         else:
