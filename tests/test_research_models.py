@@ -14,8 +14,8 @@ from neuralforecast import NeuralForecast
 from neuralforecast.core import MODEL_FILENAME_DICT
 from neuralforecast.models import APT, DAG, GLAFF, KITE, BaguanTS, ChronosX, Moirai2, RAG4CTS
 from neuralforecast.models._research_source import source_module
+import neuralforecast.models._isolated_research_forecast as isolated_forecast
 import neuralforecast.models.research as research
-import neuralforecast.models.research_foundation as foundation
 
 MODELS = [DAG, KITE, GLAFF, APT, Moirai2, ChronosX, BaguanTS, RAG4CTS]
 QUIET = dict(accelerator="cpu", devices=1, logger=False,
@@ -214,7 +214,7 @@ def test_isolated_forward_transports_only_permitted_inputs(cls, monkeypatch):
         assert set(arrays) == {"y", "futr"}
         assert arrays["y"].shape == (2, 16, 1)
         return arrays["futr"][:, -4:, 0]
-    monkeypatch.setattr(foundation, "run_worker", worker)
+    monkeypatch.setattr(isolated_forecast, "run_worker", worker)
     batch = window(model)
     batch["outsample_y"] = torch.full((2, 4, 1), float("nan"))
     torch.testing.assert_close(model(batch), batch["futr_exog"][:, -4:])
