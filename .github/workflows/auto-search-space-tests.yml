@@ -30,6 +30,7 @@ jobs:
       OMP_NUM_THREADS: '1'
       MKL_NUM_THREADS: '1'
       HF_HUB_OFFLINE: '1'
+      MPLBACKEND: Agg
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -38,7 +39,7 @@ jobs:
       - name: Install CPU test dependencies
         run: |
           python -m pip install 'torch>=2.9.1' --index-url https://download.pytorch.org/whl/cpu
-          python -m pip install -e . pytest transformers
+          python -m pip install -e . pytest transformers matplotlib
       - name: Test all Auto space families
         run: |
           python -m pytest -o addopts='' -q tests/test_auto_search_spaces.py tests/test_auto_external.py tests/test_auto_external_registry.py
