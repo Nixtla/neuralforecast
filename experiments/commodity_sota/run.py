@@ -57,6 +57,18 @@ class Candidate:
     best_fold_scores: tuple[float, ...] = ()
 
 
+def _lora_api():
+    try:
+        from neuralforecast.foundation_lora import (
+            FOUNDATION_LORA_MODELS,
+            fit_foundation_lora,
+            get_foundation_lora_config,
+        )
+    except ImportError:
+        return (), None, None
+    return FOUNDATION_LORA_MODELS, fit_foundation_lora, get_foundation_lora_config
+
+
 def _weekly_frame(path, date_col, target_col, start_date=None):
     frame = pd.read_csv(path)
     if date_col not in frame or target_col not in frame:
@@ -156,6 +168,24 @@ def _fit_inference(model_cls, config, train, valid):
     return _point_prediction(model, dataset, len(valid)), None
 
 
+def _fit_lora(model_cls, config, train, valid, budget, workdir):
+    _, fit_foundation_lora, _ = _lora_api()
+    if fit_foundation_lora is None:
+        raise RuntimeError("foundation LoRA module is unavailable.")
+    model = fit_foundation_lora(
+        model_cls,
+        config,
+        train,
+        h=len(valid),
+        steps=budget,
+        output_dir=workdir,
+    )
+    model.val_size = 0
+    model.test_size = len(valid)
+    dataset = _dataset(pd.concat([train, valid], ignore_index=True))
+    return _point_prediction(model, dataset, len(valid)), None
+
+
 @ray.remote(num_gpus=1)
 def _evaluate_job(
     data_path, candidate, config_id, config, fold, budget, checkpoint, root
@@ -170,6 +200,10 @@ def _evaluate_job(
         if candidate["protocol"] == "scratch_hpo":
             prediction, next_checkpoint = _fit_trainable(
                 model_cls, config, train, valid, budget, checkpoint, workdir
+            )
+        elif candidate["protocol"] == "lora":
+            prediction, next_checkpoint = _fit_lora(
+                model_cls, config, train, valid, budget, workdir
             )
         else:
             prediction, next_checkpoint = _fit_inference(
@@ -264,6 +298,27 @@ def _build_candidates(h, model_config, first_train):
             Candidate(f"{name}-ZeroShot", "zero_shot", name, configs, None)
         )
         eligibility.append((name, "zero_shot", "READY", ""))
+
+    lora_models, _, get_lora_config = _lora_api()
+    for name in lora_models:
+        try:
+            space = get_lora_config(
+                name,
+                h=h,
+                fixed=_fixed_kwargs(model_config, name),
+                backend="ray",
+            )
+            space = restrict_input_size(space, first_train)
+            configs = sample_ray_configs(space, n=10, seed=42)
+            for config in configs:
+                config["h"] = h
+        except Exception as exc:
+            eligibility.append(
+                (name, "lora", "SKIP", f"{type(exc).__name__}: {exc}")
+            )
+            continue
+        candidates.append(Candidate(f"{name}-LoRA", "lora", name, configs, None))
+        eligibility.append((name, "lora", "READY", "one 1000-step Phase 1 rung"))
     return candidates, eligibility
 
 
@@ -344,7 +399,10 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
 
     for candidate in candidates:
         candidate.alive = list(range(len(candidate.configs)))
-        budget = candidate.plan.budgets[0] if candidate.plan else 0
+        if candidate.plan:
+            budget = candidate.plan.budgets[0]
+        else:
+            budget = 1000 if candidate.protocol == "lora" else 0
         for config_id in candidate.alive:
             for fold in folds:
                 submit(candidate, config_id, fold, budget)
@@ -399,7 +457,7 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
 def _phase2(data_path, selected, folds, checkpoint_root):
     pending, predictions, failures = {}, [], []
     for candidate in selected:
-        budget = 1000 if candidate.protocol == "scratch_hpo" else 0
+        budget = 1000 if candidate.protocol in {"scratch_hpo", "lora"} else 0
         for fold in folds:
             ref = _evaluate_job.remote(
                 data_path,
