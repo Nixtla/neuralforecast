@@ -94,11 +94,21 @@ def fold_rmse(actual: Sequence[float], prediction: Sequence[float]) -> float:
 
 
 def rank_key(score: float, fold_scores: Sequence[float]) -> tuple[float, float, float]:
-    """Stable benchmark ordering: pooled RMSE, fold std, worst fold."""
+    """Order by pooled RMSE, fold RMSE std and worst fold RMSE."""
     values = np.asarray(fold_scores, dtype=float)
     if not np.isfinite(score) or not len(values) or not np.isfinite(values).all():
         return float("inf"), float("inf"), float("inf")
     return score, float(values.std()), float(values.max())
+
+
+def summary_rank_key(
+    score: float, fold_std: float, worst_fold: float
+) -> tuple[float, float, float]:
+    """Order already-aggregated leaderboard metrics."""
+    values = np.asarray([score, fold_std, worst_fold], dtype=float)
+    if not np.isfinite(values).all():
+        return float("inf"), float("inf"), float("inf")
+    return score, fold_std, worst_fold
 
 
 def sample_ray_configs(space: dict, n: int = 10, seed: int = 42) -> list[dict]:
