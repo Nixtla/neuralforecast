@@ -18,7 +18,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 import neuralforecast.auto as auto_module
 import neuralforecast.models as model_module
 from neuralforecast.benchmark import (
-    Fold,
     SHPlan,
     benchmark_search_space,
     expanding_folds,
@@ -29,6 +28,7 @@ from neuralforecast.benchmark import (
     representative_folds,
     restrict_input_size,
     sample_ray_configs,
+    summary_rank_key,
 )
 from neuralforecast.inference_tuning import (
     INFERENCE_TUNING_MODELS,
@@ -57,7 +57,6 @@ class Candidate:
     best_fold_scores: tuple[float, ...] = ()
 
 
-
 def _weekly_frame(path, date_col, target_col, start_date=None):
     frame = pd.read_csv(path)
     if date_col not in frame or target_col not in frame:
@@ -84,14 +83,12 @@ def _weekly_frame(path, date_col, target_col, start_date=None):
     return frame[["unique_id", "ds", "y"]]
 
 
-
 def _fill(values):
     values = values.copy()
     values["y"] = values["y"].interpolate().ffill().bfill()
     if values["y"].isna().any():
         raise ValueError("target interpolation left missing values.")
     return values
-
 
 
 def _dataset(frame):
@@ -104,7 +101,6 @@ def _dataset(frame):
     return dataset
 
 
-
 def _point_prediction(model, dataset, h):
     model.set_test_size(h)
     values = model.predict(dataset, test_size=h, step_size=1)
@@ -115,15 +111,18 @@ def _point_prediction(model, dataset, h):
     return values[:, 0]
 
 
-
 def _fit_trainable(model_cls, config, train, valid, budget, checkpoint, workdir):
     config = dict(config)
-    config["max_steps"] = budget
+    config["max_steps"] = 1000
     config["random_seed"] = 42
     config["early_stop_patience_steps"] = -1
     config["enable_checkpointing"] = True
     model = model_cls(**config)
     train_dataset = _dataset(train)
+    model._check_exog(train_dataset)
+    model._restart_seed(42)
+    model.val_size = 0
+    model.test_size = 0
     datamodule = TimeSeriesDataModule(
         dataset=train_dataset,
         batch_size=model.batch_size,
@@ -144,20 +143,23 @@ def _fit_trainable(model_cls, config, train, valid, budget, checkpoint, workdir)
     trainer.save_checkpoint(next_checkpoint)
     model.metrics = trainer.callback_metrics
     model.__dict__.pop("_trainer", None)
-    prediction = _point_prediction(model, _dataset(pd.concat([train, valid])), len(valid))
+    prediction = _point_prediction(
+        model, _dataset(pd.concat([train, valid], ignore_index=True)), len(valid)
+    )
     return prediction, next_checkpoint
-
 
 
 def _fit_inference(model_cls, config, train, valid):
     model = model_cls(**config)
-    dataset = _dataset(pd.concat([train, valid]))
+    dataset = _dataset(pd.concat([train, valid], ignore_index=True))
     model.fit(dataset, val_size=0, test_size=len(valid), random_seed=42)
     return _point_prediction(model, dataset, len(valid)), None
 
 
 @ray.remote(num_gpus=1)
-def _evaluate_job(data_path, candidate, config_id, config, fold, budget, checkpoint, root):
+def _evaluate_job(
+    data_path, candidate, config_id, config, fold, budget, checkpoint, root
+):
     try:
         frame = pd.read_pickle(data_path)
         train = _fill(frame.iloc[fold.train_slice])
@@ -170,7 +172,9 @@ def _evaluate_job(data_path, candidate, config_id, config, fold, budget, checkpo
                 model_cls, config, train, valid, budget, checkpoint, workdir
             )
         else:
-            prediction, next_checkpoint = _fit_inference(model_cls, config, train, valid)
+            prediction, next_checkpoint = _fit_inference(
+                model_cls, config, train, valid
+            )
         actual = valid["y"].to_numpy(dtype=float)
         return {
             "ok": True,
@@ -196,10 +200,8 @@ def _evaluate_job(data_path, candidate, config_id, config, fold, budget, checkpo
         }
 
 
-
 def _fixed_kwargs(config, name):
     return dict(config.get(name, config.get(f"Auto{name}", {})))
-
 
 
 def _build_candidates(h, model_config, first_train):
@@ -220,15 +222,22 @@ def _build_candidates(h, model_config, first_train):
         try:
             auto = auto_cls(h=h, backend="ray", num_samples=10, **kwargs)
             if getattr(auto.cls_model, "MULTIVARIATE", False):
-                eligibility.append((name, "scratch_hpo", "SKIP", "multivariate without exogenous inputs"))
+                eligibility.append(
+                    (name, "scratch_hpo", "SKIP", "multivariate without exogenous inputs")
+                )
                 continue
-            space = benchmark_search_space(auto.config)
-            space = restrict_input_size(space, first_train)
+            space = restrict_input_size(
+                benchmark_search_space(auto.config), first_train
+            )
             configs = sample_ray_configs(space, n=10, seed=42)
         except Exception as exc:
-            eligibility.append((name, "scratch_hpo", "SKIP", f"{type(exc).__name__}: {exc}"))
+            eligibility.append(
+                (name, "scratch_hpo", "SKIP", f"{type(exc).__name__}: {exc}")
+            )
             continue
-        candidates.append(Candidate(name, "scratch_hpo", auto.cls_model.__name__, configs, SHPlan()))
+        candidates.append(
+            Candidate(name, "scratch_hpo", auto.cls_model.__name__, configs, SHPlan())
+        )
         eligibility.append((name, "scratch_hpo", "READY", ""))
 
     for name in INFERENCE_TUNING_MODELS:
@@ -237,17 +246,25 @@ def _build_candidates(h, model_config, first_train):
             continue
         try:
             space = get_inference_tuning_config(
-                name, h=h, fixed=_fixed_kwargs(model_config, name), backend="ray"
+                name,
+                h=h,
+                fixed=_fixed_kwargs(model_config, name),
+                backend="ray",
             )
             space = restrict_input_size(space, first_train)
             configs = sample_ray_configs(space, n=10, seed=42)
+            for config in configs:
+                config["h"] = h
         except Exception as exc:
-            eligibility.append((name, "zero_shot", "SKIP", f"{type(exc).__name__}: {exc}"))
+            eligibility.append(
+                (name, "zero_shot", "SKIP", f"{type(exc).__name__}: {exc}")
+            )
             continue
-        candidates.append(Candidate(f"{name}-ZeroShot", "zero_shot", name, configs, None))
+        candidates.append(
+            Candidate(f"{name}-ZeroShot", "zero_shot", name, configs, None)
+        )
         eligibility.append((name, "zero_shot", "READY", ""))
     return candidates, eligibility
-
 
 
 def _minimum_train(h, model_config):
@@ -267,7 +284,9 @@ def _minimum_train(h, model_config):
         try:
             auto = auto_cls(h=h, backend="ray", num_samples=10, **kwargs)
             if not getattr(auto.cls_model, "MULTIVARIATE", False):
-                minima.append(minimum_history(benchmark_search_space(auto.config), h))
+                minima.append(
+                    minimum_history(benchmark_search_space(auto.config), h)
+                )
         except Exception:
             pass
     for name in INFERENCE_TUNING_MODELS:
@@ -275,13 +294,15 @@ def _minimum_train(h, model_config):
             continue
         try:
             space = get_inference_tuning_config(
-                name, h=h, fixed=_fixed_kwargs(model_config, name), backend="ray"
+                name,
+                h=h,
+                fixed=_fixed_kwargs(model_config, name),
+                backend="ray",
             )
             minima.append(minimum_history(space, h))
         except Exception:
             pass
     return max(minima)
-
 
 
 def _payload(candidate):
@@ -292,19 +313,16 @@ def _payload(candidate):
     }
 
 
-
 def _compound_score(candidate, folds):
-    actual, prediction, fold_scores = [], [], []
     for config_id in candidate.alive:
         rows = [candidate.rung_results[(config_id, fold.index)] for fold in folds]
         if not all(row["ok"] for row in rows):
             yield config_id, float("inf"), (float("inf"),) * len(folds)
             continue
-        actual_i = [row["actual"] for row in rows]
-        pred_i = [row["prediction"] for row in rows]
-        scores_i = tuple(row["rmse"] for row in rows)
-        yield config_id, pooled_rmse(actual_i, pred_i), scores_i
-
+        actual = [row["actual"] for row in rows]
+        prediction = [row["prediction"] for row in rows]
+        fold_scores = tuple(row["rmse"] for row in rows)
+        yield config_id, pooled_rmse(actual, prediction), fold_scores
 
 
 def _run_phase1(data_path, candidates, folds, checkpoint_root):
@@ -360,14 +378,15 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
                 }
             )
         scored.sort(key=lambda row: rank_key(row[1], row[2]))
-        keep = 1 if candidate.plan is None else candidate.plan.survivors[candidate.rung]
-        candidate.alive = [row[0] for row in scored[:keep]]
-        if candidate.plan is None or candidate.rung == len(candidate.plan.budgets) - 1:
+        final_rung = candidate.plan is None or candidate.rung == len(candidate.plan.budgets) - 1
+        if final_rung:
             best = scored[0]
             candidate.best_config = candidate.configs[best[0]]
             candidate.best_score = best[1]
             candidate.best_fold_scores = best[2]
             continue
+        keep = candidate.plan.survivors[candidate.rung + 1]
+        candidate.alive = [row[0] for row in scored[:keep]]
         candidate.rung += 1
         candidate.rung_results = {}
         next_budget = candidate.plan.budgets[candidate.rung]
@@ -375,7 +394,6 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
             for rep_fold in folds:
                 submit(candidate, cid, rep_fold, next_budget)
     return trials, failures
-
 
 
 def _phase2(data_path, selected, folds, checkpoint_root):
@@ -418,14 +436,18 @@ def _phase2(data_path, selected, folds, checkpoint_root):
     return predictions, failures
 
 
-
-def _leaderboard(predictions):
+def _leaderboard(predictions, expected_folds):
     frame = pd.DataFrame(predictions)
+    if frame.empty:
+        return []
     rows = []
     for (candidate, protocol), values in frame.groupby(["candidate", "protocol"]):
-        fold_scores = []
-        for _, fold in values.groupby("fold"):
-            fold_scores.append(fold_rmse(fold["actual"], fold["prediction"]))
+        if values["fold"].nunique() != expected_folds:
+            continue
+        fold_scores = [
+            fold_rmse(fold["actual"], fold["prediction"])
+            for _, fold in values.groupby("fold")
+        ]
         score = fold_rmse(values["actual"], values["prediction"])
         rows.append(
             {
@@ -436,11 +458,14 @@ def _leaderboard(predictions):
                 "worst_fold_rmse": float(np.max(fold_scores)),
             }
         )
-    rows.sort(key=lambda row: rank_key(row["pooled_rmse"], [row["fold_rmse_std"], row["worst_fold_rmse"]]))
+    rows.sort(
+        key=lambda row: summary_rank_key(
+            row["pooled_rmse"], row["fold_rmse_std"], row["worst_fold_rmse"]
+        )
+    )
     for rank, row in enumerate(rows, start=1):
         row["rank"] = rank
     return rows
-
 
 
 def main():
@@ -449,40 +474,56 @@ def main():
     parser.add_argument("--date-col", default="ds")
     parser.add_argument("--target", required=True)
     parser.add_argument("--start-date")
-    parser.add_argument("--model-config", help="JSON mapping model names to fixed kwargs")
+    parser.add_argument(
+        "--model-config", help="JSON mapping model names to fixed kwargs"
+    )
     parser.add_argument("--output", default="results/commodity_sota")
     parser.add_argument("--horizon", type=int, default=16)
     args = parser.parse_args()
 
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
-    model_config = json.loads(Path(args.model_config).read_text()) if args.model_config else {}
+    model_config = (
+        json.loads(Path(args.model_config).read_text()) if args.model_config else {}
+    )
     frame = _weekly_frame(args.data, args.date_col, args.target, args.start_date)
     data_path = str(output / "weekly.pkl")
     frame.to_pickle(data_path)
 
     min_train = _minimum_train(args.horizon, model_config)
-    folds = expanding_folds(len(frame), h=args.horizon, min_train=min_train, step_size=1)
+    folds = expanding_folds(
+        len(frame), h=args.horizon, min_train=min_train, step_size=1
+    )
     if not folds:
-        raise ValueError("dataset is too short for the common feasible cutoff and horizon.")
+        raise ValueError(
+            "dataset is too short for the common feasible cutoff and horizon."
+        )
     reps = representative_folds(folds)
-    candidates, eligibility = _build_candidates(args.horizon, model_config, min_train)
+    candidates, eligibility = _build_candidates(
+        args.horizon, model_config, min_train
+    )
     if not candidates:
         raise ValueError("no eligible candidate model was found.")
 
     ray.init(ignore_reinit_error=True)
-    phase1, failures1 = _run_phase1(data_path, candidates, reps, output / "checkpoints_phase1")
+    phase1, failures1 = _run_phase1(
+        data_path, candidates, reps, output / "checkpoints_phase1"
+    )
     ranking = sorted(
         candidates,
         key=lambda item: rank_key(item.best_score, item.best_fold_scores),
     )
-    selected = ranking[: min(10, len(ranking))]
+    selected = [item for item in ranking if np.isfinite(item.best_score)][:10]
+    if not selected:
+        raise RuntimeError("every Phase 1 candidate failed.")
     predictions, failures2 = _phase2(
         data_path, selected, folds, output / "checkpoints_phase2"
     )
-    leaderboard = _leaderboard(predictions)
+    leaderboard = _leaderboard(predictions, len(folds))
 
-    pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(output / "eligibility.csv", index=False)
+    pd.DataFrame(
+        eligibility, columns=["model", "protocol", "status", "reason"]
+    ).to_csv(output / "eligibility.csv", index=False)
     pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
     pd.DataFrame(
         [
@@ -492,6 +533,7 @@ def main():
                 "pooled_rmse": item.best_score,
                 "fold_rmse_std": float(np.std(item.best_fold_scores)),
                 "worst_fold_rmse": float(np.max(item.best_fold_scores)),
+                "config": json.dumps(item.best_config, default=str, sort_keys=True),
             }
             for item in ranking
         ]
@@ -508,8 +550,9 @@ def main():
                 "phase1_folds": [fold.index for fold in reps],
                 "phase2_folds": len(folds),
                 "sh_budgets": [125, 250, 500, 1000],
-                "sh_survivors": [10, 5, 2, 1],
+                "sh_rung_counts": [10, 5, 2, 1],
                 "phase2_top_k": 10,
+                "selected": [item.name for item in selected],
             },
             indent=2,
         )
