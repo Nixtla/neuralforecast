@@ -32,4 +32,12 @@ for _model_name in (
     "TimesFM3", "SeesawNet", "Dualformer", "SearchCast",
 ):
     _model_filename_dict[_model_name.lower()] = getattr(_models, _model_name)
+
+for _model_name in (
+    "CrossLinear", "TimerXL", "TinyTimeMixer", "DAG", "KITE", "GLAFF", "APT",
+    "VoT", "GPT4MTS", "UniTime", "LangTime", "SpecTF", "TGForecaster",
+    "SeesawNet", "Dualformer",
+):
+    _model_filename_dict[f"auto{_model_name.lower()}"] = getattr(_models, _model_name)
+
 del _models, _model_filename_dict, _model_name
