@@ -59,7 +59,7 @@ def expanding_folds(
         raise ValueError("n_obs, h, min_train and step_size must be positive.")
     if min_train + h > n_obs:
         return []
-    folds = []
+    folds: list[Fold] = []
     for train_end in range(min_train, n_obs - h + 1, step_size):
         folds.append(Fold(len(folds), train_end, train_end + h))
     return folds
