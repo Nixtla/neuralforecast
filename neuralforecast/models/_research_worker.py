@@ -34,8 +34,23 @@ def chronosx_covariates(arrays, history, horizon):
             for p, f in zip(past, future)]
 
 
+def _official_chronosx_pipeline():
+    worker_dir = Path(__file__).resolve().parent
+    original_path = list(sys.path)
+    try:
+        sys.path[:] = [
+            entry
+            for entry in sys.path
+            if Path(entry or ".").resolve() != worker_dir
+        ]
+        from chronosx.chronosx import ChronosXPipeline
+        return ChronosXPipeline
+    finally:
+        sys.path[:] = original_path
+
+
 def predict_chronosx(config, arrays):
-    from chronosx.chronosx import ChronosXPipeline
+    ChronosXPipeline = _official_chronosx_pipeline()
     from safetensors import safe_open
 
     checkpoint = Path(config["model_id"])
