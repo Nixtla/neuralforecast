@@ -1,5 +1,6 @@
 """Backward-compatible imports for trainable official-source model adapters."""
 
+from ._exogenous import ExogenousModel as ExogenousModel
 from ._research_utils import (
     _finite_loss,
     _full_windows,
