@@ -58,17 +58,23 @@ class AutoRNN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
+        "inference_input_size": None,
         "h": None,
         "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
-        "context_size": tune.choice([5, 10, 50]),
+        "context_size": None,
         "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_bias": tune.choice([True, False]),
+        "encoder_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
     def __init__(
         self,
@@ -119,31 +125,35 @@ class AutoRNN(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["inference_input_size"] = tune.choice(
-            [h * x for x in config["inference_input_size_multiplier"]]
-        )
-        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
 
 
+
 class AutoLSTM(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
+        "inference_input_size": None,
         "h": None,
         "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
-        "context_size": tune.choice([5, 10, 50]),
+        "context_size": None,
         "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_bias": tune.choice([True, False]),
+        "encoder_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -196,31 +206,35 @@ class AutoLSTM(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["inference_input_size"] = tune.choice(
-            [h * x for x in config["inference_input_size_multiplier"]]
-        )
-        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
 
 
+
 class AutoGRU(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
+        "inference_input_size": None,
         "h": None,
         "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "encoder_n_layers": tune.randint(1, 4),
-        "context_size": tune.choice([5, 10, 50]),
+        "context_size": None,
         "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_bias": tune.choice([True, False]),
+        "encoder_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -273,30 +287,35 @@ class AutoGRU(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["inference_input_size"] = tune.choice(
-            [h * x for x in config["inference_input_size_multiplier"]]
-        )
-        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
 
 
+
 class AutoTCN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
+        "inference_input_size": None,
         "h": None,
         "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
-        "context_size": tune.choice([5, 10, 50]),
+        "context_size": None,
         "decoder_hidden_size": tune.choice([32, 64]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "kernel_size": tune.choice([2, 3, 5]),
+        "dilations": tune.choice([[1, 2, 4], [1, 2, 4, 8, 16]]),
+        "encoder_activation": tune.choice(["ReLU", "Tanh"]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -349,14 +368,12 @@ class AutoTCN(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["inference_input_size"] = tune.choice(
-            [h * x for x in config["inference_input_size_multiplier"]]
-        )
-        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoDeepAR(BaseAuto):
@@ -374,6 +391,9 @@ class AutoDeepAR(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "decoder_hidden_layers": tune.choice([0, 1, 2]),
+        "decoder_hidden_size": tune.choice([32, 64, 128]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -428,7 +448,7 @@ class AutoDeepAR(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
@@ -436,22 +456,27 @@ class AutoDeepAR(BaseAuto):
         return config
 
 
+
 class AutoDilatedRNN(BaseAuto):
 
     default_config = {
         "input_size_multiplier": [-1, 4, 16, 64],
-        "inference_input_size_multiplier": [-1],
+        "inference_input_size": None,
         "h": None,
         "cell_type": tune.choice(["LSTM", "GRU"]),
         "encoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "dilations": tune.choice([[[1, 2], [4, 8]], [[1, 2, 4, 8]]]),
-        "context_size": tune.choice([5, 10, 50]),
+        "context_size": None,
         "decoder_hidden_size": tune.choice([16, 32, 64, 128]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "max_steps": tune.choice([500, 1000]),
         "batch_size": tune.choice([16, 32]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "windows_batch_size": tune.choice([32, 64, 128, 256]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -504,14 +529,12 @@ class AutoDilatedRNN(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["inference_input_size"] = tune.choice(
-            [h * x for x in config["inference_input_size_multiplier"]]
-        )
-        del config["input_size_multiplier"], config["inference_input_size_multiplier"]
+        del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoBiTCN(BaseAuto):
@@ -528,6 +551,7 @@ class AutoBiTCN(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -578,14 +602,16 @@ class AutoBiTCN(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 2) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
+
 
 
 class AutoxLSTM(BaseAuto):
@@ -604,6 +630,11 @@ class AutoxLSTM(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_bias": tune.choice([True, False]),
+        "decoder_layers": tune.choice([1, 2, 3]),
+        "decoder_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "decoder_activation": tune.choice(["ReLU", "GELU"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -656,12 +687,13 @@ class AutoxLSTM(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoMLP(BaseAuto):
@@ -678,6 +710,7 @@ class AutoMLP(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -730,12 +763,13 @@ class AutoMLP(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoNBEATS(BaseAuto):
@@ -750,6 +784,15 @@ class AutoNBEATS(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "n_blocks": tune.choice([[1, 1, 1], [2, 2, 2], [3, 3, 3]]),
+        "mlp_units": tune.choice([[[128, 128]] * 3, [[256, 256]] * 3, [[512, 512]] * 3]),
+        "activation": tune.choice(["ReLU", "Softplus", "Tanh"]),
+        "shared_weights": tune.choice([False, True]),
+        "n_harmonics": tune.choice([1, 2]),
+        "n_basis": tune.choice([1, 2, 3]),
+        "basis": tune.choice(["polynomial", "legendre"]),
+        "n_polynomials": None,
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -802,12 +845,19 @@ class AutoNBEATS(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
+        if h == 1:
+            # Trend/seasonality bases require a multi-step horizon.
+            config["stack_types"] = ["identity"] * 3
+            config["n_harmonics"] = None
+            config["n_basis"] = None
+            config["basis"] = None
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoNBEATSx(BaseAuto):
@@ -822,6 +872,14 @@ class AutoNBEATSx(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "n_blocks": tune.choice([[1, 1, 1], [2, 2, 2], [3, 3, 3]]),
+        "mlp_units": tune.choice([[[128, 128]] * 3, [[256, 256]] * 3, [[512, 512]] * 3]),
+        "activation": tune.choice(["ReLU", "Softplus", "Tanh"]),
+        "shared_weights": tune.choice([False, True]),
+        "n_harmonics": tune.choice([1, 2]),
+        "n_polynomials": tune.choice([1, 2, 3]),
+        "dropout_prob_theta": tune.choice([0.0, 0.1, 0.3]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -874,12 +932,18 @@ class AutoNBEATSx(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
+        if h == 1:
+            # Trend/seasonality bases require a multi-step horizon.
+            config["stack_types"] = ["identity"] * 3
+            config["n_harmonics"] = None
+            config["n_polynomials"] = None
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoNHITS(BaseAuto):
@@ -902,11 +966,18 @@ class AutoNHITS(BaseAuto):
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "n_blocks": tune.choice([[1, 1, 1], [2, 2, 2], [3, 3, 3]]),
+        "mlp_units": tune.choice([[[128, 128]] * 3, [[256, 256]] * 3, [[512, 512]] * 3]),
+        "activation": tune.choice(["ReLU", "Softplus", "Tanh"]),
+        "dropout_prob_theta": tune.choice([0.0, 0.1, 0.3]),
+        "pooling_mode": tune.choice(["MaxPool1d", "AvgPool1d"]),
+        "interpolation_mode": tune.choice(["linear", "nearest"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -959,12 +1030,13 @@ class AutoNHITS(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoDLinear(BaseAuto):
@@ -975,11 +1047,12 @@ class AutoDLinear(BaseAuto):
         "moving_avg_window": tune.choice([11, 25, 51]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1032,12 +1105,13 @@ class AutoDLinear(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoNLinear(BaseAuto):
@@ -1047,11 +1121,12 @@ class AutoNLinear(BaseAuto):
         "h": None,
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1104,12 +1179,13 @@ class AutoNLinear(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTiDE(BaseAuto):
@@ -1127,11 +1203,12 @@ class AutoTiDE(BaseAuto):
         "layernorm": tune.choice([True, False]),
         "learning_rate": tune.loguniform(1e-5, 1e-2),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1184,12 +1261,13 @@ class AutoTiDE(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoDeepNPTS(BaseAuto):
@@ -1202,11 +1280,13 @@ class AutoDeepNPTS(BaseAuto):
         "n_layers": tune.choice([1, 2, 4]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "batch_norm": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1257,14 +1337,16 @@ class AutoDeepNPTS(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 2) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
+
 
 
 class AutoKAN(BaseAuto):
@@ -1277,11 +1359,17 @@ class AutoKAN(BaseAuto):
         "hidden_size": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
-        "max_steps": tune.quniform(lower=500, upper=1500, q=100),
+        "max_steps": tune.choice(list(range(500, 1501, 100))),
         "batch_size": tune.choice([32, 64, 128, 256]),
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(lower=1, upper=20),
+        "n_hidden_layers": tune.choice([1, 2, 3]),
+        "scale_noise": tune.choice([0.05, 0.1, 0.2]),
+        "scale_base": tune.choice([0.5, 1.0, 2.0]),
+        "scale_spline": tune.choice([0.5, 1.0, 2.0]),
+        "grid_range": tune.choice([[-1, 1], [-2, 2]]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1334,12 +1422,13 @@ class AutoKAN(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTFT(BaseAuto):
@@ -1356,6 +1445,12 @@ class AutoTFT(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "attn_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "n_rnn_layers": tune.choice([1, 2]),
+        "rnn_type": tune.choice(["lstm", "gru"]),
+        "grn_activation": tune.choice(["ELU", "ReLU", "GELU"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1408,12 +1503,13 @@ class AutoTFT(BaseAuto):
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoVanillaTransformer(BaseAuto):
@@ -1430,6 +1526,13 @@ class AutoVanillaTransformer(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "decoder_layers": tune.choice([1, 2]),
+        "conv_hidden_size": tune.choice([32, 128, 256]),
+        "activation": tune.choice(["relu", "gelu"]),
+        "decoder_input_size_multiplier": tune.choice([0.25, 0.5]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1480,14 +1583,15 @@ class AutoVanillaTransformer(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 8) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoInformer(BaseAuto):
@@ -1504,6 +1608,15 @@ class AutoInformer(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "decoder_layers": tune.choice([1, 2]),
+        "conv_hidden_size": tune.choice([32, 128, 256]),
+        "activation": tune.choice(["relu", "gelu"]),
+        "decoder_input_size_multiplier": tune.choice([0.25, 0.5]),
+        "factor": tune.choice([1, 3, 5]),
+        "distil": tune.choice([False, True]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1554,14 +1667,15 @@ class AutoInformer(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 8) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoAutoformer(BaseAuto):
@@ -1578,6 +1692,15 @@ class AutoAutoformer(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "decoder_layers": tune.choice([1, 2]),
+        "conv_hidden_size": tune.choice([32, 128, 256]),
+        "activation": tune.choice(["relu", "gelu"]),
+        "decoder_input_size_multiplier": tune.choice([0.25, 0.5]),
+        "factor": tune.choice([1, 2, 3]),
+        "MovingAvg_window": tune.choice([11, 25, 51]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1628,14 +1751,15 @@ class AutoAutoformer(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 8) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoFEDformer(BaseAuto):
@@ -1651,6 +1775,16 @@ class AutoFEDformer(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "decoder_layers": tune.choice([1, 2]),
+        "conv_hidden_size": tune.choice([32, 128, 256]),
+        "activation": tune.choice(["relu", "gelu"]),
+        "decoder_input_size_multiplier": tune.choice([0.25, 0.5]),
+        "MovingAvg_window": tune.choice([11, 25, 51]),
+        "modes": tune.choice([8, 16, 32, 64]),
+        "mode_select": tune.choice(["random", "low"]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1701,14 +1835,15 @@ class AutoFEDformer(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 8) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoPatchTST(BaseAuto):
@@ -1727,6 +1862,17 @@ class AutoPatchTST(BaseAuto):
         "windows_batch_size": tune.choice([128, 256, 512, 1024]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "linear_hidden_size": tune.choice([128, 256, 512]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "head_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "attn_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "stride": tune.choice([4, 8]),
+        "activation": tune.choice(["relu", "gelu"]),
+        "res_attention": tune.choice([True, False]),
+        "batch_normalization": tune.choice([True, False]),
+        "learn_pos_embed": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -1777,14 +1923,15 @@ class AutoPatchTST(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 24) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoiTransformer(BaseAuto):
@@ -1798,9 +1945,15 @@ class AutoiTransformer(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "e_layers": tune.choice([1, 2, 3]),
+        "d_ff": tune.choice([128, 256, 512]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "use_norm": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -1862,20 +2015,21 @@ class AutoiTransformer(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTimeXer(BaseAuto):
@@ -1889,9 +2043,16 @@ class AutoTimeXer(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "e_layers": tune.choice([1, 2, 3]),
+        "d_ff": tune.choice([128, 256, 512]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "use_norm": tune.choice([True, False]),
+        "patch_len": tune.choice([4, 8, 16]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -1953,20 +2114,21 @@ class AutoTimeXer(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(16, ((h + 15) // 16) * 16) * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTimesNet(BaseAuto):
@@ -1983,6 +2145,11 @@ class AutoTimesNet(BaseAuto):
         "windows_batch_size": tune.choice([32, 64, 128, 256]),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "encoder_layers": tune.choice([1, 2, 3]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "top_k": tune.choice([2, 3, 5]),
+        "num_kernels": tune.choice([2, 4, 6]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
     }
 
     def __init__(
@@ -2033,14 +2200,15 @@ class AutoTimesNet(BaseAuto):
     def get_default_config(cls, h, backend, n_series=None):
         config = cls.default_config.copy()
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(h, 16) * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoStemGNN(BaseAuto):
@@ -2049,14 +2217,18 @@ class AutoStemGNN(BaseAuto):
         "input_size_multiplier": [1, 2, 3, 4],
         "h": None,
         "n_series": None,
-        "n_stacks": tune.choice([2]),
+        "n_stacks": 2,
         "multi_layer": tune.choice([3, 5, 7]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout_rate": tune.choice([0.0, 0.1, 0.3]),
+        "leaky_rate": tune.choice([0.1, 0.2, 0.3]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2118,20 +2290,21 @@ class AutoStemGNN(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoHINT(BaseAuto):
@@ -2262,10 +2435,13 @@ class AutoTSMixer(BaseAuto):
         "ff_dim": tune.choice([32, 64, 128]),
         "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "dropout": tune.uniform(0.0, 0.99),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "revin": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2327,20 +2503,21 @@ class AutoTSMixer(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTSMixerx(BaseAuto):
@@ -2354,10 +2531,13 @@ class AutoTSMixerx(BaseAuto):
         "ff_dim": tune.choice([32, 64, 128]),
         "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "dropout": tune.uniform(0.0, 0.99),
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "revin": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2419,20 +2599,21 @@ class AutoTSMixerx(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoMLPMultivariate(BaseAuto):
@@ -2446,9 +2627,11 @@ class AutoMLPMultivariate(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2510,20 +2693,21 @@ class AutoMLPMultivariate(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoSOFTS(BaseAuto):
@@ -2535,11 +2719,17 @@ class AutoSOFTS(BaseAuto):
         "hidden_size": tune.choice([64, 128, 256, 512]),
         "d_core": tune.choice([64, 128, 256, 512]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "e_layers": tune.choice([1, 2, 3]),
+        "d_ff": tune.choice([128, 256, 512]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "use_norm": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2601,20 +2791,21 @@ class AutoSOFTS(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoSOFTSSharp(BaseAuto):
@@ -2627,11 +2818,17 @@ class AutoSOFTSSharp(BaseAuto):
         "d_core": tune.choice([64, 128, 256, 512]),
         "pe_keep_prob": tune.choice([0.25, 0.5, 0.75, 1.0]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "e_layers": tune.choice([1, 2, 3]),
+        "d_ff": tune.choice([128, 256, 512]),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "use_norm": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2691,16 +2888,19 @@ class AutoSOFTSSharp(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
             config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoTimeMixer(BaseAuto):
@@ -2713,11 +2913,20 @@ class AutoTimeMixer(BaseAuto):
         "d_ff": tune.choice([16, 32, 64]),
         "down_sampling_layers": tune.choice([1, 2]),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "e_layers": tune.choice([1, 2, 4]),
+        "moving_avg": tune.choice([11, 25, 51]),
+        "channel_independence": tune.choice([0, 1]),
+        "down_sampling_window": tune.choice([2, 4]),
+        "down_sampling_method": tune.choice(["avg", "max"]),
+        "use_norm": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2779,20 +2988,21 @@ class AutoTimeMixer(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
-            [h * x for x in config["input_size_multiplier"]]
+            [max(16, ((h + 15) // 16) * 16) * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoRMoK(BaseAuto):
@@ -2807,11 +3017,15 @@ class AutoRMoK(BaseAuto):
             ["mexican_hat", "morlet", "dog", "meyer", "shannon"]
         ),
         "learning_rate": tune.loguniform(1e-4, 1e-1),
-        "scaler_type": tune.choice([None, "robust", "standard", "identity"]),
+        "scaler_type": tune.choice(["identity", "robust", "standard"]),
         "max_steps": tune.choice([500, 1000, 2000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "dropout": tune.choice([0.0, 0.1, 0.3]),
+        "revin_affine": tune.choice([True, False]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2873,20 +3087,21 @@ class AutoRMoK(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
+
 
 
 class AutoXLinear(BaseAuto):
@@ -2900,9 +3115,17 @@ class AutoXLinear(BaseAuto):
         "learning_rate": tune.loguniform(1e-4, 1e-1),
         "scaler_type": tune.choice([None, "robust", "standard"]),
         "max_steps": tune.choice([500, 1000]),
-        "batch_size": tune.choice([32, 64, 128, 256]),
+        "batch_size": None,
         "loss": None,
         "random_seed": tune.randint(1, 20),
+        "temporal_ff": tune.choice([128, 256, 512]),
+        "channel_ff": tune.choice([4, 8, 16]),
+        "temporal_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "channel_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "embed_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "head_dropout": tune.choice([0.0, 0.1, 0.3]),
+        "num_lr_decays": tune.choice([0, 1, 3]),
+        "windows_batch_size": tune.choice([16, 32, 64, 128]),
     }
 
     def __init__(
@@ -2964,17 +3187,17 @@ class AutoXLinear(BaseAuto):
     @classmethod
     def get_default_config(cls, h, backend, n_series):
         config = cls.default_config.copy()
+        config["n_series"] = n_series
+        config["batch_size"] = n_series  # Every batch must contain all series.
         config["input_size"] = tune.choice(
             [h * x for x in config["input_size_multiplier"]]
         )
 
         # Rolling windows with step_size=1 or step_size=h
         # See `BaseWindows` and `BaseRNN`'s create_windows
-        config["step_size"] = tune.choice([1, h])
+        config["step_size"] = tune.choice([1, h]) if h > 1 else 1
         del config["input_size_multiplier"]
         if backend == "optuna":
-            # Always use n_series from parameters
-            config["n_series"] = n_series
             config = cls._ray_config_to_optuna(config)
 
         return config
