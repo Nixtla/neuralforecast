@@ -95,3 +95,16 @@ def test_timesfm_lora_handle_matches_benchmark_predict_interface():
 def test_unsupported_foundation_lora_fails_explicitly():
     with pytest.raises(ValueError, match="LoRA is unavailable"):
         foundation_lora.get_foundation_lora_config("TimesFM3", h=16)
+
+
+def test_external_training_restores_global_precision_on_failure():
+    if not hasattr(torch.backends, "fp32_precision"):
+        pytest.skip("new precision API unavailable")
+    original = torch.backends.fp32_precision
+    with pytest.raises(ValueError):
+        with foundation_lora._preserve_precision():
+            torch.backends.fp32_precision = "tf32"
+            raise ValueError("training failed")
+    assert torch.backends.fp32_precision == original
+    # Lightning's legacy getter must still be usable after HF training.
+    assert torch.get_float32_matmul_precision() in {"highest", "high", "medium"}

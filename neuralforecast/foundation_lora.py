@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -74,7 +75,9 @@ def get_foundation_lora_config(model, h, fixed=None, backend="ray"):
             f"{FOUNDATION_LORA_MODELS}."
         )
     if backend != "ray":
-        raise ValueError("foundation LoRA benchmark tuning currently uses backend='ray'.")
+        raise ValueError(
+            "foundation LoRA benchmark tuning currently uses backend='ray'."
+        )
     fixed = dict(fixed or {})
     if name == "TimesFM" and "model_id" not in fixed:
         fixed["model_id"] = "google/timesfm-2.5-200m-transformers"
@@ -122,7 +125,35 @@ def _seed():
         torch.cuda.manual_seed_all(42)
 
 
-def _fit_chronos2(model_cls, config, params, train, h, steps, output_dir):
+@contextmanager
+def _preserve_precision():
+    """Restore global Torch precision changed by external HF training."""
+    objects = [torch.backends, torch.backends.cuda.matmul, torch.backends.cudnn]
+    for name in ("conv", "rnn"):
+        if hasattr(torch.backends.cudnn, name):
+            objects.append(getattr(torch.backends.cudnn, name))
+    saved = [
+        (obj, obj.fp32_precision) for obj in objects if hasattr(obj, "fp32_precision")
+    ]
+    try:
+        yield
+    finally:
+        for obj, value in saved:
+            obj.fp32_precision = value
+
+
+def _fit_chronos2(
+    model_cls,
+    config,
+    params,
+    train,
+    h,
+    steps,
+    output_dir,
+    metrics_callback=None,
+    validation=None,
+    stopping=None,
+):
     _require_package("peft")
     _seed()
     adapter = model_cls(**config)
@@ -132,30 +163,100 @@ def _fit_chronos2(model_cls, config, params, train, h, steps, output_dir):
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     values = np.asarray(train["y"], dtype=np.float32)
-    adapter.__dict__["_backend"] = pipeline.fit(
-        inputs=[values],
-        prediction_length=h,
-        validation_inputs=None,
-        finetune_mode="lora",
-        lora_config={
-            "r": params["rank"],
-            "lora_alpha": params["alpha"],
-            "lora_dropout": params["dropout"],
-            "target_modules": _CHRONOS2_TARGET_MODULES,
-        },
-        context_length=adapter.input_size,
-        learning_rate=params["learning_rate"],
-        num_steps=steps,
-        batch_size=params["batch_size"],
-        output_dir=output_dir,
-        remove_printer_callback=True,
-        seed=42,
-        data_seed=42,
-    )
+    callbacks = []
+    if metrics_callback is not None:
+        from transformers import TrainerCallback
+
+        class MetricsCallback(TrainerCallback):
+            def on_log(self, args, state, control, logs=None, **kwargs):
+                metrics_callback(
+                    {
+                        "train/global_step": state.global_step,
+                        **{f"train/{k}": v for k, v in (logs or {}).items()},
+                    }
+                )
+
+        callbacks.append(MetricsCallback())
+    stopper = None
+    if validation is not None:
+        from transformers import TrainerCallback
+        from chronos.chronos2.pipeline import Chronos2Pipeline
+        from .benchmark_stopping import ValidationStopper
+
+        stopper = ValidationStopper(
+            output_dir,
+            metrics_callback=metrics_callback,
+            adapters_only=True,
+            **(stopping or {}),
+        )
+        target = np.asarray(validation["y"], dtype=np.float32)
+
+        class ValidationCallback(TrainerCallback):
+            def on_step_end(self, args, state, control, model=None, **kwargs):
+                if state.global_step % stopper.interval:
+                    return control
+                was_training = model.training
+                model.eval()
+                with torch.no_grad(), torch.random.fork_rng():
+                    backend = Chronos2Pipeline(model=model)
+                    forecast = backend.predict(
+                        [values[-adapter.input_size :]],
+                        prediction_length=h,
+                        context_length=adapter.input_size,
+                        cross_learning=False,
+                    )[0]
+                    median = int(np.flatnonzero(np.isclose(backend.quantiles, 0.5))[0])
+                    prediction = forecast[0, median, :h].float().cpu().numpy()
+                model.train(was_training)
+                loss = float(np.mean((prediction - target) ** 2))
+                control.should_training_stop = stopper.update(
+                    model, state.global_step, loss
+                )
+                return control
+
+            def on_train_end(self, args, state, control, model=None, **kwargs):
+                stopper.restore(model)
+
+        callbacks.append(ValidationCallback())
+    with _preserve_precision():
+        adapter.__dict__["_backend"] = pipeline.fit(
+            inputs=[values],
+            prediction_length=h,
+            validation_inputs=None,
+            finetune_mode="lora",
+            lora_config={
+                "r": params["rank"],
+                "lora_alpha": params["alpha"],
+                "lora_dropout": params["dropout"],
+                "target_modules": _CHRONOS2_TARGET_MODULES,
+            },
+            context_length=adapter.input_size,
+            learning_rate=params["learning_rate"],
+            num_steps=steps,
+            batch_size=params["batch_size"],
+            output_dir=output_dir,
+            remove_printer_callback=True,
+            seed=42,
+            data_seed=42,
+            report_to="none",
+            callbacks=callbacks,
+        )
+    if stopper:
+        adapter.early_stopping_info = stopper.summary()
     return adapter
 
 
-def _fit_timesfm(config, params, train, h, steps):
+def _fit_timesfm(
+    config,
+    params,
+    train,
+    h,
+    steps,
+    metrics_callback=None,
+    validation=None,
+    stopping=None,
+    output_dir=None,
+):
     _require_package("peft")
     _require_package("transformers")
     from peft import LoraConfig, get_peft_model
@@ -170,9 +271,7 @@ def _fit_timesfm(config, params, train, h, steps):
     revision = config.pop("revision", None)
     device = str(
         torch.device(
-            config.pop(
-                "backend_device", "cuda" if torch.cuda.is_available() else "cpu"
-            )
+            config.pop("backend_device", "cuda" if torch.cuda.is_available() else "cpu")
         )
     )
     config.pop("h", None)
@@ -204,8 +303,19 @@ def _fit_timesfm(config, params, train, h, steps):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps)
     rng = np.random.default_rng(42)
     max_start = len(values) - input_size - h
+    stopper = None
+    if validation is not None:
+        from .benchmark_stopping import ValidationStopper
+
+        stopper = ValidationStopper(
+            output_dir,
+            metrics_callback=metrics_callback,
+            adapters_only=True,
+            **(stopping or {}),
+        )
+        target = np.asarray(validation["y"], dtype=np.float32)
     model.train()
-    for _ in range(steps):
+    for step in range(steps):
         starts = rng.integers(0, max_start + 1, size=params["batch_size"])
         past = torch.as_tensor(
             np.stack([values[start : start + input_size] for start in starts]),
@@ -232,12 +342,68 @@ def _fit_timesfm(config, params, train, h, steps):
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)
         scheduler.step()
+        if metrics_callback is not None and (step == 0 or (step + 1) % 10 == 0):
+            metrics_callback(
+                {
+                    "train/global_step": step + 1,
+                    "train/loss": float(output.loss.detach()),
+                    "train/learning_rate": optimizer.param_groups[0]["lr"],
+                }
+            )
+        if stopper and (step + 1) % stopper.interval == 0:
+            model.eval()
+            with torch.no_grad(), torch.random.fork_rng():
+                context = torch.as_tensor(
+                    values[-input_size:], device=device
+                ).unsqueeze(0)
+                prediction = (
+                    model(past_values=context)
+                    .mean_predictions[0, :h]
+                    .float()
+                    .cpu()
+                    .numpy()
+                )
+            model.train()
+            if stopper.update(
+                model, step + 1, float(np.mean((prediction - target) ** 2))
+            ):
+                break
+    if stopper:
+        stopper.restore(model)
     model.eval()
-    return _TimesFMLoRA(model=model, input_size=input_size, device=device)
+    adapter = _TimesFMLoRA(model=model, input_size=input_size, device=device)
+    if stopper:
+        adapter.early_stopping_info = stopper.summary()
+    return adapter
 
 
-def fit_foundation_lora(model_cls, config, train, h, steps, output_dir):
-    """Fine-tune one supported foundation adapter through its verified LoRA path."""
+def fit_foundation_lora(
+    model_cls,
+    config,
+    train,
+    h,
+    steps,
+    output_dir,
+    metrics_callback=None,
+    validation=None,
+    stopping=None,
+):
+    """Fine-tune a supported foundation adapter.
+
+    Args:
+        model_cls: Chronos2 or TimesFM adapter class.
+        config: Sampled model and LoRA settings.
+        train: Training frame, excluding validation and test observations.
+        h: Forecast horizon.
+        steps: Maximum optimizer steps.
+        output_dir: Checkpoint directory.
+        metrics_callback: Optional benchmark-only metrics sink.
+        validation: Optional held-out frame of exactly h observations.
+        stopping: Optional interval and patience for validation-only selection.
+
+    Returns:
+        Fitted adapter with best validation weights restored when requested.
+    """
     name = model_cls.__name__
     if name not in FOUNDATION_LORA_MODELS:
         raise ValueError(f"LoRA is unavailable for {name}.")
@@ -245,11 +411,41 @@ def fit_foundation_lora(model_cls, config, train, h, steps, output_dir):
         raise ValueError("steps must be positive.")
     values = np.asarray(train["y"], dtype=np.float32)
     if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
-        raise ValueError("LoRA training target must be a finite one-dimensional series.")
+        raise ValueError(
+            "LoRA training target must be a finite one-dimensional series."
+        )
+    if validation is not None:
+        target = np.asarray(validation["y"], dtype=np.float32)
+        if len(target) != h or not np.isfinite(target).all():
+            raise ValueError("Validation must contain h finite targets")
+        interval = (stopping or {}).get("interval", 10)
+        if interval < 1 or steps % interval:
+            raise ValueError("steps must be divisible by validation interval")
     config, params = _lora_params(config)
     if name == "Chronos2":
-        return _fit_chronos2(model_cls, config, params, train, h, steps, output_dir)
-    return _fit_timesfm(config, params, train, h, steps)
+        return _fit_chronos2(
+            model_cls,
+            config,
+            params,
+            train,
+            h,
+            steps,
+            output_dir,
+            metrics_callback,
+            validation,
+            stopping,
+        )
+    return _fit_timesfm(
+        config,
+        params,
+        train,
+        h,
+        steps,
+        metrics_callback,
+        validation,
+        stopping,
+        output_dir,
+    )
 
 
 def predict_foundation_lora(fitted, dataset, h):
