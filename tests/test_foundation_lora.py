@@ -10,8 +10,7 @@ import neuralforecast.foundation_lora as foundation_lora
 def _sample(space, n=5, seed=42):
     random_state = np.random.RandomState(seed)
     return [
-        next(generate_variants(space, random_state=random_state))[1]
-        for _ in range(n)
+        next(generate_variants(space, random_state=random_state))[1] for _ in range(n)
     ]
 
 
@@ -108,3 +107,113 @@ def test_external_training_restores_global_precision_on_failure():
     assert torch.backends.fp32_precision == original
     # Lightning's legacy getter must still be usable after HF training.
     assert torch.get_float32_matmul_precision() in {"highest", "high", "medium"}
+
+
+@pytest.mark.parametrize("backend", ["Chronos2", "TimesFM"])
+def test_lora_cumulative_training_with_tiny_local_models(
+    backend, monkeypatch, tmp_path
+):
+    """Exercise real optional trainers/PEFT without downloading model weights."""
+    pytest.importorskip("peft")
+    old_threads = torch.get_num_threads()
+    torch.set_num_threads(2)
+    if backend == "Chronos2":
+        pytest.importorskip("chronos")
+        from chronos.chronos2 import Chronos2Model, Chronos2Pipeline
+        from chronos.chronos2.config import Chronos2CoreConfig
+
+        class Chronos2:
+            def __init__(self, h, input_size, **kwargs):
+                self.input_size = input_size
+                config = Chronos2CoreConfig(
+                    d_model=16,
+                    d_kv=8,
+                    d_ff=32,
+                    num_layers=1,
+                    num_heads=2,
+                    chronos_config=dict(
+                        context_length=16,
+                        input_patch_size=4,
+                        input_patch_stride=4,
+                        output_patch_size=4,
+                        quantiles=[i / 10 for i in range(1, 10)],
+                        max_output_patches=1,
+                        use_reg_token=True,
+                    ),
+                )
+                self.pipeline = Chronos2Pipeline(Chronos2Model(config))
+
+            def _get_backend(self):
+                return self.pipeline
+
+        cls = Chronos2
+    else:
+        from transformers import TimesFm2_5Config, TimesFm2_5ModelForPrediction
+
+        def local_model(*args, **kwargs):
+            return TimesFm2_5ModelForPrediction(
+                TimesFm2_5Config(
+                    patch_length=4,
+                    context_length=16,
+                    horizon_length=4,
+                    hidden_size=16,
+                    intermediate_size=32,
+                    num_hidden_layers=1,
+                    num_attention_heads=2,
+                    num_key_value_heads=2,
+                    head_dim=8,
+                    output_quantile_len=4,
+                    use_continuous_quantile_head=False,
+                )
+            )
+
+        monkeypatch.setattr(
+            TimesFm2_5ModelForPrediction, "from_pretrained", local_model
+        )
+        cls = type("TimesFM", (), {})
+    config = dict(
+        h=4,
+        input_size=16,
+        backend_device="cpu",
+        learning_rate=1e-3,
+        lora_r=2,
+        lora_alpha=4,
+        lora_dropout=0.0,
+        lora_batch_size=2,
+    )
+    frame = pd.DataFrame({"y": 3 + np.sin(np.arange(68) / 7)})
+    options = dict(
+        model_cls=cls,
+        config=config,
+        train=frame.iloc[:64],
+        h=4,
+        validation=frame.iloc[64:],
+        stopping={"interval": 1, "patience": 20},
+        schedule_steps=4,
+    )
+    try:
+        first = foundation_lora.fit_foundation_lora(
+            **options, steps=2, output_dir=tmp_path / "first"
+        )
+        second = foundation_lora.fit_foundation_lora(
+            **options,
+            steps=4,
+            checkpoint=first.resume_checkpoint,
+            output_dir=tmp_path / "second",
+        )
+        assert first.early_stopping_info["actual_steps"] == 2
+        assert second.early_stopping_info["actual_steps"] == 4
+        assert (
+            second.early_stopping_info["best_validation_loss"]
+            <= first.early_stopping_info["best_validation_loss"]
+        )
+        if backend == "TimesFM":
+            state = torch.load(second.resume_checkpoint, weights_only=False)
+            assert state["global_step"] == 4
+            assert state["optimizer"]["state"]
+        else:
+            from pathlib import Path
+
+            assert (Path(second.resume_checkpoint) / "optimizer.pt").is_file()
+    finally:
+        torch.set_num_threads(old_threads)

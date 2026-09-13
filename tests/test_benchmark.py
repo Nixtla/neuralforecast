@@ -6,6 +6,7 @@ from neuralforecast.benchmark import (
     SHPlan,
     benchmark_search_space,
     expanding_folds,
+    forecast_metrics,
     pooled_rmse,
     rank_key,
     representative_folds,
@@ -48,6 +49,36 @@ def test_benchmark_space_fixes_training_protocol():
 
 def test_sh_plan_matches_benchmark_contract():
     plan = SHPlan()
-    assert plan.budgets == (125, 250, 500, 1000)
-    assert plan.survivors == (10, 5, 2, 1)
+    assert plan.budgets == (100, 250, 500)
+    assert plan.survivors == (10, 5, 1)
     assert rank_key(1.0, [1.0, 1.1, 0.9]) < rank_key(2.0, [2.0, 2.0, 2.0])
+
+
+def test_five_metrics_use_fixed_origins_and_report_zero_mape_denominator():
+    result = forecast_metrics(
+        [2.0, 0.0, -2.0, 3.0], [3.0, 1.0, -1.0, 3.0], [1.0, 1.0, -1.0, 3.0]
+    )
+    assert result == pytest.approx(
+        {
+            "mae": 0.75,
+            "mse": 0.75,
+            "rmse": np.sqrt(0.75),
+            "mape_pct": 100 / 3,
+            "mape_n": 3,
+            "da_pct": 50.0,
+        }
+    )
+    assert forecast_metrics([0.0], [1.0], [0.0])["mape_pct"] is None
+
+
+@pytest.mark.parametrize(
+    "actual,prediction,origin",
+    [
+        ([], [], []),
+        ([1.0], [1.0, 2.0], [1.0]),
+        ([1.0], [float("nan")], [1.0]),
+    ],
+)
+def test_metrics_reject_misaligned_or_nonfinite_values(actual, prediction, origin):
+    with pytest.raises(ValueError):
+        forecast_metrics(actual, prediction, origin)

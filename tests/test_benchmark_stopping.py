@@ -40,3 +40,18 @@ def test_lora_checkpoint_only_restores_trainable_parameters(tmp_path):
     stopper.restore(model)
     assert model.bias.item() == 2
     assert model.weight.item() == 7
+
+
+def test_patience_and_best_weights_are_portable(tmp_path):
+    model = torch.nn.Linear(1, 1, bias=False)
+    first = ValidationStopper(tmp_path / "first", patience=3)
+    model.weight.data.fill_(2)
+    first.update(model, 10, 1.0)
+    first.update(model, 20, 2.0)
+    second = ValidationStopper(tmp_path / "second", patience=3)
+    second.load_state_dict(first.state_dict())
+    assert not second.update(model, 30, 2.0)
+    assert second.update(model, 40, 2.0)
+    model.weight.data.fill_(10)
+    second.restore(model)
+    assert model.weight.item() == 2

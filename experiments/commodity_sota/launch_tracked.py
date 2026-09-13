@@ -1,6 +1,8 @@
 """Launch only the main gasoline experiment with process-scoped W&B auth."""
 
+import argparse
 import getpass
+import netrc
 import os
 from pathlib import Path
 import subprocess
@@ -10,7 +12,21 @@ import requests
 
 def main():
     root = Path(__file__).resolve().parents[2]
-    key = getpass.getpass("W&B key (hidden): ")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project", default="uni-gasoline")
+    args = parser.parse_args()
+    if args.project not in {"uni-gasoline", "uni-gasoline-diff"}:
+        parser.error("Supported projects: uni-gasoline, uni-gasoline-diff")
+    experiment = args.project.removeprefix("uni-")
+    key = os.environ.get("WANDB_API_KEY")
+    if not key:
+        try:
+            credentials = netrc.netrc().authenticators("api.wandb.ai")
+            key = credentials[2] if credentials else None
+        except (OSError, netrc.NetrcParseError):
+            pass
+    if not key:
+        key = getpass.getpass("W&B key (hidden): ")
     response = requests.post(
         "https://api.wandb.ai/graphql",
         auth=("api", key),
@@ -25,7 +41,7 @@ def main():
     command = [
         "systemd-run",
         "--user",
-        "--unit=gasoline-benchmark",
+        f"--unit={experiment}-benchmark",
         "--collect",
         f"--property=WorkingDirectory={root}",
         "--property=UMask=0077",
@@ -53,14 +69,14 @@ def main():
         "--model-config",
         "model_config.json",
         "--output",
-        "results/gasoline",
+        f"results/{experiment}",
         "--validated-candidates",
-        "results/gasoline-dynamic-smoke/smoke_results.json",
+        f"results/{experiment}-dynamic-smoke/smoke_results.json",
         "--wandb",
         "--wandb-entity",
         "Beat-Sun",
         "--wandb-project",
-        "uni-gasoline",
+        args.project,
     ]
     subprocess.run(command, env=environment, check=True)
 

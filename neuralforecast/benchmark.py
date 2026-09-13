@@ -32,8 +32,8 @@ class Fold:
 class SHPlan:
     """Successive-halving budgets and survivor counts."""
 
-    budgets: tuple[int, ...] = (125, 250, 500, 1000)
-    survivors: tuple[int, ...] = (10, 5, 2, 1)
+    budgets: tuple[int, ...] = (100, 250, 500)
+    survivors: tuple[int, ...] = (10, 5, 1)
 
     def __post_init__(self):
         if len(self.budgets) != len(self.survivors):
@@ -78,9 +78,7 @@ def pooled_rmse(
 ) -> float:
     """RMSE over every forecast point across folds."""
     y = np.concatenate([np.asarray(values, dtype=float) for values in actual])
-    y_hat = np.concatenate(
-        [np.asarray(values, dtype=float) for values in prediction]
-    )
+    y_hat = np.concatenate([np.asarray(values, dtype=float) for values in prediction])
     if y.shape != y_hat.shape or not y.size:
         raise ValueError("actual and prediction must have the same non-empty shape.")
     if not np.isfinite(y).all() or not np.isfinite(y_hat).all():
@@ -91,6 +89,43 @@ def pooled_rmse(
 def fold_rmse(actual: Sequence[float], prediction: Sequence[float]) -> float:
     """RMSE for one fold."""
     return pooled_rmse([actual], [prediction])
+
+
+def forecast_metrics(actual, prediction, forecast_origin):
+    """Compute pooled point errors and direction accuracy against forecast origins.
+
+    Args:
+        actual: One-dimensional actual targets.
+        prediction: Corresponding point forecasts.
+        forecast_origin: Last observation before each forecast, repeated per horizon.
+
+    Returns:
+        MAE, MAPE percent, MSE, RMSE and DA percent. MAPE excludes zero actuals
+        and is None if all actuals are zero; mape_n records its denominator.
+        DA compares exact rise/fall/flat signs relative to the fixed origin.
+    """
+    y, pred, origin = [
+        np.asarray(v, dtype=float) for v in (actual, prediction, forecast_origin)
+    ]
+    if y.ndim != 1 or not y.size or y.shape != pred.shape or y.shape != origin.shape:
+        raise ValueError("Metrics require aligned nonempty one-dimensional arrays")
+    if not all(np.isfinite(v).all() for v in (y, pred, origin)):
+        raise ValueError("Metrics require finite actuals, predictions and origins")
+    error = pred - y
+    nonzero = y != 0
+    mse = float(np.mean(error**2))
+    return {
+        "mae": float(np.mean(np.abs(error))),
+        "mape_pct": (
+            float(100 * np.mean(np.abs(error[nonzero]) / np.abs(y[nonzero])))
+            if nonzero.any()
+            else None
+        ),
+        "mape_n": int(nonzero.sum()),
+        "mse": mse,
+        "rmse": sqrt(mse),
+        "da_pct": float(100 * np.mean(np.sign(pred - origin) == np.sign(y - origin))),
+    }
 
 
 def rank_key(score: float, fold_scores: Sequence[float]) -> tuple[float, float, float]:

@@ -6,6 +6,7 @@ import importlib.util
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -13,6 +14,7 @@ from ray import tune
 
 from .inference_tuning import get_inference_tuning_config
 from .losses.pytorch import MAE
+from .benchmark_stopping import rng_state, restore_rng
 
 __all__ = [
     "FOUNDATION_LORA_MODELS",
@@ -153,6 +155,8 @@ def _fit_chronos2(
     metrics_callback=None,
     validation=None,
     stopping=None,
+    checkpoint=None,
+    schedule_steps=None,
 ):
     _require_package("peft")
     _seed()
@@ -209,16 +213,42 @@ def _fit_chronos2(
                     prediction = forecast[0, median, :h].float().cpu().numpy()
                 model.train(was_training)
                 loss = float(np.mean((prediction - target) ** 2))
-                control.should_training_stop = stopper.update(
-                    model, state.global_step, loss
-                )
+                stopped = stopper.update(model, state.global_step, loss)
+                control.should_training_stop = control.should_training_stop or stopped
                 return control
 
-            def on_train_end(self, args, state, control, model=None, **kwargs):
-                stopper.restore(model)
-
         callbacks.append(ValidationCallback())
-    with _preserve_precision():
+    from chronos.chronos2 import trainer as trainer_module
+
+    class ContinuingTrainer(trainer_module.Chronos2Trainer):
+        def create_scheduler(self, num_training_steps, optimizer=None):
+            return super().create_scheduler(schedule_steps or steps, optimizer)
+
+        def train(self, *args, **kwargs):
+            if checkpoint:
+                if stopper:
+                    stopper.load_state_dict(
+                        torch.load(
+                            Path(checkpoint) / "benchmark_stopper.pt",
+                            map_location="cpu",
+                            weights_only=False,
+                        )
+                    )
+                kwargs["resume_from_checkpoint"] = checkpoint
+            result = super().train(*args, **kwargs)
+            # Save last training state before restoring weights for evaluation.
+            self._save_checkpoint(self.model, trial=None)
+            path = output_dir / f"checkpoint-{self.state.global_step}"
+            adapter.resume_checkpoint = str(path)
+            if stopper:
+                torch.save(stopper.state_dict(), path / "benchmark_stopper.pt")
+                stopper.restore(self.model)
+            return result
+
+    with (
+        _preserve_precision(),
+        patch.object(trainer_module, "Chronos2Trainer", ContinuingTrainer),
+    ):
         adapter.__dict__["_backend"] = pipeline.fit(
             inputs=[values],
             prediction_length=h,
@@ -240,6 +270,8 @@ def _fit_chronos2(
             data_seed=42,
             report_to="none",
             callbacks=callbacks,
+            save_only_model=False,
+            logging_steps=10,
         )
     if stopper:
         adapter.early_stopping_info = stopper.summary()
@@ -256,6 +288,8 @@ def _fit_timesfm(
     validation=None,
     stopping=None,
     output_dir=None,
+    checkpoint=None,
+    schedule_steps=None,
 ):
     _require_package("peft")
     _require_package("transformers")
@@ -300,7 +334,9 @@ def _fit_timesfm(
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=params["learning_rate"], weight_decay=0.01
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=steps)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=schedule_steps or steps
+    )
     rng = np.random.default_rng(42)
     max_start = len(values) - input_size - h
     stopper = None
@@ -314,8 +350,20 @@ def _fit_timesfm(
             **(stopping or {}),
         )
         target = np.asarray(validation["y"], dtype=np.float32)
+    start_step = 0
+    if checkpoint:
+        state = torch.load(checkpoint, map_location="cpu", weights_only=False)
+        model.load_state_dict(state["weights"], strict=False)
+        optimizer.load_state_dict(state["optimizer"])
+        scheduler.load_state_dict(state["scheduler"])
+        rng.bit_generator.state = state["sampling_rng"]
+        restore_rng(state["rng"])
+        start_step = state["global_step"]
+        if stopper:
+            stopper.load_state_dict(state["stopper"])
+    last_step = start_step
     model.train()
-    for step in range(steps):
+    for step in range(start_step, steps):
         starts = rng.integers(0, max_start + 1, size=params["batch_size"])
         past = torch.as_tensor(
             np.stack([values[start : start + input_size] for start in starts]),
@@ -342,6 +390,7 @@ def _fit_timesfm(
         optimizer.step()
         optimizer.zero_grad(set_to_none=True)
         scheduler.step()
+        last_step = step + 1
         if metrics_callback is not None and (step == 0 or (step + 1) % 10 == 0):
             metrics_callback(
                 {
@@ -368,10 +417,30 @@ def _fit_timesfm(
                 model, step + 1, float(np.mean((prediction - target) ** 2))
             ):
                 break
+    resume_path = Path(output_dir) / "resume.pt"
+    resume_path.parent.mkdir(parents=True, exist_ok=True)
+    names = {name for name, p in model.named_parameters() if p.requires_grad}
+    torch.save(
+        {
+            "weights": {
+                name: value.detach().cpu().clone()
+                for name, value in model.state_dict().items()
+                if name in names
+            },
+            "optimizer": optimizer.state_dict(),
+            "scheduler": scheduler.state_dict(),
+            "rng": rng_state(),
+            "sampling_rng": rng.bit_generator.state,
+            "global_step": last_step,
+            "stopper": stopper.state_dict() if stopper else None,
+        },
+        resume_path,
+    )
     if stopper:
         stopper.restore(model)
     model.eval()
     adapter = _TimesFMLoRA(model=model, input_size=input_size, device=device)
+    adapter.resume_checkpoint = str(resume_path)
     if stopper:
         adapter.early_stopping_info = stopper.summary()
     return adapter
@@ -387,6 +456,8 @@ def fit_foundation_lora(
     metrics_callback=None,
     validation=None,
     stopping=None,
+    checkpoint=None,
+    schedule_steps=None,
 ):
     """Fine-tune a supported foundation adapter.
 
@@ -400,6 +471,8 @@ def fit_foundation_lora(
         metrics_callback: Optional benchmark-only metrics sink.
         validation: Optional held-out frame of exactly h observations.
         stopping: Optional interval and patience for validation-only selection.
+        checkpoint: Locally produced full training state from a previous rung.
+        schedule_steps: Fixed total scheduler horizon across cumulative rungs.
 
     Returns:
         Fitted adapter with best validation weights restored when requested.
@@ -409,6 +482,8 @@ def fit_foundation_lora(
         raise ValueError(f"LoRA is unavailable for {name}.")
     if steps < 1:
         raise ValueError("steps must be positive.")
+    if schedule_steps is not None and schedule_steps < steps:
+        raise ValueError("schedule_steps must cover the cumulative step budget")
     values = np.asarray(train["y"], dtype=np.float32)
     if values.ndim != 1 or not len(values) or not np.isfinite(values).all():
         raise ValueError(
@@ -434,6 +509,8 @@ def fit_foundation_lora(
             metrics_callback,
             validation,
             stopping,
+            checkpoint,
+            schedule_steps,
         )
     return _fit_timesfm(
         config,
@@ -445,6 +522,8 @@ def fit_foundation_lora(
         validation,
         stopping,
         output_dir,
+        checkpoint,
+        schedule_steps,
     )
 
 

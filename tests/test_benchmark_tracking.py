@@ -67,6 +67,36 @@ def test_sh_tracking_resumes_explicit_owned_run(monkeypatch, tmp_path):
     assert calls[0]["save_code"] is False
 
 
+def test_evaluation_table_publishes_metrics_and_definitions(monkeypatch):
+    import pandas as pd
+
+    tracker = Tracking()
+    tracker.run = SimpleNamespace(summary={})
+    tables = []
+    monkeypatch.setattr(tracker, "table", lambda name, frame: tables.append(name))
+    frame = pd.DataFrame(
+        [
+            dict(
+                candidate="Naive",
+                mae=1.0,
+                mape_pct=float("nan"),
+                mse=1.0,
+                rmse=1.0,
+                da_pct=0.0,
+                mape_n=0,
+            )
+        ]
+    )
+    tracker.evaluation_table("phase2", frame, {"da": "fixed-origin signs"})
+    assert tables == ["phase2/leaderboard_with_naive"]
+    assert tracker.run.summary["phase2_with_naive/Naive/rmse"] == 1.0
+    assert tracker.run.summary["phase2_with_naive/Naive/mape_pct"] is None
+    assert (
+        tracker.run.summary["phase2/leaderboard_with_naive_definitions"]["da"]
+        == "fixed-origin signs"
+    )
+
+
 @pytest.fixture
 def runner():
     path = Path(__file__).parents[1] / "experiments/commodity_sota/run.py"

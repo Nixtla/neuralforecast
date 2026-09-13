@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -73,6 +74,7 @@ class Tracking:
         )
         self.run.define_metric("train/global_step")
         self.run.define_metric("train/*", step_metric="train/global_step")
+        self.run.define_metric("validation/*", step_metric="train/global_step")
 
     def log(self, metrics):
         if self.run:
@@ -103,8 +105,10 @@ class Tracking:
                 "eligibility.csv",
                 "phase1_trials.csv",
                 "phase1_ranking.csv",
+                "phase1_leaderboard.csv",
                 "phase2_predictions.csv",
                 "leaderboard.csv",
+                "metric_definitions.json",
                 "failures.csv",
                 "run_config.json",
                 "data_manifest.json",
@@ -114,6 +118,23 @@ class Tracking:
                 if path.is_file():
                     artifact.add_file(str(path), name=name)
             self.run.log_artifact(artifact)
+
+    def evaluation_table(self, phase, frame, definitions):
+        """Publish a baseline-inclusive table and individually comparable metrics."""
+        if not self.run:
+            return
+        self.table(f"{phase}/leaderboard_with_naive", frame)
+        summary = {
+            f"{phase}/leaderboard_with_naive_definitions": definitions,
+            f"{phase}/leaderboard_with_naive_rows": len(frame),
+        }
+        for row in frame.to_dict(orient="records"):
+            for metric in ("mae", "mape_pct", "mse", "rmse", "da_pct", "mape_n"):
+                value = row.get(metric)
+                if isinstance(value, float) and not math.isfinite(value):
+                    value = None
+                summary[f"{phase}_with_naive/{row['candidate']}/{metric}"] = value
+        self.summary(summary)
 
     def finish(self, failed=False):
         if self.run:

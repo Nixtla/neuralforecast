@@ -27,6 +27,7 @@ from neuralforecast.benchmark import (
     benchmark_search_space,
     expanding_folds,
     fold_rmse,
+    forecast_metrics,
     minimum_history,
     pooled_rmse,
     rank_key,
@@ -74,6 +75,7 @@ SKIP_REASONS = {
 TRACKING = None
 SUMMARY = None
 POLICY = {"max_steps": 500, "interval": 10, "patience": 5, "val_size": 16}
+PROTOCOL_VERSION = "validation-only-sh3-naive-v1"
 
 
 @dataclass
@@ -90,6 +92,7 @@ class Candidate:
     best_config: dict | None = None
     best_score: float = float("inf")
     best_fold_scores: tuple[float, ...] = ()
+    best_metrics: dict = field(default_factory=dict)
 
 
 def _lora_api():
@@ -135,8 +138,48 @@ def _fill(values):
     values = values.copy()
     values["y"] = values["y"].ffill()
     if values["y"].isna().any():
-        raise ValueError("target begins with missing observations; cannot forward-fill.")
+        raise ValueError(
+            "target begins with missing observations; cannot forward-fill."
+        )
     return values
+
+
+def _transform_metadata(project):
+    return {
+        "target_transform": (
+            "first_difference" if project.endswith("-diff") else "identity"
+        ),
+        "training_scale": "difference" if project.endswith("-diff") else "level",
+        "evaluation_scale": "level",
+        "transform_version": 1,
+    }
+
+
+def _difference_fold(train, valid):
+    """Difference selected series after filling; keep the forecast origin fixed."""
+    columns = [column for column in train if column not in {"ds", "unique_id"}]
+    train_diff, valid_diff = train.copy(), valid.copy()
+    train_diff[columns] = train[columns].diff()
+    train_diff = train_diff.iloc[1:].reset_index(drop=True)
+    boundary = pd.concat([train.iloc[-1:][columns], valid[columns]], ignore_index=True)
+    valid_diff[columns] = boundary.diff().iloc[1:].to_numpy()
+    if (
+        train_diff.empty
+        or not np.isfinite(
+            pd.concat([train_diff[columns], valid_diff[columns]]).to_numpy(dtype=float)
+        ).all()
+    ):
+        raise ValueError(
+            "Differencing requires finite observations and two training rows"
+        )
+    return train_diff, valid_diff
+
+
+def _restore_prediction(prediction, origin, transform):
+    prediction = np.asarray(prediction, dtype=float)
+    if transform == "first_difference":
+        return float(origin) + np.cumsum(prediction)
+    return prediction
 
 
 def _dataset(frame):
@@ -169,6 +212,7 @@ def _fit_trainable(
     workdir,
     tracker=None,
     stopping=None,
+    schedule_steps=None,
 ):
     config = dict(config)
     numerics = config.pop("_benchmark_numerics", None)
@@ -179,7 +223,7 @@ def _fit_trainable(
         config.setdefault("numerical_stability", False)
     if numerics:
         config.setdefault("gradient_clip_val", numerics["gradient_clip_val"])
-    config["max_steps"] = budget if stopping else 1000
+    config["max_steps"] = schedule_steps or budget
     if stopping:
         from neuralforecast.losses.pytorch import MSE
 
@@ -193,7 +237,9 @@ def _fit_trainable(
     config["devices"] = 1
     config["enable_progress_bar"] = False
     model = model_cls(**config)
-    train_dataset = _dataset(train)
+    train_dataset = _dataset(
+        pd.concat([train, valid], ignore_index=True) if stopping else train
+    )
     model._check_exog(train_dataset)
     model._restart_seed(42)
     model.val_size = stopping["val_size"] if stopping else 0
@@ -209,12 +255,15 @@ def _fit_trainable(
     checkpoint_cb = ModelCheckpoint(dirpath=workdir, save_last=True, save_top_k=0)
     trainer_kwargs = dict(model.trainer_kwargs)
     callbacks = list(trainer_kwargs.get("callbacks") or [])
-    if numerics:
-        callbacks.append(FiniteTraining(check_forward=model_cls.__name__ == "FEDformer"))
+    callbacks.append(FiniteTraining(check_forward=model_cls.__name__ == "FEDformer"))
     callbacks.append(checkpoint_cb)
     stopper = None
     if stopping:
-        from neuralforecast.benchmark_stopping import ValidationStopper
+        from neuralforecast.benchmark_stopping import (
+            ValidationStopper,
+            rng_state,
+            restore_rng,
+        )
 
         stopper = ValidationStopper(
             workdir,
@@ -224,6 +273,19 @@ def _fit_trainable(
         )
 
         class StopCallback(pl.Callback):
+            saved_rng = None
+
+            def state_dict(self):
+                return {"stopper": stopper.state_dict(), "rng": rng_state()}
+
+            def load_state_dict(self, state):
+                stopper.load_state_dict(state["stopper"])
+                self.saved_rng = state["rng"]
+
+            def on_train_start(self, trainer, pl_module):
+                if self.saved_rng is not None:
+                    restore_rng(self.saved_rng)
+
             def on_validation_end(self, trainer, pl_module):
                 if trainer.sanity_checking:
                     return
@@ -247,7 +309,6 @@ def _fit_trainable(
     trainer.save_checkpoint(next_checkpoint)
     if stopper:
         stopper.restore(model)
-        next_checkpoint = str(stopper.path)
         (Path(workdir) / "early_stopping.json").write_text(
             json.dumps(stopper.summary())
         )
@@ -268,7 +329,16 @@ def _fit_inference(model_cls, config, train, valid):
 
 
 def _fit_lora(
-    model_cls, config, train, valid, budget, workdir, tracker=None, stopping=None
+    model_cls,
+    config,
+    train,
+    valid,
+    budget,
+    workdir,
+    tracker=None,
+    stopping=None,
+    checkpoint=None,
+    schedule_steps=None,
 ):
     _, fit_foundation_lora, _ = _lora_api()
     if fit_foundation_lora is None:
@@ -276,7 +346,7 @@ def _fit_lora(
     options = {}
     if stopping:
         options = {
-            "validation": train.iloc[-stopping["val_size"] :].copy(),
+            "validation": valid.copy(),
             "stopping": {
                 "interval": stopping["interval"],
                 "patience": stopping["patience"],
@@ -285,11 +355,13 @@ def _fit_lora(
     model = fit_foundation_lora(
         model_cls,
         config,
-        train.iloc[: -stopping["val_size"]].copy() if stopping else train,
+        train,
         h=len(valid),
         steps=budget,
         output_dir=workdir,
         metrics_callback=tracker.log if tracker and tracker.run else None,
+        checkpoint=checkpoint,
+        schedule_steps=schedule_steps,
         **options,
     )
     if stopping:
@@ -299,7 +371,7 @@ def _fit_lora(
     model.val_size = 0
     model.test_size = len(valid)
     dataset = _dataset(pd.concat([train, valid], ignore_index=True))
-    return _point_prediction(model, dataset, len(valid)), None
+    return _point_prediction(model, dataset, len(valid)), model.resume_checkpoint
 
 
 @ray.remote(num_gpus=1, max_calls=1)
@@ -317,14 +389,20 @@ def _evaluate_job(
         torch.set_num_threads(2)
         frame = pd.read_pickle(data_path)
         phase = Path(root).name.removeprefix("checkpoints_")
-        stopping = candidate.get("phase2_policy", POLICY) if phase == "phase2" else None
+        stopping = candidate.get("phase2_policy", POLICY)
+        if phase == "smoke":
+            stopping = dict(stopping, interval=1)
         history = frame.iloc[fold.train_slice]
-        if stopping and candidate["protocol"] != "zero_shot":
-            n = stopping["val_size"]
-            train = pd.concat([_fill(history.iloc[:-n]), _fill(history.iloc[-n:])])
-        else:
-            train = _fill(history)
+        train = _fill(history)
         valid = _fill(frame.iloc[fold.valid_slice])
+        actual = valid.y.to_numpy(dtype=float)
+        forecast_origin = float(train.y.iloc[-1])
+        transform_metadata = frame.attrs.get(
+            "transform_metadata", _transform_metadata("")
+        )
+        transform = transform_metadata["target_transform"]
+        if transform == "first_difference":
+            train, valid = _difference_fold(train, valid)
         workdir = Path(root) / candidate["name"] / str(config_id) / str(fold.index)
         workdir.mkdir(parents=True, exist_ok=True)
         tracker = Tracking(
@@ -334,19 +412,16 @@ def _evaluate_job(
             config_id=config_id,
             fold=fold.index,
             config={
+                **transform_metadata,
                 "model": candidate["model_name"],
                 "protocol": candidate["protocol"],
                 "parameters": config,
                 "fold": fold.index,
-                "train_end": str(train.ds.iloc[-stopping["val_size"] - 1])
-                if stopping and candidate["protocol"] != "zero_shot"
-                else str(train.ds.iloc[-1]),
-                "validation_start": str(train.ds.iloc[-stopping["val_size"]])
-                if stopping and candidate["protocol"] != "zero_shot"
-                else None,
-                "validation_end": str(train.ds.iloc[-1])
-                if stopping and candidate["protocol"] != "zero_shot"
-                else None,
+                "train_end": str(train.ds.iloc[-1]),
+                "validation_start": str(valid.ds.iloc[0]),
+                "validation_end": str(valid.ds.iloc[-1]),
+                "protocol_version": PROTOCOL_VERSION,
+                "evaluation_split": "validation",
                 "phase2_policy": stopping,
                 "attempt": candidate.get("attempt", 0),
                 "valid_start": str(valid.ds.iloc[0]),
@@ -365,16 +440,30 @@ def _evaluate_job(
                 workdir,
                 tracker,
                 stopping,
+                schedule_steps=(
+                    SHPlan().budgets[-1] if phase == "phase1" else stopping["max_steps"]
+                ),
             )
         elif candidate["protocol"] == "lora":
             prediction, next_checkpoint = _fit_lora(
-                model_cls, config, train, valid, budget, workdir, tracker, stopping
+                model_cls,
+                config,
+                train,
+                valid,
+                budget,
+                workdir,
+                tracker,
+                stopping,
+                checkpoint=checkpoint,
+                schedule_steps=(
+                    SHPlan().budgets[-1] if phase == "phase1" else stopping["max_steps"]
+                ),
             )
         else:
             prediction, next_checkpoint = _fit_inference(
                 model_cls, config, train, valid
             )
-        actual = valid["y"].to_numpy(dtype=float)
+        prediction = _restore_prediction(prediction, forecast_origin, transform)
         if not np.isfinite(prediction).all():
             raise ValueError("Non-finite predictions")
         result = {
@@ -387,6 +476,13 @@ def _evaluate_job(
             "rmse": fold_rmse(actual, prediction),
             "checkpoint": next_checkpoint,
             "budget": budget,
+            "evaluation_split": "validation",
+            "protocol_version": PROTOCOL_VERSION,
+            "forecast_origin": forecast_origin,
+            **transform_metadata,
+            **forecast_metrics(
+                actual, prediction, np.full(len(valid), forecast_origin)
+            ),
         }
         early_path = workdir / "early_stopping.json"
         if early_path.exists():
@@ -429,9 +525,13 @@ def _evaluate_job(
                 tracker.finish(failed=not result["ok"])
             except Exception as exc:
                 result["tracking_error"] = type(exc).__name__
-        (workdir / f"result-{budget}.json").write_text(
-            json.dumps(result, default=str)
-        ) if "workdir" in locals() else None
+        (
+            (workdir / f"result-{budget}.json").write_text(
+                json.dumps(result, default=str)
+            )
+            if "workdir" in locals()
+            else None
+        )
     return result
 
 
@@ -481,8 +581,7 @@ def _build_candidates(h, model_config, first_train):
                 first_train - h,
             )
             configs = [
-                guard_config(name, c)
-                for c in sample_ray_configs(space, n=10, seed=42)
+                guard_config(name, c) for c in sample_ray_configs(space, n=10, seed=42)
             ]
         except Exception as exc:
             eligibility.append(
@@ -542,8 +641,8 @@ def _build_candidates(h, model_config, first_train):
         except Exception as exc:
             eligibility.append((name, "lora", "SKIP", f"{type(exc).__name__}: {exc}"))
             continue
-        candidates.append(Candidate(f"{name}-LoRA", "lora", name, configs, None))
-        eligibility.append((name, "lora", "READY", "one 1000-step Phase 1 rung"))
+        candidates.append(Candidate(f"{name}-LoRA", "lora", name, configs, SHPlan()))
+        eligibility.append((name, "lora", "READY", "three validation-stopped rungs"))
     return candidates, eligibility
 
 
@@ -607,10 +706,27 @@ def _compound_score(candidate, folds):
         yield config_id, pooled_rmse(actual, prediction), fold_scores
 
 
+def _trial_metrics(rows):
+    if not all(row["ok"] for row in rows):
+        return {}
+    return forecast_metrics(
+        np.concatenate([row["actual"] for row in rows]),
+        np.concatenate([row["prediction"] for row in rows]),
+        np.concatenate(
+            [np.full(len(row["actual"]), row["forecast_origin"]) for row in rows]
+        ),
+    )
+
+
 def _run_phase1(data_path, candidates, folds, checkpoint_root):
     pending, trials, failures = {}, [], []
+    terminal = {}
 
     def submit(candidate, config_id, fold, budget):
+        cached = terminal.get((candidate.name, config_id, fold.index))
+        if cached is not None:
+            candidate.rung_results[(config_id, fold.index)] = cached
+            return
         checkpoint = candidate.checkpoints.get((config_id, fold.index))
         ref = _evaluate_job.remote(
             data_path,
@@ -624,12 +740,59 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
         )
         pending[ref] = (candidate, config_id, fold, budget)
 
+    def advance(candidate):
+        while len(candidate.rung_results) == len(candidate.alive) * len(folds):
+            budget = candidate.plan.budgets[candidate.rung] if candidate.plan else 0
+            scored = list(_compound_score(candidate, folds))
+            for cid, score, fold_scores in scored:
+                trials.append(
+                    {
+                        "candidate": candidate.name,
+                        "protocol": candidate.protocol,
+                        "rung": candidate.rung,
+                        "budget": budget,
+                        "config_id": cid,
+                        "pooled_rmse": score,
+                        "fold_rmse_std": float(np.std(fold_scores)),
+                        "worst_fold_rmse": float(np.max(fold_scores)),
+                        **_trial_metrics(
+                            [candidate.rung_results[(cid, f.index)] for f in folds]
+                        ),
+                    }
+                )
+            pd.DataFrame(trials).to_csv(
+                Path(checkpoint_root).parent / "phase1_trials.csv", index=False
+            )
+            pd.DataFrame(failures).to_csv(
+                Path(checkpoint_root).parent / "phase1_failures.csv", index=False
+            )
+            scored.sort(key=lambda row: rank_key(row[1], row[2]))
+            if (
+                candidate.plan is None
+                or candidate.rung == len(candidate.plan.budgets) - 1
+            ):
+                best = scored[0]
+                candidate.best_config = candidate.configs[best[0]]
+                candidate.best_score = best[1]
+                candidate.best_fold_scores = best[2]
+                candidate.best_metrics = _trial_metrics(
+                    [candidate.rung_results[(best[0], f.index)] for f in folds]
+                )
+                return
+            keep = candidate.plan.survivors[candidate.rung + 1]
+            candidate.alive = [row[0] for row in scored[:keep]]
+            candidate.rung += 1
+            candidate.rung_results = {}
+            for cid in candidate.alive:
+                for fold in folds:
+                    submit(candidate, cid, fold, candidate.plan.budgets[candidate.rung])
+
     for candidate in candidates:
         candidate.alive = list(range(len(candidate.configs)))
         if candidate.plan:
             budget = candidate.plan.budgets[0]
         else:
-            budget = 1000 if candidate.protocol == "lora" else 0
+            budget = 0
         for config_id in candidate.alive:
             for fold in sorted(folds, key=lambda f: f.train_end, reverse=True):
                 submit(candidate, config_id, fold, budget)
@@ -663,53 +826,60 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
                 }
             )
         candidate.rung_results[(config_id, fold.index)] = result
+        if not result["ok"] or result.get("stop_reason") == "early_stopping":
+            terminal[(candidate.name, config_id, fold.index)] = result
         if result["ok"] and result.get("checkpoint"):
             candidate.checkpoints[(config_id, fold.index)] = result["checkpoint"]
         elif not result["ok"]:
             failures.append(result)
 
-        required = len(candidate.alive) * len(folds)
-        if len(candidate.rung_results) != required:
-            continue
-        scored = list(_compound_score(candidate, folds))
-        for cid, score, fold_scores in scored:
-            trials.append(
-                {
-                    "candidate": candidate.name,
-                    "protocol": candidate.protocol,
-                    "rung": candidate.rung,
-                    "budget": budget,
-                    "config_id": cid,
-                    "pooled_rmse": score,
-                    "fold_rmse_std": float(np.std(fold_scores)),
-                    "worst_fold_rmse": float(np.max(fold_scores)),
-                }
-            )
-        pd.DataFrame(trials).to_csv(
-            Path(checkpoint_root).parent / "phase1_trials.csv", index=False
-        )
-        pd.DataFrame(failures).to_csv(
-            Path(checkpoint_root).parent / "phase1_failures.csv", index=False
-        )
-        scored.sort(key=lambda row: rank_key(row[1], row[2]))
-        final_rung = (
-            candidate.plan is None or candidate.rung == len(candidate.plan.budgets) - 1
-        )
-        if final_rung:
-            best = scored[0]
-            candidate.best_config = candidate.configs[best[0]]
-            candidate.best_score = best[1]
-            candidate.best_fold_scores = best[2]
-            continue
-        keep = candidate.plan.survivors[candidate.rung + 1]
-        candidate.alive = [row[0] for row in scored[:keep]]
-        candidate.rung += 1
-        candidate.rung_results = {}
-        next_budget = candidate.plan.budgets[candidate.rung]
-        for cid in candidate.alive:
-            for rep_fold in folds:
-                submit(candidate, cid, rep_fold, next_budget)
+        advance(candidate)
     return trials, failures
+
+
+def _naive_score(frame, folds):
+    actual, predictions = [], []
+    for fold in folds:
+        train = _fill(frame.iloc[fold.train_slice])
+        valid = _fill(frame.iloc[fold.valid_slice])
+        actual.append(valid.y.to_numpy(dtype=float))
+        predictions.append(np.full(len(valid), float(train.y.iloc[-1])))
+    return pooled_rmse(actual, predictions)
+
+
+def _select_candidates(ranking, naive_rmse):
+    selected = [
+        c for c in ranking if np.isfinite(c.best_score) and c.best_score < naive_rmse
+    ][:10]
+    names = {c.name for c in selected}
+    rows = []
+    for c in ranking:
+        passed = bool(np.isfinite(c.best_score) and c.best_score < naive_rmse)
+        rows.append(
+            {
+                "candidate": c.name,
+                "protocol": c.protocol,
+                "pooled_rmse": c.best_score,
+                "fold_rmse_std": float(np.std(c.best_fold_scores)),
+                "worst_fold_rmse": float(np.max(c.best_fold_scores)),
+                "config": json.dumps(safe_config(c.best_config), sort_keys=True),
+                "naive_rmse": naive_rmse,
+                "beats_naive": passed,
+                "selected": c.name in names,
+                "exclusion_reason": (
+                    ""
+                    if c.name in names
+                    else (
+                        "failed"
+                        if not np.isfinite(c.best_score)
+                        else "not_better_than_naive" if not passed else "outside_top_10"
+                    )
+                ),
+                "evaluation_split": "validation",
+                **c.best_metrics,
+            }
+        )
+    return selected, pd.DataFrame(rows)
 
 
 def _phase2(data_path, selected, folds, checkpoint_root):
@@ -783,14 +953,49 @@ def _phase2(data_path, selected, folds, checkpoint_root):
     return predictions, failures
 
 
-def _leaderboard(predictions, expected_folds):
-    frame = pd.DataFrame(predictions)
-    if frame.empty:
-        return []
+def _validation_reference(frame, folds):
+    rows = []
+    for fold in folds:
+        train = _fill(frame.iloc[fold.train_slice])
+        valid = _fill(frame.iloc[fold.valid_slice])
+        rows.extend(
+            {
+                "fold": fold.index,
+                "horizon": horizon,
+                "actual": float(actual),
+                "forecast_origin": float(train.y.iloc[-1]),
+            }
+            for horizon, actual in enumerate(valid.y, 1)
+        )
+    return pd.DataFrame(rows)
+
+
+def _leaderboard(predictions, reference):
+    """Compare complete model predictions and naive on exactly the same points."""
+    naive = reference.assign(
+        candidate="Naive", protocol="naive", prediction=reference.forecast_origin
+    )
+    frame = pd.concat([pd.DataFrame(predictions), naive], ignore_index=True)
+    naive_rmse = fold_rmse(reference.actual, reference.forecast_origin)
     rows = []
     for (candidate, protocol), values in frame.groupby(["candidate", "protocol"]):
-        if values["fold"].nunique() != expected_folds:
+        if values.duplicated(["fold", "horizon"]).any():
+            raise ValueError(f"Duplicate fold/horizon predictions for {candidate}")
+        joined = values.drop(columns=["forecast_origin"], errors="ignore").merge(
+            reference,
+            on=["fold", "horizon"],
+            suffixes=("", "_reference"),
+            how="outer",
+            indicator=True,
+            validate="one_to_one",
+        )
+        if not joined["_merge"].eq("both").all():
             continue
+        if not np.allclose(joined.actual, joined.actual_reference, rtol=0, atol=1e-10):
+            raise ValueError(f"Actual targets differ from reference for {candidate}")
+        metrics = forecast_metrics(
+            joined.actual_reference, joined.prediction, joined.forecast_origin
+        )
         fold_scores = [
             fold_rmse(fold["actual"], fold["prediction"])
             for _, fold in values.groupby("fold")
@@ -803,6 +1008,11 @@ def _leaderboard(predictions, expected_folds):
                 "pooled_rmse": score,
                 "fold_rmse_std": float(np.std(fold_scores)),
                 "worst_fold_rmse": float(np.max(fold_scores)),
+                **metrics,
+                "naive_rmse": naive_rmse,
+                "rmse_vs_naive": metrics["rmse"] / naive_rmse if naive_rmse else None,
+                "beats_naive": metrics["rmse"] < naive_rmse,
+                "evaluation_split": "validation",
             }
         )
     rows.sort(
@@ -813,6 +1023,22 @@ def _leaderboard(predictions, expected_folds):
     for rank, row in enumerate(rows, start=1):
         row["rank"] = rank
     return rows
+
+
+def _metric_definitions(reference):
+    difference = reference.actual - reference.forecast_origin
+    return {
+        "evaluation_split": "validation",
+        "evaluation_scale": "level",
+        "aggregation": "Equal weight per fold/horizon point; RMSE ascending",
+        "naive": "Last training observation repeated for every validation horizon",
+        "mape": "Percent; zero actuals excluded, mape_n reports denominator",
+        "da": "Percent matching rise/fall/flat signs relative to last training observation; origin fixed within each fold",
+        "points_per_model": len(reference),
+        "always_up_da_pct": float(100 * (difference > 0).mean()),
+        "always_down_da_pct": float(100 * (difference < 0).mean()),
+        "always_flat_da_pct": float(100 * (difference == 0).mean()),
+    }
 
 
 def main():
@@ -850,19 +1076,26 @@ def main():
         any(v < 1 for v in POLICY.values())
         or POLICY["val_size"] != args.horizon
         or POLICY["max_steps"] % POLICY["interval"]
+        or any(b % POLICY["interval"] for b in SHPlan().budgets)
     ):
         parser.error(
-            "Phase 2 needs positive settings, val_size=horizon and max_steps divisible by validation interval"
+            "Need positive settings, val_size=horizon, and both phase budgets divisible by validation interval"
         )
     if args.wandb and (args.preflight or args.smoke_test):
         parser.error("W&B is enabled only for the main experiment")
 
     output = Path(args.output).resolve()
+    if (output / "run_config.json").exists():
+        raise ValueError(
+            "Use a fresh output directory; existing experiment results are preserved."
+        )
     output.mkdir(parents=True, exist_ok=True)
     model_config = (
         json.loads(Path(args.model_config).read_text()) if args.model_config else {}
     )
     frame = _weekly_frame(args.data, args.date_col, args.target, args.start_date)
+    transform_metadata = _transform_metadata(args.wandb_project)
+    frame.attrs["transform_metadata"] = transform_metadata
     data_path = str(output / "weekly.pkl")
     frame.to_pickle(data_path)
 
@@ -892,6 +1125,9 @@ def main():
         + str(args.start_date).encode()
         + json.dumps(POLICY, sort_keys=True).encode()
         + str(NUMERICS_VERSION).encode()
+        + json.dumps(transform_metadata, sort_keys=True).encode()
+        + PROTOCOL_VERSION.encode()
+        + json.dumps(SHPlan().__dict__, sort_keys=True).encode()
     ).hexdigest()
     print(
         f"rows={len(frame)} min_train={min_train} folds={len(folds)} candidates={len(candidates)}",
@@ -906,6 +1142,7 @@ def main():
                     "min_train": min_train,
                     "candidates": [c.name for c in candidates],
                     "fingerprint": fingerprint,
+                    **transform_metadata,
                     "phase2_policy": POLICY,
                     "scheduler": args.scheduler,
                 },
@@ -927,24 +1164,28 @@ def main():
             (
                 name,
                 protocol,
-                status
-                if (
-                    name
-                    if protocol == "scratch_hpo"
-                    else f"{name}-{'LoRA' if protocol == 'lora' else 'ZeroShot'}"
-                )
-                in allowed
-                or status == "SKIP"
-                else "SKIP",
-                reason
-                if status == "SKIP"
-                or (
-                    name
-                    if protocol == "scratch_hpo"
-                    else f"{name}-{'LoRA' if protocol == 'lora' else 'ZeroShot'}"
-                )
-                in allowed
-                else "failed smoke test; see preparation.json",
+                (
+                    status
+                    if (
+                        name
+                        if protocol == "scratch_hpo"
+                        else f"{name}-{'LoRA' if protocol == 'lora' else 'ZeroShot'}"
+                    )
+                    in allowed
+                    or status == "SKIP"
+                    else "SKIP"
+                ),
+                (
+                    reason
+                    if status == "SKIP"
+                    or (
+                        name
+                        if protocol == "scratch_hpo"
+                        else f"{name}-{'LoRA' if protocol == 'lora' else 'ZeroShot'}"
+                    )
+                    in allowed
+                    else "failed smoke test; see preparation.json"
+                ),
             )
             for name, protocol, status, reason in eligibility
         ]
@@ -959,7 +1200,7 @@ def main():
         TRACKING = {
             "entity": args.wandb_entity,
             "project": args.wandb_project,
-            "group": f"gasoline-{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:8]}",
+            "group": f"{args.wandb_project}-{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:8]}",
             "directory": str(output / "wandb"),
         }
         SUMMARY = Tracking(
@@ -972,6 +1213,7 @@ def main():
                 "rows": len(frame),
                 "folds": len(folds),
                 "fingerprint": fingerprint,
+                **transform_metadata,
                 "phase2_policy": POLICY,
                 "scheduler": args.scheduler,
                 "commit": subprocess.check_output(
@@ -1041,6 +1283,7 @@ def main():
                 json.dumps(
                     {
                         "fingerprint": fingerprint,
+                        **transform_metadata,
                         "phase2_policy": POLICY,
                         "scheduler": args.scheduler,
                         "passed": [r["candidate"] for r in results if r["ok"]],
@@ -1059,10 +1302,13 @@ def main():
                 "seed": 42,
                 "phase1_folds": [fold.index for fold in reps],
                 "phase2_folds": len(folds),
-                "sh_budgets": [125, 250, 500, 1000],
-                "sh_rung_counts": [10, 5, 2, 1],
+                "sh_budgets": list(SHPlan().budgets),
+                "sh_rung_counts": list(SHPlan().survivors),
+                "protocol_version": PROTOCOL_VERSION,
+                "evaluation_split": "validation",
                 "phase2_top_k": 10,
                 "fingerprint": fingerprint,
+                **transform_metadata,
                 "phase2_policy": POLICY,
                 "scheduler": args.scheduler,
                 "wandb": TRACKING,
@@ -1079,52 +1325,59 @@ def main():
         candidates,
         key=lambda item: rank_key(item.best_score, item.best_fold_scores),
     )
-    selected = [item for item in ranking if np.isfinite(item.best_score)][:10]
-    if not selected:
-        raise RuntimeError("every Phase 1 candidate failed.")
-    pd.DataFrame(
-        [
-            {
-                "candidate": c.name,
-                "protocol": c.protocol,
-                "pooled_rmse": c.best_score,
-                "config": json.dumps(safe_config(c.best_config), sort_keys=True),
-            }
-            for c in ranking
-        ]
-    ).to_csv(output / "phase1_ranking.csv", index=False)
+    naive_rmse = _naive_score(frame, reps)
+    selected, ranking_frame = _select_candidates(ranking, naive_rmse)
+    ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
+    phase1_reference = _validation_reference(frame, reps)
+    baseline = _leaderboard([], phase1_reference)[0]
+    baseline.update(selected=False, exclusion_reason="baseline")
+    phase1_report = pd.concat(
+        [ranking_frame, pd.DataFrame([baseline])], ignore_index=True
+    )
+    phase1_report = phase1_report.sort_values("pooled_rmse").reset_index(drop=True)
+    phase1_report["rank"] = np.arange(1, len(phase1_report) + 1)
+    phase1_report.to_csv(output / "phase1_leaderboard.csv", index=False)
     if SUMMARY:
         SUMMARY.table("phase1/ranking", pd.read_csv(output / "phase1_ranking.csv"))
-    predictions, failures2 = _phase2(
-        data_path, selected, folds, output / "checkpoints_phase2"
+        SUMMARY.evaluation_table(
+            "phase1", phase1_report, _metric_definitions(phase1_reference)
+        )
+    predictions, failures2 = (
+        _phase2(data_path, selected, folds, output / "checkpoints_phase2")
+        if selected
+        else ([], [])
     )
-    leaderboard = _leaderboard(predictions, len(folds))
+    reference = _validation_reference(frame, folds)
+    leaderboard = _leaderboard(predictions, reference)
+    completed_models = sum(row["protocol"] != "naive" for row in leaderboard)
+    definitions = {
+        "phase1": _metric_definitions(phase1_reference),
+        "phase2": _metric_definitions(reference),
+    }
+    (output / "metric_definitions.json").write_text(json.dumps(definitions, indent=2))
 
     pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(
         output / "eligibility.csv", index=False
     )
     pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
+    ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
     pd.DataFrame(
-        [
-            {
-                "candidate": item.name,
-                "protocol": item.protocol,
-                "pooled_rmse": item.best_score,
-                "fold_rmse_std": float(np.std(item.best_fold_scores)),
-                "worst_fold_rmse": float(np.max(item.best_fold_scores)),
-                "config": json.dumps(item.best_config, default=str, sort_keys=True),
-            }
-            for item in ranking
-        ]
-    ).to_csv(output / "phase1_ranking.csv", index=False)
-    pd.DataFrame(predictions).to_csv(output / "phase2_predictions.csv", index=False)
+        predictions,
+        columns=["candidate", "protocol", "fold", "horizon", "actual", "prediction"],
+    ).to_csv(output / "phase2_predictions.csv", index=False)
     pd.DataFrame(leaderboard).to_csv(output / "leaderboard.csv", index=False)
+    status = (
+        "no_models_above_naive"
+        if not selected
+        else "completed" if completed_models else "failed"
+    )
     pd.DataFrame(failures1 + failures2).to_csv(output / "failures.csv", index=False)
     (output / "run_config.json").write_text(
         json.dumps(
             {
                 "horizon": args.horizon,
                 "fingerprint": fingerprint,
+                **transform_metadata,
                 "phase2_policy": POLICY,
                 "scheduler": args.scheduler,
                 "wandb": TRACKING,
@@ -1132,8 +1385,12 @@ def main():
                 "seed": 42,
                 "phase1_folds": [fold.index for fold in reps],
                 "phase2_folds": len(folds),
-                "sh_budgets": [125, 250, 500, 1000],
-                "sh_rung_counts": [10, 5, 2, 1],
+                "sh_budgets": list(SHPlan().budgets),
+                "sh_rung_counts": list(SHPlan().survivors),
+                "protocol_version": PROTOCOL_VERSION,
+                "evaluation_split": "validation",
+                "naive_rmse": naive_rmse,
+                "status": status,
                 "phase2_top_k": 10,
                 "selected": [item.name for item in selected],
             },
@@ -1143,16 +1400,20 @@ def main():
 
     if SUMMARY:
         SUMMARY.table("leaderboard", pd.DataFrame(leaderboard))
+        SUMMARY.evaluation_table(
+            "phase2", pd.DataFrame(leaderboard), definitions["phase2"]
+        )
         SUMMARY.summary(
             {
-                "phase2/completed_models": len(leaderboard),
-                "status": "completed" if leaderboard else "failed",
+                "phase2/completed_models": completed_models,
+                "status": status,
+                "phase1/naive_rmse": naive_rmse,
             }
         )
         SUMMARY.artifact(output)
-        SUMMARY.finish(failed=not leaderboard)
+        SUMMARY.finish(failed=bool(selected) and not completed_models)
     ray.shutdown()
-    if not leaderboard:
+    if selected and not completed_models:
         raise RuntimeError("No candidate completed all Phase 2 folds")
 
 

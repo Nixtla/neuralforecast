@@ -52,7 +52,7 @@ def params():
     )
 
 
-def test_test_targets_cannot_change_selected_checkpoint(runner, tmp_path):
+def test_validation_targets_do_not_enter_training_gradient(runner, tmp_path):
     frame = data()
     train, test = frame.iloc[:96].copy(), frame.iloc[96:].copy()
     policy = {"val_size": 16, "interval": 10, "patience": 5}
@@ -76,11 +76,13 @@ def test_test_targets_cannot_change_selected_checkpoint(runner, tmp_path):
             stopping=policy,
         )
         predictions.append(prediction)
-        weights.append(torch.load(checkpoint, map_location="cpu", weights_only=True))
+        weights.append(
+            torch.load(checkpoint, map_location="cpu", weights_only=False)["state_dict"]
+        )
         infos.append(json.loads((directory / "early_stopping.json").read_text()))
-    assert infos[0] == infos[1]
     assert all(torch.equal(weights[0][k], weights[1][k]) for k in weights[0])
-    np.testing.assert_allclose(predictions[0], predictions[1])
+    assert infos[0]["best_validation_loss"] != infos[1]["best_validation_loss"]
+    assert all(len(prediction) == 16 for prediction in predictions)
     assert infos[0]["best_step"] in (10, 20, 30)
     assert infos[0]["actual_steps"] == 30
 
@@ -89,12 +91,306 @@ def test_phase1_continues_optimizer_steps(runner, tmp_path):
     frame = data()
     train, test = frame.iloc[:96], frame.iloc[96:]
     _, first = runner._fit_trainable(
-        runner.model_module.GRU, params(), train, test, 4, None, tmp_path
+        runner.model_module.GRU,
+        params(),
+        train,
+        test,
+        4,
+        None,
+        tmp_path,
+        schedule_steps=8,
     )
     assert torch.load(first, weights_only=False)["global_step"] == 4
     _, second = runner._fit_trainable(
-        runner.model_module.GRU, params(), train, test, 8, first, tmp_path
+        runner.model_module.GRU,
+        params(),
+        train,
+        test,
+        8,
+        first,
+        tmp_path,
+        schedule_steps=8,
     )
     state = torch.load(second, weights_only=False)
     assert state["global_step"] == 8
     assert state["optimizer_states"][0]["state"]
+
+
+def test_validation_stopper_survives_rung_and_directory_change(runner, tmp_path):
+    frame = data()
+    policy = {"val_size": 16, "interval": 2, "patience": 50}
+    _, first = runner._fit_trainable(
+        runner.model_module.GRU,
+        params(),
+        frame.iloc[:96],
+        frame.iloc[96:],
+        4,
+        None,
+        tmp_path / "first",
+        stopping=policy,
+        schedule_steps=8,
+    )
+    before = torch.load(first, weights_only=False)
+    first_stop = next(
+        v["stopper"]
+        for v in before["callbacks"].values()
+        if isinstance(v, dict) and "stopper" in v
+    )
+    _, second = runner._fit_trainable(
+        runner.model_module.GRU,
+        params(),
+        frame.iloc[:96],
+        frame.iloc[96:],
+        8,
+        first,
+        tmp_path / "second",
+        stopping=policy,
+        schedule_steps=8,
+    )
+    after = torch.load(second, weights_only=False)
+    last_stop = next(
+        v["stopper"]
+        for v in after["callbacks"].values()
+        if isinstance(v, dict) and "stopper" in v
+    )
+    assert after["global_step"] == 8
+    assert last_stop["best"] <= first_stop["best"]
+    assert last_stop["last_step"] == 8
+    assert (tmp_path / "second" / "best-validation.pt").is_file()
+
+
+def test_naive_uses_only_last_train_observation(runner):
+    from neuralforecast.benchmark import Fold
+
+    frame = pd.DataFrame({"y": [1.0, 2.0, 3.0, 4.0, 6.0]})
+    score = runner._naive_score(frame, [Fold(0, 2, 4), Fold(1, 3, 5)])
+    assert score == pytest.approx(np.sqrt((1 + 4 + 1 + 9) / 4))
+
+
+@pytest.mark.parametrize(
+    "scores,expected",
+    [
+        ([1.0, 2.0, 3.0, float("inf")], 1),
+        ([2.0, 3.0], 0),
+        ([0.5] * 12, 10),
+    ],
+)
+def test_naive_gate_strictly_filters_and_caps(runner, scores, expected):
+    candidates = [
+        runner.Candidate(
+            str(i),
+            "scratch_hpo",
+            "GRU",
+            [{}],
+            None,
+            best_score=s,
+            best_config={},
+            best_fold_scores=(s, s, s),
+        )
+        for i, s in enumerate(scores)
+    ]
+    selected, table = runner._select_candidates(candidates, 2.0)
+    assert len(selected) == expected
+    assert table.selected.sum() == expected
+    assert all(c.best_score < 2.0 for c in selected)
+
+
+@pytest.mark.parametrize("stopped_folds,expected_jobs", [({0, 1, 2}, 30), ({0}, 42)])
+def test_stopped_folds_are_reused_without_submitting_more_work(
+    runner, tmp_path, monkeypatch, stopped_folds, expected_jobs
+):
+    from neuralforecast.benchmark import Fold, SHPlan
+
+    calls = []
+    results = {}
+
+    class Job:
+        def remote(self, data, candidate, cid, config, fold, budget, checkpoint, root):
+            token = len(calls)
+            calls.append((cid, fold.index, budget))
+            results[token] = dict(
+                ok=True,
+                rmse=cid + 1.0,
+                actual=[0.0],
+                prediction=[cid + 1.0],
+                forecast_origin=0.0,
+                stop_reason=(
+                    "early_stopping" if fold.index in stopped_folds else "max_steps"
+                ),
+            )
+            return token
+
+    monkeypatch.setattr(runner, "_evaluate_job", Job())
+    monkeypatch.setattr(runner.ray, "wait", lambda refs, **kw: ([refs[0]], refs[1:]))
+    monkeypatch.setattr(runner.ray, "get", lambda ref: results[ref])
+    candidate = runner.Candidate("GRU", "scratch_hpo", "GRU", [{}] * 10, SHPlan())
+    trials, failures = runner._run_phase1(
+        "unused", [candidate], [Fold(i, 10 + i, 11 + i) for i in range(3)], tmp_path
+    )
+    assert len(calls) == expected_jobs
+    assert all(budget == 100 for _, fold, budget in calls if fold in stopped_folds)
+    assert len(trials) == 16
+    assert not failures
+    assert candidate.best_score == 1.0
+
+
+def test_no_naive_winner_skips_phase2_and_preserves_results(
+    runner, tmp_path, monkeypatch
+):
+    frame = data()
+    source = tmp_path / "input.csv"
+    frame.to_csv(source, index=False)
+    output = tmp_path / "output"
+    candidate = runner.Candidate(
+        "GRU",
+        "scratch_hpo",
+        "GRU",
+        [{}],
+        None,
+        best_score=100.0,
+        best_config={},
+        best_fold_scores=(100.0,) * 3,
+    )
+    monkeypatch.setattr(runner, "_minimum_train", lambda *a: 32)
+    monkeypatch.setattr(runner, "_build_candidates", lambda *a: ([candidate], []))
+    monkeypatch.setattr(runner, "_run_phase1", lambda *a: ([], []))
+    monkeypatch.setattr(
+        runner, "_phase2", lambda *a: pytest.fail("Phase 2 must be skipped")
+    )
+    monkeypatch.setattr(runner.torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(runner.ray, "init", lambda **kw: None)
+    monkeypatch.setattr(runner.ray, "shutdown", lambda: None)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run",
+            "--data",
+            str(source),
+            "--target",
+            "y",
+            "--output",
+            str(output),
+            "--scheduler",
+            "ray",
+        ],
+    )
+    runner.main()
+    config = json.loads((output / "run_config.json").read_text())
+    assert config["status"] == "no_models_above_naive"
+    assert config["selected"] == []
+    assert config["sh_budgets"] == [100, 250, 500]
+    assert pd.read_csv(output / "phase2_predictions.csv").empty
+    assert pd.read_csv(output / "leaderboard.csv").candidate.tolist() == ["Naive"]
+    assert pd.read_csv(output / "phase1_leaderboard.csv").candidate.tolist() == [
+        "Naive",
+        "GRU",
+    ]
+    definitions = json.loads((output / "metric_definitions.json").read_text())
+    assert definitions["phase2"]["points_per_model"] > 0
+    before = (output / "run_config.json").read_bytes()
+    with pytest.raises(ValueError, match="fresh output"):
+        runner.main()
+    assert before == (output / "run_config.json").read_bytes()
+
+
+def test_leaderboard_uses_identical_points_and_includes_naive(runner):
+    reference = pd.DataFrame(
+        {
+            "fold": [0, 0, 1, 1],
+            "horizon": [1, 2, 1, 2],
+            "actual": [1.0, 2.0, 2.0, 4.0],
+            "forecast_origin": [1.0, 1.0, 2.0, 2.0],
+        }
+    )
+    predictions = reference.assign(
+        candidate="Perfect", protocol="scratch_hpo", prediction=reference.actual
+    ).to_dict("records")
+    incomplete = [dict(row, candidate="Incomplete") for row in predictions[:3]]
+    board = runner._leaderboard(predictions + incomplete, reference)
+    assert [row["candidate"] for row in board] == ["Perfect", "Naive"]
+    assert board[0]["rmse"] == 0.0
+    assert board[0]["da_pct"] == 100.0
+    assert board[1]["rmse"] == pytest.approx(np.sqrt(5 / 4))
+    assert board[1]["da_pct"] == 50.0
+    assert board[0]["beats_naive"] and not board[1]["beats_naive"]
+    with pytest.raises(ValueError, match="Duplicate"):
+        runner._leaderboard(predictions + predictions[:1], reference)
+    with pytest.raises(ValueError, match="targets differ"):
+        runner._leaderboard([dict(row, actual=99.0) for row in predictions], reference)
+
+
+def test_direction_reference_baselines_are_reported(runner):
+    reference = pd.DataFrame(
+        {"actual": [2.0, 0.0, 1.0], "forecast_origin": [1.0, 1.0, 1.0]}
+    )
+    definitions = runner._metric_definitions(reference)
+    for direction in ("up", "down", "flat"):
+        assert definitions[f"always_{direction}_da_pct"] == pytest.approx(100 / 3)
+
+
+def test_difference_boundaries_exogenous_and_restoration(runner):
+    frame = data().iloc[:8].copy()
+    frame["x"] = [1, 3, 2, 7, 5, 4, 9, 11]
+    train, valid = frame.iloc[:5], frame.iloc[5:]
+    td, vd = runner._difference_fold(train, valid)
+    np.testing.assert_allclose(td.y, np.diff(train.y))
+    np.testing.assert_allclose(vd.y, np.diff(frame.y.iloc[4:]))
+    np.testing.assert_allclose(vd.x, [-1, 5, 2])
+    assert td.ds.tolist() == train.ds.iloc[1:].tolist()
+    assert vd.ds.tolist() == valid.ds.tolist()
+    np.testing.assert_allclose(
+        runner._restore_prediction(vd.y, train.y.iloc[-1], "first_difference"), valid.y
+    )
+    np.testing.assert_allclose(
+        runner._restore_prediction(np.zeros(3), train.y.iloc[-1], "first_difference"),
+        np.repeat(train.y.iloc[-1], 3),
+    )
+    changed = valid.copy()
+    changed.y += 100
+    other_train, _ = runner._difference_fold(train, changed)
+    pd.testing.assert_frame_equal(td, other_train)
+    np.testing.assert_allclose(
+        runner._restore_prediction([1, 2], 9, "identity"), [1, 2]
+    )
+    assert (
+        runner._transform_metadata("uni-gasoline-diff")["training_scale"]
+        == "difference"
+    )
+    assert runner._transform_metadata("uni-gasoline")["training_scale"] == "level"
+
+
+@pytest.mark.parametrize("protocol", ["scratch_hpo", "lora", "zeroshot"])
+def test_diff_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol):
+    from types import SimpleNamespace
+
+    frame = data()
+    frame.attrs["transform_metadata"] = runner._transform_metadata("uni-gasoline-diff")
+    path = tmp_path / "weekly.pkl"
+    frame.to_pickle(path)
+    fold = SimpleNamespace(
+        index=0, train_slice=slice(0, 96), valid_slice=slice(96, 112)
+    )
+
+    def predict(model, config, train, valid, *args, **kwargs):
+        np.testing.assert_allclose(train.y, np.diff(frame.y.iloc[:96]))
+        np.testing.assert_allclose(valid.y, np.diff(frame.y.iloc[95:]))
+        return np.zeros(16), None
+
+    for name in ["_fit_trainable", "_fit_lora", "_fit_inference"]:
+        monkeypatch.setattr(runner, name, predict)
+    result = runner._evaluate_job._function(
+        str(path),
+        {"name": "GRU", "model_name": "GRU", "protocol": protocol},
+        0,
+        {},
+        fold,
+        2,
+        None,
+        tmp_path / "checkpoints_phase1",
+    )
+    assert result["ok"], result
+    np.testing.assert_allclose(result["actual"], frame.y.iloc[96:])
+    np.testing.assert_allclose(result["prediction"], np.repeat(frame.y.iloc[95], 16))
+    assert result["rmse"] == pytest.approx(runner._naive_score(frame, [fold]))
+    assert result["evaluation_scale"] == "level"

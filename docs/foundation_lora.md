@@ -105,8 +105,8 @@ model = fit_foundation_lora(
 
 The benchmark only claims checkpoint continuation when optimizer and scheduler state can be resumed correctly.
 
-The reviewed Chronos2 pipeline creates its own HuggingFace trainer and invokes `trainer.train()` without exposing a resume parameter through `Chronos2Pipeline.fit`. The reviewed TimesFM 2.5 example is an ordinary stand-alone training loop and does not define the NeuralForecast checkpoint-resume contract used by the scratch models.
+LoRA candidates use cumulative 100/250/500-step Phase 1 rungs with 10/5/1 configurations. The Chronos2 integration temporarily supplies a trainer subclass around the official fit call to resume native HuggingFace training checkpoints. TimesFM stores adapter weights, optimizer, scheduler, sampling RNG, and global RNG state. Both preserve validation patience and the best adapter weights separately from the last training state.
 
-For this reason foundation LoRA candidates use a single 1000-step Phase 1 rung. Ten LoRA configurations are evaluated on the same first/middle/last folds and ranked by the same 48-point pooled RMSE. The selected configuration is retrained from the base checkpoint for 1000 steps on every Phase 2 fold.
+The optional `checkpoint` and `schedule_steps` arguments to `fit_foundation_lora` select continuation state and the fixed learning-rate schedule horizon. Fitted adapters expose `resume_checkpoint`. An early-stopped fold is reused by the benchmark without additional training.
 
-This limitation remains visible through `training_protocol=LoRA` in the integrated leaderboard. A later change may add resumable LoRA SH after the relevant native trainer state can be restored and regression-tested.
+The selected configuration is retrained from the base model on every Phase 2 fold, up to 500 steps. Both phases use train plus a single validation block, validate every 10 steps, stop after five non-improving checks, and restore best validation weights. Phase 2 admission requires strictly beating last-observation naive on Phase 1 pooled validation RMSE.
