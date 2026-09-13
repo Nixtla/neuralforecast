@@ -17,6 +17,22 @@ The first CV cutoff is the earliest point where every discoverable candidate can
 
 ## Phase 1
 
+New benchmark configurations apply numerical policy version 1. Sampled learning
+rates for NBEATS, NBEATSx, Autoformer and xLSTM are limited to at most 0.001;
+explicit fixed learning rates remain user overrides. These four models and
+FEDformer use gradient-norm clipping at 1.0 and reject non-finite gradients
+before optimizer updates. FEDformer additionally identifies the first module
+returning a non-finite output. This is diagnostic protection, not a claim that
+its intermittent NaN failures have been resolved.
+
+New xLSTM configurations use a bounded-exponential parallel mLSTM backend.
+Rescaling numerator, denominator and epsilon together preserves the reference
+formula while avoiding overflow in `exp(-max_log_D)`. The external `xlstm`
+package is not patched globally. Existing queued benchmark configurations keep
+the legacy backend and do not acquire new clipping or diagnostics mid-experiment.
+The numerical-policy version is included in the preparation fingerprint, so a
+new experiment requires a fresh smoke report.
+
 ### Trainable Auto models
 
 The runner instantiates the existing `Auto*` wrapper, reuses its search space, removes `max_steps` from HPO, fixes `random_seed=42`, disables early stopping and filters input-size choices against the first representative fold.

@@ -40,6 +40,12 @@ from neuralforecast.inference_tuning import (
     get_inference_tuning_config,
 )
 from neuralforecast.benchmark_tracking import Tracking, training_callback, safe_config
+from neuralforecast.benchmark_numerics import (
+    NUMERICS_VERSION,
+    FiniteTraining,
+    guard_config,
+    numerical_search_space,
+)
 from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
 
 
@@ -165,6 +171,14 @@ def _fit_trainable(
     stopping=None,
 ):
     config = dict(config)
+    numerics = config.pop("_benchmark_numerics", None)
+    if numerics and numerics["version"] != NUMERICS_VERSION:
+        raise ValueError("Unsupported benchmark numerical policy version")
+    if model_cls.__name__ == "xLSTM":
+        # Already queued configurations retain their original backend behavior.
+        config.setdefault("numerical_stability", False)
+    if numerics:
+        config.setdefault("gradient_clip_val", numerics["gradient_clip_val"])
     config["max_steps"] = budget if stopping else 1000
     if stopping:
         from neuralforecast.losses.pytorch import MSE
@@ -195,6 +209,8 @@ def _fit_trainable(
     checkpoint_cb = ModelCheckpoint(dirpath=workdir, save_last=True, save_top_k=0)
     trainer_kwargs = dict(model.trainer_kwargs)
     callbacks = list(trainer_kwargs.get("callbacks") or [])
+    if numerics:
+        callbacks.append(FiniteTraining(check_forward=model_cls.__name__ == "FEDformer"))
     callbacks.append(checkpoint_cb)
     stopper = None
     if stopping:
@@ -461,9 +477,13 @@ def _build_candidates(h, model_config, first_train):
                 )
                 continue
             space = restrict_input_size(
-                benchmark_search_space(auto.config), first_train - h
+                numerical_search_space(name, benchmark_search_space(auto.config)),
+                first_train - h,
             )
-            configs = sample_ray_configs(space, n=10, seed=42)
+            configs = [
+                guard_config(name, c)
+                for c in sample_ray_configs(space, n=10, seed=42)
+            ]
         except Exception as exc:
             eligibility.append(
                 (name, "scratch_hpo", "SKIP", f"{type(exc).__name__}: {exc}")
@@ -871,6 +891,7 @@ def main():
         + str(args.horizon).encode()
         + str(args.start_date).encode()
         + json.dumps(POLICY, sort_keys=True).encode()
+        + str(NUMERICS_VERSION).encode()
     ).hexdigest()
     print(
         f"rows={len(frame)} min_train={min_train} folds={len(folds)} candidates={len(candidates)}",
