@@ -46,3 +46,9 @@ nbs/_extensions
 .claude/
 CLAUDE.md
 .venv/
+# Local commodity benchmark inputs, environments and outputs
+external/
+.venv-*/
+results/
+wandb/
+model_config.json

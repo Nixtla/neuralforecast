@@ -1,5 +1,8 @@
 """Toto-1.0 pretrained forecasting adapter."""
 
+import inspect
+from pathlib import Path
+
 import torch
 
 from ._exogenous import PretrainedExogenousModel
@@ -37,12 +40,24 @@ class Toto(PretrainedExogenousModel):
             from toto.data.util.dataset import MaskedTimeseries
         except ImportError as exc:
             raise ImportError(
-                "Install toto-ts with the Toto-1.0 API. "
-                "See docs/exogenous_models.md."
+                "Install toto-ts with the Toto-1.0 API. See docs/exogenous_models.md."
             ) from exc
-        model = OfficialToto.from_pretrained(
-            self.model_id, **self._hub_kwargs()
-        )
+        # The legacy Hub mixin requires arguments removed by Hub 1.x. Use
+        # Toto's own local safetensors loader instead of patching Hub globally.
+        loader = getattr(OfficialToto, "_from_pretrained", None)
+        if loader and "proxies" in inspect.signature(loader).parameters:
+            path = self.model_id
+            if not Path(path).is_dir():
+                from huggingface_hub import snapshot_download
+
+                path = snapshot_download(
+                    self.model_id,
+                    allow_patterns=["*.json", "*.safetensors"],
+                    **self._hub_kwargs(),
+                )
+            model = OfficialToto.load_from_checkpoint(path, strict=False)
+        else:
+            model = OfficialToto.from_pretrained(self.model_id, **self._hub_kwargs())
         model.to(self.backend_device).eval()
         return TotoForecaster(model.model), MaskedTimeseries
 
@@ -56,16 +71,11 @@ class Toto(PretrainedExogenousModel):
         if futr is not None:
             parts.append(futr[:, : self.input_size])
         series = (
-            torch.cat(parts, dim=-1)
-            .transpose(1, 2)
-            .to(self.backend_device)
-            .float()
+            torch.cat(parts, dim=-1).transpose(1, 2).to(self.backend_device).float()
         )
         inputs = input_type(
             series=series,
-            padding_mask=mask.transpose(1, 2)
-            .expand_as(series)
-            .to(self.backend_device),
+            padding_mask=mask.transpose(1, 2).expand_as(series).to(self.backend_device),
             id_mask=torch.zeros_like(series, dtype=torch.long),
             timestamp_seconds=torch.zeros_like(series, dtype=torch.long),
             time_interval_seconds=torch.ones(
