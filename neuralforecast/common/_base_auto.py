@@ -378,9 +378,9 @@ class BaseAuto(pl.LightningModule):
         config_step = {**config_step, **{"callbacks": callbacks}}
 
         # Protect dtypes from tune samplers
-        if "batch_size" in config_step.keys():
+        if config_step.get("batch_size") is not None:
             config_step["batch_size"] = int(config_step["batch_size"])
-        if "windows_batch_size" in config_step.keys():
+        if config_step.get("windows_batch_size") is not None:
             config_step["windows_batch_size"] = int(config_step["windows_batch_size"])
 
         # Tune session receives validation signal
@@ -467,15 +467,15 @@ class BaseAuto(pl.LightningModule):
                     if isinstance(
                         sampler, tune.search.sample.Integer.default_sampler_cls
                     ):
-                        v = trial.suggest_int(k, v.lower, v.upper)
+                        v = trial.suggest_int(k, v.lower, v.upper - 1)
                     elif isinstance(
                         sampler, tune.search.sample.Categorical.default_sampler_cls
                     ):
                         v = trial.suggest_categorical(k, v.categories)
                     elif isinstance(sampler, tune.search.sample.Uniform):
-                        v = trial.suggest_uniform(k, v.lower, v.upper)
+                        v = trial.suggest_float(k, v.lower, v.upper)
                     elif isinstance(sampler, tune.search.sample.LogUniform):
-                        v = trial.suggest_loguniform(k, v.lower, v.upper)
+                        v = trial.suggest_float(k, v.lower, v.upper, log=True)
                     elif isinstance(sampler, tune.search.sample.Quantized):
                         if isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._LogUniform
