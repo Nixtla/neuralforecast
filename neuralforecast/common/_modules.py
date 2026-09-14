@@ -44,6 +44,9 @@ ACTIVATIONS = [
 def resolve_decoder_activation(activation, ignored_because, default="ReLU"):
     """Resolve the `decoder_activation` argument of a model to an activation name.
 
+    The name is validated here rather than in `MLP`, so that a typo is rejected
+    even when the decoder that would have consumed it is never built.
+
     Args:
         activation (Optional[str]): value passed by the user, or None for the default.
         ignored_because (Optional[str]): reason the decoder cannot apply an
@@ -54,8 +57,10 @@ def resolve_decoder_activation(activation, ignored_because, default="ReLU"):
     Returns:
         (str): the activation name to hand to `MLP`.
     """
-    if activation is not None and ignored_because is not None:
-        warnings.warn(f"decoder_activation is ignored when {ignored_because}.")
+    if activation is not None:
+        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
+        if ignored_because is not None:
+            warnings.warn(f"decoder_activation is ignored when {ignored_because}.")
     return default if activation is None else activation
 
 
@@ -98,14 +103,13 @@ class MLP(nn.Module):
     ):
         super().__init__()
 
-        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-
         if num_layers == 1:
             # Direct linear projection with no hidden layers or activation
             self.layers = nn.Sequential(
                 nn.Linear(in_features=in_features, out_features=out_features)
             )
         else:
+            assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
             self.activation = getattr(nn, activation)()
 
             # MultiLayer Perceptron

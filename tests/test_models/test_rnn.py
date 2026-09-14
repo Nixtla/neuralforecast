@@ -57,3 +57,7 @@ def test_rnn_decoder_activation():
     assert_no_decoder_activation_warning(RNN, **kwargs)
 
     assert_decoder_activation_applied(RNN, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        RNN(**kwargs, recurrent=True, decoder_activation="NotAnActivation")

@@ -57,3 +57,7 @@ def test_gru_decoder_activation():
     assert_no_decoder_activation_warning(GRU, **kwargs)
 
     assert_decoder_activation_applied(GRU, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        GRU(**kwargs, recurrent=True, decoder_activation="NotAnActivation")

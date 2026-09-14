@@ -58,3 +58,7 @@ def test_lstm_decoder_activation():
     assert_no_decoder_activation_warning(LSTM, **kwargs)
 
     assert_decoder_activation_applied(LSTM, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        LSTM(**kwargs, recurrent=True, decoder_activation="NotAnActivation")

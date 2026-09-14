@@ -60,3 +60,7 @@ def test_deepar_decoder_activation():
         decoder_hidden_layers=2,
         decoder_hidden_size=8,
     )
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        DeepAR(**kwargs, decoder_hidden_layers=0, decoder_activation="NotAnActivation")

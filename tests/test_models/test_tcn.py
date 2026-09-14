@@ -55,3 +55,7 @@ def test_tcn_decoder_activation():
     assert_no_decoder_activation_warning(TCN, **kwargs)
 
     assert_decoder_activation_applied(TCN, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        TCN(**kwargs, decoder_layers=1, decoder_activation="NotAnActivation")
