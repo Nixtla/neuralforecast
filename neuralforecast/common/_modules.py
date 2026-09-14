@@ -1,13 +1,14 @@
 
 
 
-__all__ = ['ACTIVATIONS', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolutionEncoder', 'TransEncoderLayer', 'TransEncoder',
+__all__ = ['ACTIVATIONS', 'resolve_decoder_activation', 'MLP', 'Chomp1d', 'CausalConv1d', 'TemporalConvolutionEncoder', 'TransEncoderLayer', 'TransEncoder',
            'TransDecoderLayer', 'TransDecoder', 'AttentionLayer', 'TriangularCausalMask', 'FullAttention',
            'PositionalEmbedding', 'TokenEmbedding', 'TimeFeatureEmbedding', 'FixedEmbedding', 'TemporalEmbedding',
            'DataEmbedding', 'DataEmbedding_inverted', 'MovingAvg', 'SeriesDecomp', 'RevIN', 'RevINMultivariate']
 
 
 import math
+import warnings
 
 import numpy as np
 import torch
@@ -38,6 +39,24 @@ ACTIVATIONS = [
     "Hardswish",
     "Identity",
 ]
+
+
+def resolve_decoder_activation(activation, ignored_because, default="ReLU"):
+    """Resolve the `decoder_activation` argument of a model to an activation name.
+
+    Args:
+        activation (Optional[str]): value passed by the user, or None for the default.
+        ignored_because (Optional[str]): reason the decoder cannot apply an
+            activation, or None when it can. Used to warn a user who set
+            `decoder_activation` in a configuration where it has no effect.
+        default (str): activation used when the user did not set one.
+
+    Returns:
+        (str): the activation name to hand to `MLP`.
+    """
+    if activation is not None and ignored_because is not None:
+        warnings.warn(f"decoder_activation is ignored when {ignored_because}.")
+    return default if activation is None else activation
 
 
 class MLP(nn.Module):  
@@ -79,13 +98,14 @@ class MLP(nn.Module):
     ):
         super().__init__()
 
+        assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
+
         if num_layers == 1:
             # Direct linear projection with no hidden layers or activation
             self.layers = nn.Sequential(
                 nn.Linear(in_features=in_features, out_features=out_features)
             )
         else:
-            assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
             self.activation = getattr(nn, activation)()
 
             # MultiLayer Perceptron

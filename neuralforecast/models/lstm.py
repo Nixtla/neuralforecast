@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
-from ..common._modules import MLP
+from ..common._modules import MLP, resolve_decoder_activation
 from ..losses.pytorch import MAE
 
 
@@ -35,7 +35,7 @@ class LSTM(BaseModel):
         context_size (deprecated): deprecated.
         decoder_hidden_size (int): size of hidden layer for the MLP decoder.
         decoder_layers (int): number of layers for the MLP decoder.
-        decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity). Unused when `recurrent=True`, since no MLP decoder is created.
+        decoder_activation (Optional[str]): activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'ReLU'. Ignored when `recurrent=True` or `decoder_layers=1`, since the decoder is then a single linear projection.
         futr_exog_list (str list): future exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
@@ -94,7 +94,7 @@ class LSTM(BaseModel):
         context_size: Optional[int] = None,
         decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
-        decoder_activation: str = "ReLU",
+        decoder_activation: Optional[str] = None,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -186,7 +186,17 @@ class LSTM(BaseModel):
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
         self.decoder_layers = decoder_layers
-        self.decoder_activation = decoder_activation
+        if self.RECURRENT:
+            ignored_because = "recurrent=True, since the model has no MLP decoder"
+        elif decoder_layers == 1:
+            ignored_because = (
+                "decoder_layers=1, since the decoder is then a single linear layer"
+            )
+        else:
+            ignored_because = None
+        self.decoder_activation = resolve_decoder_activation(
+            decoder_activation, ignored_because
+        )
 
         # LSTM input size (1 for target variable y)
         input_encoder = (
@@ -218,12 +228,6 @@ class LSTM(BaseModel):
             )
             if self.h > self.input_size:
                 self.upsample_sequence = nn.Linear(self.input_size, self.h)
-        elif self.decoder_activation != "ReLU":
-            warnings.warn(
-                "decoder_activation is ignored when recurrent=True, since the model "
-                "has no MLP decoder: the output is a linear projection of the "
-                "recurrent state."
-            )
 
     def forward(self, windows_batch):
 
