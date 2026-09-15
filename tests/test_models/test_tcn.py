@@ -1,9 +1,15 @@
+import pytest
+
 from neuralforecast.auto import AutoTCN, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import TCN
 
-from .test_helpers import check_args
+from .test_helpers import (
+    assert_decoder_activation_applied,
+    assert_no_decoder_activation_warning,
+    check_args,
+)
 
 
 def test_tcn_model(suppress_warnings):
@@ -35,3 +41,21 @@ def test_autotcn(setup_dataset):
     my_config['encoder_hidden_size'] = 8
     model = AutoTCN(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
+
+
+def test_tcn_decoder_activation():
+    kwargs = dict(h=4, input_size=8, max_steps=1)
+
+    # Ignored when the decoder collapses to a single linear layer
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        TCN(**kwargs, decoder_layers=1, decoder_activation="Tanh")
+
+    # Silent when left at its default
+    assert_no_decoder_activation_warning(TCN, **kwargs, decoder_layers=1)
+    assert_no_decoder_activation_warning(TCN, **kwargs)
+
+    assert_decoder_activation_applied(TCN, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        TCN(**kwargs, decoder_layers=1, decoder_activation="NotAnActivation")

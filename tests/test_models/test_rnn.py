@@ -1,9 +1,16 @@
+import pytest
+
+
 from neuralforecast.auto import AutoRNN, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import RNN
 
-from .test_helpers import check_args
+from .test_helpers import (
+    assert_decoder_activation_applied,
+    assert_no_decoder_activation_warning,
+    check_args,
+)
 
 
 def test_rnn_model(suppress_warnings):
@@ -34,3 +41,23 @@ def test_autornn_model(setup_dataset):
     my_config['encoder_hidden_size'] = 8
     model = AutoRNN(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
+
+
+def test_rnn_decoder_activation():
+    kwargs = dict(h=4, input_size=8, max_steps=1)
+
+    # Ignored when there is no MLP decoder to apply it to
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        RNN(**kwargs, recurrent=True, decoder_activation="Tanh")
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        RNN(**kwargs, decoder_layers=1, decoder_activation="Tanh")
+
+    # Silent when left at its default, whether or not a decoder exists
+    assert_no_decoder_activation_warning(RNN, **kwargs, recurrent=True)
+    assert_no_decoder_activation_warning(RNN, **kwargs)
+
+    assert_decoder_activation_applied(RNN, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        RNN(**kwargs, recurrent=True, decoder_activation="NotAnActivation")
