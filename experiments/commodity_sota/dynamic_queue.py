@@ -81,11 +81,12 @@ def reservation_fits(gpu, ram_available, running, device, gpu_need, ram_need):
 class DynamicQueue:
     """Queue jobs and admit them using observed peaks and explicit reservations."""
 
-    def __init__(self, directory, summary=None):
+    def __init__(self, directory, summary=None, resume=False):
         self.root = Path(directory).resolve() / "scheduler"
         self.root.mkdir(parents=True, exist_ok=True)
         self.summary = summary
         self.pending, self.running, self.finished = [], {}, {}
+        self.cleanup_paths = {}
         self.estimates = {}
         self.cpu_limit = max(1, len(os.sched_getaffinity(0)) // 2)
         self.sequence = 0
@@ -93,6 +94,11 @@ class DynamicQueue:
         self.last_log = 0
         self.closed = False
         self.retries = 0
+        if resume and (self.root / "state.json").is_file():
+            state = json.loads((self.root / "state.json").read_text())
+            for row in state.get("observations", []):
+                key = (row["candidate"], row["config_hash"], row["phase2"])
+                self.estimates[key] = row["samples"]
 
     def submit(self, *args):
         self.sequence += 1
@@ -145,6 +151,7 @@ class DynamicQueue:
         job["started"] = time.monotonic()
         folder = self.root / job["token"] / str(job["attempt"])
         folder.mkdir(parents=True, exist_ok=False)
+        job["folder"] = folder
         args = list(job["args"])
         args[1] = dict(args[1], attempt=job["attempt"])
         # Isolate attempts and preserve checkpoints from successful prior rungs.
@@ -230,6 +237,8 @@ class DynamicQueue:
             target = Path(args[7]) / args[1]["name"] / str(args[2]) / str(args[4].index)
             target.mkdir(parents=True, exist_ok=True)
             (target / f"result-{args[5]}.json").write_text(json.dumps(result))
+            if result.get("ok") and not result.get("checkpoint") and job.get("folder"):
+                self.cleanup_paths[token] = job["folder"].parent
 
     def tick(self):
         stats = gpu_snapshot()
@@ -307,9 +316,11 @@ class DynamicQueue:
                 }
                 for j in self.running.values()
             ],
-            "waiting_reason": "resource reservation or unknown-setting isolation"
-            if self.pending
-            else None,
+            "waiting_reason": (
+                "resource reservation or unknown-setting isolation"
+                if self.pending
+                else None
+            ),
         }
         temp = self.root / "state.tmp"
         temp.write_text(json.dumps(state, indent=2))
@@ -339,7 +350,11 @@ class DynamicQueue:
             time.sleep(1)
 
     def get(self, token):
-        return self.finished.pop(token)
+        result = self.finished.pop(token)
+        cleanup = self.cleanup_paths.pop(token, None)
+        if cleanup is not None:
+            shutil.rmtree(cleanup, ignore_errors=True)
+        return result
 
     def shutdown(self):
         if self.closed:

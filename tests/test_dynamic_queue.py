@@ -36,6 +36,46 @@ def test_finished_results_consumed_only_once(tmp_path):
     assert not queue.finished
 
 
+def test_finished_checkpoint_free_job_removes_scheduler_sandbox(tmp_path):
+    queue = module.DynamicQueue(tmp_path)
+    sandbox = tmp_path / "scheduler" / "token"
+    sandbox.mkdir()
+    (sandbox / "large.ckpt").write_bytes(b"checkpoint")
+    queue.finished["one"] = {"ok": True, "checkpoint": None}
+    queue.cleanup_paths["one"] = sandbox
+
+    assert queue.get("one")["ok"]
+    assert not sandbox.exists()
+
+
+def test_resume_restores_only_resource_observations(tmp_path):
+    import json
+
+    scheduler = tmp_path / "scheduler"
+    scheduler.mkdir()
+    (scheduler / "state.json").write_text(
+        json.dumps(
+            {
+                "observations": [
+                    {
+                        "candidate": "GRU",
+                        "config_hash": "hash",
+                        "phase2": True,
+                        "samples": [
+                            {"length": 100, "budget": 500, "gpu": 20, "ram": 10}
+                        ],
+                    }
+                ],
+                "queued": 50,
+                "running": 2,
+            }
+        )
+    )
+    queue = module.DynamicQueue(tmp_path, resume=True)
+    assert queue.estimates[("GRU", "hash", True)][0]["gpu"] == 20
+    assert not queue.pending and not queue.running
+
+
 def test_unknown_task_waits_until_existing_tasks_exit(tmp_path, monkeypatch):
     queue = module.DynamicQueue(tmp_path)
     monkeypatch.setattr(

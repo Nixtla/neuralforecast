@@ -10,13 +10,46 @@ import subprocess
 import requests
 
 
+PROJECTS = {
+    "uni-gasoline": {
+        "data": "data/gasoline.csv",
+        "target": "Oil_EIA_NY_Harbor_Conventional_Gasoline_Spot_Price_Daily_USD_Per_Gallon",
+        "start": "2013-08-11",
+        "end": "2026-09-06",
+        "exogenous": False,
+    },
+    "uni-gasoline-diff": {
+        "data": "data/gasoline.csv",
+        "target": "Oil_EIA_NY_Harbor_Conventional_Gasoline_Spot_Price_Daily_USD_Per_Gallon",
+        "start": "2013-08-11",
+        "end": "2026-09-06",
+        "exogenous": False,
+    },
+    "uni-gasoline-exog": {
+        "data": "data/gasoline-exog.csv",
+        "target": "Oil_EIA_NY_Harbor_Conventional_Gasoline_Spot_Price_Daily_USD_Per_Gallon",
+        "start": "2013-08-11",
+        "end": "2026-09-06",
+        "exogenous": True,
+    },
+    "uni-wti-exog": {
+        "data": "data/wti-exog.csv",
+        "target": "Oil_EIA_Cushing_WTI_Spot_Price_Daily_USD_Per_Barrel",
+        "start": "2015-03-15",
+        "end": "2026-09-06",
+        "exogenous": True,
+    },
+}
+
+
 def main():
     root = Path(__file__).resolve().parents[2]
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", default="uni-gasoline")
     args = parser.parse_args()
-    if args.project not in {"uni-gasoline", "uni-gasoline-diff"}:
-        parser.error("Supported projects: uni-gasoline, uni-gasoline-diff")
+    if args.project not in PROJECTS:
+        parser.error(f"Supported projects: {', '.join(PROJECTS)}")
+    settings = PROJECTS[args.project]
     experiment = args.project.removeprefix("uni-")
     key = os.environ.get("WANDB_API_KEY")
     if not key:
@@ -57,15 +90,17 @@ def main():
         str(root / ".venv/bin/python"),
         "experiments/commodity_sota/run.py",
         "--scheduler",
-        "dynamic",
+        "dynamic-pool",
         "--data",
-        "data/gasoline.csv",
+        settings["data"],
         "--date-col",
         "ds",
         "--target",
-        "Oil_EIA_NY_Harbor_Conventional_Gasoline_Spot_Price_Daily_USD_Per_Gallon",
+        settings["target"],
         "--start-date",
-        "2013-08-11",
+        settings["start"],
+        "--end-date",
+        settings["end"],
         "--model-config",
         "model_config.json",
         "--output",
@@ -78,6 +113,16 @@ def main():
         "--wandb-project",
         args.project,
     ]
+    if settings["exogenous"]:
+        command.extend(
+            [
+                "--auto-hist-exog",
+                "--exog-max-abs-corr",
+                "0.8",
+                "--exog-max-missing-ratio",
+                "0.05",
+            ]
+        )
     subprocess.run(command, env=environment, check=True)
 
 
