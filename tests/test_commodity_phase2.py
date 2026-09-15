@@ -52,6 +52,67 @@ def params():
     )
 
 
+def test_resume_accepts_only_complete_matching_fold_result(runner, tmp_path):
+    from neuralforecast.benchmark import Fold
+
+    candidate = runner.Candidate("GRU", "scratch_hpo", "GRU", [{}], None)
+    fold = Fold(index=2, train_end=80, valid_end=96)
+    path = tmp_path / "result-500.json"
+    result = {
+        "ok": True,
+        "candidate": "GRU",
+        "config_id": 0,
+        "fold": 2,
+        "budget": 500,
+        "protocol_version": runner.PROTOCOL_VERSION,
+        "actual": list(range(16)),
+        "prediction": list(range(16)),
+    }
+    path.write_text(json.dumps(result))
+    assert runner._completed_phase2_result(path, candidate, fold, 500) == result
+    assert (
+        runner._completed_phase2_result(
+            path, candidate, fold, 500, require_tracking=True
+        )
+        is None
+    )
+    result["forecast_tracking_version"] = 1
+    path.write_text(json.dumps(result))
+    assert runner._completed_phase2_result(
+        path, candidate, fold, 500, require_tracking=True
+    )
+    result["prediction"] = [1]
+    path.write_text(json.dumps(result))
+    assert runner._completed_phase2_result(path, candidate, fold, 500) is None
+
+
+def test_restore_phase1_rebuilds_selected_best_config(runner, tmp_path):
+    candidate = runner.Candidate(
+        "GRU", "scratch_hpo", "GRU", [{"value": 1}, {"value": 2}], None
+    )
+    pd.DataFrame(
+        [
+            {"candidate": "GRU", "rung": 1, "config_id": 0, "pooled_rmse": 2},
+            {"candidate": "GRU", "rung": 2, "config_id": 1, "pooled_rmse": 1},
+        ]
+    ).to_csv(tmp_path / "phase1_trials.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "candidate": "GRU",
+                "selected": True,
+                "config": json.dumps({"value": 2}),
+                "pooled_rmse": 1,
+                "naive_rmse": 3,
+            }
+        ]
+    ).to_csv(tmp_path / "phase1_ranking.csv", index=False)
+    phase1, failures, ranking, selected = runner._restore_phase1(tmp_path, [candidate])
+    assert phase1 and not failures and len(ranking) == 1
+    assert selected == [candidate]
+    assert candidate.best_config == {"value": 2}
+
+
 def test_validation_targets_do_not_enter_training_gradient(runner, tmp_path):
     frame = data()
     train, test = frame.iloc[:96].copy(), frame.iloc[96:].copy()
@@ -156,7 +217,41 @@ def test_validation_stopper_survives_rung_and_directory_change(runner, tmp_path)
     assert after["global_step"] == 8
     assert last_stop["best"] <= first_stop["best"]
     assert last_stop["last_step"] == 8
-    assert (tmp_path / "second" / "best-validation.pt").is_file()
+    assert not (tmp_path / "second" / "best-validation.pt").exists()
+
+
+def test_phase2_trainable_does_not_retain_checkpoints(runner, tmp_path):
+    frame = data()
+    workdir = tmp_path / "phase2"
+    _, checkpoint = runner._fit_trainable(
+        runner.model_module.GRU,
+        params(),
+        frame.iloc[:96],
+        frame.iloc[96:],
+        4,
+        None,
+        workdir,
+        keep_checkpoint=False,
+    )
+
+    assert checkpoint is None
+    assert not list(workdir.glob("*.ckpt"))
+
+
+def test_discard_checkpoint_preserves_result_metadata(runner, tmp_path):
+    workdir = tmp_path / "rung"
+    workdir.mkdir()
+    checkpoint = workdir / "resume.ckpt"
+    checkpoint.write_bytes(b"checkpoint")
+    (workdir / "best-validation.pt").write_bytes(b"weights")
+    result = workdir / "result-125.json"
+    result.write_text("{}")
+
+    runner._discard_checkpoint(checkpoint)
+
+    assert not checkpoint.exists()
+    assert not (workdir / "best-validation.pt").exists()
+    assert result.is_file()
 
 
 def test_naive_uses_only_last_train_observation(runner):
@@ -165,6 +260,32 @@ def test_naive_uses_only_last_train_observation(runner):
     frame = pd.DataFrame({"y": [1.0, 2.0, 3.0, 4.0, 6.0]})
     score = runner._naive_score(frame, [Fold(0, 2, 4), Fold(1, 3, 5)])
     assert score == pytest.approx(np.sqrt((1 + 4 + 1 + 9) / 4))
+
+
+@pytest.mark.parametrize(
+    "n_obs,expected_cutoff,expected_first,expected_count,expected_reps",
+    [
+        (600, 420, 324, 165, [0, 244, 488]),
+        (683, 479, 383, 189, [0, 285, 571]),
+    ],
+)
+def test_phase2_starts_at_70_percent_without_changing_phase1_folds(
+    runner, n_obs, expected_cutoff, expected_first, expected_count, expected_reps
+):
+    all_folds = runner.expanding_folds(n_obs, h=16, min_train=96, step_size=1)
+    phase1 = runner.representative_folds(all_folds)
+    phase2, cutoff = runner._phase2_window(all_folds, n_obs, 0.7)
+
+    assert cutoff == expected_cutoff
+    assert phase2[0].index == expected_first
+    assert len(phase2) == expected_count
+    assert [fold.index for fold in phase1] == expected_reps
+
+
+def test_phase2_start_ratio_must_leave_a_complete_fold(runner):
+    folds = runner.expanding_folds(100, h=16, min_train=32, step_size=1)
+    with pytest.raises(ValueError, match="no complete forecast fold"):
+        runner._phase2_window(folds, 100, 0.99)
 
 
 @pytest.mark.parametrize(

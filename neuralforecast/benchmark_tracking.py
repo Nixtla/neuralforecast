@@ -66,7 +66,7 @@ class Tracking:
             id=run_id(options["group"], phase, candidate, config_id, fold),
             name=f"{phase}/{candidate}/config-{config_id}/fold-{fold}",
             resume="allow",
-            mode="online",
+            mode=options.get("mode", "online"),
             dir=str(directory),
             config=safe_config(config or {}),
             save_code=False,
@@ -93,6 +93,41 @@ class Tracking:
             for col in frame:
                 frame[col] = frame[col].map(safe_config)
             self.run.log({name: wandb.Table(dataframe=frame)})
+
+    def forecast(self, actual, prediction, forecast_origin):
+        """Publish one fold's point forecast as arrays and an ordered W&B table."""
+        if not self.run:
+            return
+        import pandas as pd
+
+        actual = [float(value) for value in actual]
+        prediction = [float(value) for value in prediction]
+        if len(actual) != len(prediction) or not actual:
+            raise ValueError("Forecast tracking requires aligned nonempty arrays")
+        origin = float(forecast_origin)
+        self.summary(
+            {
+                "forecast/actual": actual,
+                "forecast/prediction": prediction,
+                "forecast/horizon": list(range(1, len(actual) + 1)),
+                "forecast/origin": origin,
+            }
+        )
+        self.table(
+            "forecast/series",
+            pd.DataFrame(
+                {
+                    "horizon": range(1, len(actual) + 1),
+                    "actual": actual,
+                    "prediction": prediction,
+                    "error": [
+                        predicted - observed
+                        for observed, predicted in zip(actual, prediction)
+                    ],
+                    "forecast_origin": origin,
+                }
+            ),
+        )
 
     def artifact(self, root):
         if self.run:

@@ -97,6 +97,39 @@ def test_evaluation_table_publishes_metrics_and_definitions(monkeypatch):
     )
 
 
+def test_forecast_publishes_arrays_and_ordered_table(monkeypatch):
+    tracker = Tracking()
+    tracker.run = SimpleNamespace(summary={})
+    tables = []
+    monkeypatch.setattr(
+        tracker,
+        "table",
+        lambda name, frame: tables.append((name, frame.to_dict(orient="list"))),
+    )
+    tracker.forecast([2, 4], [3, 3.5], 1)
+    assert tracker.run.summary["forecast/actual"] == [2.0, 4.0]
+    assert tracker.run.summary["forecast/prediction"] == [3.0, 3.5]
+    assert tables == [
+        (
+            "forecast/series",
+            {
+                "horizon": [1, 2],
+                "actual": [2.0, 4.0],
+                "prediction": [3.0, 3.5],
+                "error": [1.0, -0.5],
+                "forecast_origin": [1.0, 1.0],
+            },
+        )
+    ]
+
+
+def test_forecast_rejects_unaligned_arrays():
+    tracker = Tracking()
+    tracker.run = SimpleNamespace(summary={})
+    with pytest.raises(ValueError, match="aligned nonempty"):
+        tracker.forecast([1], [], 0)
+
+
 @pytest.fixture
 def runner():
     path = Path(__file__).parents[1] / "experiments/commodity_sota/run.py"
