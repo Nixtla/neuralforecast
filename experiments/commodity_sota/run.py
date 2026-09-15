@@ -7,6 +7,7 @@ import inspect
 import json
 import os
 import hashlib
+import shutil
 import time
 import uuid
 import subprocess
@@ -18,7 +19,6 @@ import pandas as pd
 import pytorch_lightning as pl
 import ray
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint
 
 import neuralforecast.auto as auto_module
 import neuralforecast.models as model_module
@@ -76,6 +76,7 @@ TRACKING = None
 SUMMARY = None
 POLICY = {"max_steps": 500, "interval": 10, "patience": 5, "val_size": 16}
 PROTOCOL_VERSION = "validation-only-sh3-naive-v1"
+EXOG_PROTOCOL_VERSION = "validation-only-sh3-naive-hist-exog-v2"
 
 
 @dataclass
@@ -107,22 +108,32 @@ def _lora_api():
     return FOUNDATION_LORA_MODELS, fit_foundation_lora, get_foundation_lora_config
 
 
-def _weekly_frame(path, date_col, target_col, start_date=None):
+def _weekly_frame(
+    path,
+    date_col,
+    target_col,
+    start_date=None,
+    end_date=None,
+    include_exogenous=False,
+):
     frame = pd.read_csv(path)
     if date_col not in frame or target_col not in frame:
         raise ValueError(f"CSV must contain {date_col!r} and {target_col!r}.")
-    frame = frame[[date_col, target_col]].copy()
+    value_columns = [target_col]
+    if include_exogenous:
+        value_columns.extend(
+            column for column in frame if column not in {date_col, target_col}
+        )
+    frame = frame[[date_col, *value_columns]].copy()
     frame[date_col] = pd.to_datetime(frame[date_col], errors="raise", utc=True)
-    frame[target_col] = pd.to_numeric(frame[target_col], errors="coerce")
+    frame[value_columns] = frame[value_columns].apply(pd.to_numeric, errors="coerce")
     if start_date:
         frame = frame[frame[date_col] >= pd.Timestamp(start_date, tz="UTC")]
-    frame = (
-        frame.set_index(date_col)[target_col]
-        .resample("W-SUN")
-        .mean()
-        .rename("y")
-        .reset_index()
-        .rename(columns={date_col: "ds"})
+    if end_date:
+        frame = frame[frame[date_col] <= pd.Timestamp(end_date, tz="UTC")]
+    frame = frame.set_index(date_col)[value_columns].resample("W-SUN").mean()
+    frame = frame.rename(columns={target_col: "y"}).reset_index().rename(
+        columns={date_col: "ds"}
     )
     valid = frame["y"].notna()
     if not valid.any():
@@ -130,7 +141,63 @@ def _weekly_frame(path, date_col, target_col, start_date=None):
     first, last = np.flatnonzero(valid)[[0, -1]]
     frame = frame.iloc[first : last + 1].reset_index(drop=True)
     frame["unique_id"] = target_col
-    return frame[["unique_id", "ds", "y"]]
+    return frame[["unique_id", "ds", "y", *value_columns[1:]]]
+
+
+def _select_historical_exogenous(
+    frame, training_rows, max_abs_correlation=0.8, max_missing_ratio=0.05
+):
+    """Select one fixed, leakage-safe historical exogenous feature set."""
+    if not 0 < max_abs_correlation <= 1:
+        raise ValueError("max_abs_correlation must be in (0, 1]")
+    if not 0 < max_missing_ratio <= 1:
+        raise ValueError("max_missing_ratio must be in (0, 1]")
+    if not 2 <= training_rows <= len(frame):
+        raise ValueError("training_rows must identify at least two rows in the frame")
+
+    report = []
+    selected = []
+    candidates = [c for c in frame if c not in {"unique_id", "ds", "y"}]
+    for column in candidates:
+        missing_ratio = float(frame[column].isna().mean())
+        pair = frame.iloc[:training_rows][["y", column]].dropna()
+        correlation = (
+            float(pair[column].corr(pair["y"]))
+            if len(pair) >= 2
+            and pair[column].nunique() > 1
+            and pair["y"].nunique() > 1
+            else float("nan")
+        )
+        reason = "selected"
+        keep = True
+        if missing_ratio >= max_missing_ratio:
+            keep, reason = False, "missing_ratio_at_or_above_threshold"
+        elif not np.isfinite(correlation):
+            keep, reason = False, "correlation_unavailable"
+        elif pd.isna(frame[column].iloc[0]):
+            keep, reason = False, "missing_at_period_start"
+        elif abs(correlation) >= max_abs_correlation:
+            keep, reason = False, "absolute_correlation_at_or_above_threshold"
+        if keep:
+            selected.append(column)
+        report.append(
+            {
+                "feature": column,
+                "missing_ratio": missing_ratio,
+                "correlation": correlation,
+                "absolute_correlation": abs(correlation),
+                "selection_rows": training_rows,
+                "selected": keep,
+                "reason": reason,
+            }
+        )
+    if not selected:
+        raise ValueError("No historical exogenous feature passed the selection policy")
+    output = frame[["unique_id", "ds", "y", *selected]].copy()
+    output[selected] = output[selected].ffill()
+    if output[selected].isna().any().any():
+        raise ValueError("Selected historical exogenous features remain missing")
+    return output, pd.DataFrame(report), selected
 
 
 def _fill(values):
@@ -213,6 +280,7 @@ def _fit_trainable(
     tracker=None,
     stopping=None,
     schedule_steps=None,
+    keep_checkpoint=True,
 ):
     config = dict(config)
     numerics = config.pop("_benchmark_numerics", None)
@@ -231,7 +299,7 @@ def _fit_trainable(
         config["val_check_steps"] = stopping["interval"]
     config["random_seed"] = 42
     config["early_stop_patience_steps"] = -1
-    config["enable_checkpointing"] = True
+    config["enable_checkpointing"] = False
     config["logger"] = False
     config["accelerator"] = "gpu"
     config["devices"] = 1
@@ -252,11 +320,9 @@ def _fit_trainable(
         shuffle_train=True,
         **(model.dataloader_kwargs or {}),
     )
-    checkpoint_cb = ModelCheckpoint(dirpath=workdir, save_last=True, save_top_k=0)
     trainer_kwargs = dict(model.trainer_kwargs)
     callbacks = list(trainer_kwargs.get("callbacks") or [])
     callbacks.append(FiniteTraining(check_forward=model_cls.__name__ == "FEDformer"))
-    callbacks.append(checkpoint_cb)
     stopper = None
     if stopping:
         from neuralforecast.benchmark_stopping import (
@@ -305,10 +371,13 @@ def _fit_trainable(
     trainer_kwargs["max_steps"] = budget
     trainer = pl.Trainer(**trainer_kwargs)
     trainer.fit(model, datamodule=datamodule, ckpt_path=checkpoint)
-    next_checkpoint = str(Path(workdir) / "resume.ckpt")
-    trainer.save_checkpoint(next_checkpoint)
+    next_checkpoint = None
+    if keep_checkpoint:
+        next_checkpoint = str(Path(workdir) / "resume.ckpt")
+        trainer.save_checkpoint(next_checkpoint)
     if stopper:
         stopper.restore(model)
+        stopper.path.unlink(missing_ok=True)
         (Path(workdir) / "early_stopping.json").write_text(
             json.dumps(stopper.summary())
         )
@@ -328,6 +397,29 @@ def _fit_inference(model_cls, config, train, valid):
     return _point_prediction(model, dataset, len(valid)), None
 
 
+def _clear_training_artifacts(directory):
+    """Remove model artifacts while leaving the job directory reusable."""
+    directory = Path(directory)
+    if not directory.is_dir():
+        return
+    for path in directory.iterdir():
+        shutil.rmtree(path) if path.is_dir() else path.unlink()
+
+
+def _discard_checkpoint(checkpoint):
+    """Discard an obsolete rung checkpoint and its sibling training artifacts."""
+    if not checkpoint:
+        return
+    path = Path(checkpoint)
+    workdir = path.parent
+    if not workdir.is_dir():
+        return
+    for child in workdir.iterdir():
+        if child.suffix == ".json" or child.suffix == ".log":
+            continue
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
+
+
 def _fit_lora(
     model_cls,
     config,
@@ -339,6 +431,7 @@ def _fit_lora(
     stopping=None,
     checkpoint=None,
     schedule_steps=None,
+    keep_checkpoint=True,
 ):
     _, fit_foundation_lora, _ = _lora_api()
     if fit_foundation_lora is None:
@@ -371,7 +464,14 @@ def _fit_lora(
     model.val_size = 0
     model.test_size = len(valid)
     dataset = _dataset(pd.concat([train, valid], ignore_index=True))
-    return _point_prediction(model, dataset, len(valid)), model.resume_checkpoint
+    prediction = _point_prediction(model, dataset, len(valid))
+    next_checkpoint = model.resume_checkpoint if keep_checkpoint else None
+    if not keep_checkpoint:
+        for path in Path(workdir).iterdir():
+            if path.name == "early_stopping.json":
+                continue
+            shutil.rmtree(path) if path.is_dir() else path.unlink()
+    return prediction, next_checkpoint
 
 
 @ray.remote(num_gpus=1, max_calls=1)
@@ -443,6 +543,7 @@ def _evaluate_job(
                 schedule_steps=(
                     SHPlan().budgets[-1] if phase == "phase1" else stopping["max_steps"]
                 ),
+                keep_checkpoint=phase == "phase1",
             )
         elif candidate["protocol"] == "lora":
             prediction, next_checkpoint = _fit_lora(
@@ -458,6 +559,7 @@ def _evaluate_job(
                 schedule_steps=(
                     SHPlan().budgets[-1] if phase == "phase1" else stopping["max_steps"]
                 ),
+                keep_checkpoint=phase == "phase1",
             )
         else:
             prediction, next_checkpoint = _fit_inference(
@@ -509,6 +611,13 @@ def _evaluate_job(
             result["seconds"] = time.monotonic() - started
         if tracker:
             try:
+                if result.get("ok"):
+                    tracker.forecast(
+                        result["actual"],
+                        result["prediction"],
+                        result["forecast_origin"],
+                    )
+                    result["forecast_tracking_version"] = 1
                 tracker.log(
                     {
                         k: v
@@ -525,6 +634,12 @@ def _evaluate_job(
                 tracker.finish(failed=not result["ok"])
             except Exception as exc:
                 result["tracking_error"] = type(exc).__name__
+        if (
+            "workdir" in locals()
+            and result is not None
+            and (phase != "phase1" or not result.get("ok"))
+        ):
+            _clear_training_artifacts(workdir)
         (
             (workdir / f"result-{budget}.json").write_text(
                 json.dumps(result, default=str)
@@ -542,20 +657,41 @@ def _fixed_kwargs(config, name, protocol=None):
     return fixed
 
 
-def _build_candidates(h, model_config, first_train):
+def _skip_reason(name, hist_exog_list):
+    if name in LLM_MODELS:
+        return "LLM protocol excluded by runner"
+    if name in SKIP_MODELS and not (
+        hist_exog_list and name in {"KITE", "ChronosX"}
+    ):
+        return SKIP_REASONS.get(name, "excluded by runner")
+    return None
+
+
+def _historical_exog_reason(model_cls, hist_exog_list):
+    if hist_exog_list and not getattr(model_cls, "EXOGENOUS_HIST", False):
+        return "does not support historical exogenous inputs"
+    return None
+
+
+def _with_historical_exog(configs, hist_exog_list):
+    if not hist_exog_list:
+        return configs
+    for config in configs:
+        config["hist_exog_list"] = list(hist_exog_list)
+        config["futr_exog_list"] = None
+    return configs
+
+
+def _build_candidates(h, model_config, first_train, hist_exog_list=None):
     candidates, eligibility = [], []
     for auto_name in getattr(auto_module, "__all__", []):
         if not auto_name.startswith("Auto"):
             continue
         name = auto_name[4:]
-        if name in LLM_MODELS or name in SKIP_MODELS:
+        reason = _skip_reason(name, hist_exog_list)
+        if reason:
             eligibility.append(
-                (
-                    name,
-                    "scratch_hpo",
-                    "SKIP",
-                    SKIP_REASONS.get(name, "LLM protocol excluded by runner"),
-                )
+                (name, "scratch_hpo", "SKIP", reason)
             )
             continue
         auto_cls = getattr(auto_module, auto_name, None)
@@ -566,6 +702,10 @@ def _build_candidates(h, model_config, first_train):
             kwargs.setdefault("n_series", 1)
         try:
             auto = auto_cls(h=h, backend="ray", num_samples=10, **kwargs)
+            reason = _historical_exog_reason(auto.cls_model, hist_exog_list)
+            if reason:
+                eligibility.append((name, "scratch_hpo", "SKIP", reason))
+                continue
             if getattr(auto.cls_model, "MULTIVARIATE", False):
                 eligibility.append(
                     (
@@ -583,6 +723,7 @@ def _build_candidates(h, model_config, first_train):
             configs = [
                 guard_config(name, c) for c in sample_ray_configs(space, n=10, seed=42)
             ]
+            configs = _with_historical_exog(configs, hist_exog_list)
         except Exception as exc:
             eligibility.append(
                 (name, "scratch_hpo", "SKIP", f"{type(exc).__name__}: {exc}")
@@ -594,17 +735,18 @@ def _build_candidates(h, model_config, first_train):
         eligibility.append((name, "scratch_hpo", "READY", ""))
 
     for name in INFERENCE_TUNING_MODELS:
-        if name in LLM_MODELS or name in SKIP_MODELS:
+        reason = _skip_reason(name, hist_exog_list)
+        if reason:
             eligibility.append(
-                (
-                    name,
-                    "zero_shot",
-                    "SKIP",
-                    SKIP_REASONS.get(name, "LLM protocol excluded by runner"),
-                )
+                (name, "zero_shot", "SKIP", reason)
             )
             continue
         try:
+            model_cls = getattr(model_module, name)
+            reason = _historical_exog_reason(model_cls, hist_exog_list)
+            if reason:
+                eligibility.append((name, "zero_shot", "SKIP", reason))
+                continue
             space = get_inference_tuning_config(
                 name,
                 h=h,
@@ -615,6 +757,7 @@ def _build_candidates(h, model_config, first_train):
             configs = sample_ray_configs(space, n=10, seed=42)
             for config in configs:
                 config["h"] = h
+            configs = _with_historical_exog(configs, hist_exog_list)
         except Exception as exc:
             eligibility.append(
                 (name, "zero_shot", "SKIP", f"{type(exc).__name__}: {exc}")
@@ -628,6 +771,11 @@ def _build_candidates(h, model_config, first_train):
     lora_models, _, get_lora_config = _lora_api()
     for name in lora_models:
         try:
+            model_cls = getattr(model_module, name)
+            reason = _historical_exog_reason(model_cls, hist_exog_list)
+            if reason:
+                eligibility.append((name, "lora", "SKIP", reason))
+                continue
             space = get_lora_config(
                 name,
                 h=h,
@@ -638,6 +786,7 @@ def _build_candidates(h, model_config, first_train):
             configs = sample_ray_configs(space, n=10, seed=42)
             for config in configs:
                 config["h"] = h
+            configs = _with_historical_exog(configs, hist_exog_list)
         except Exception as exc:
             eligibility.append((name, "lora", "SKIP", f"{type(exc).__name__}: {exc}"))
             continue
@@ -738,7 +887,7 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
             checkpoint,
             checkpoint_root,
         )
-        pending[ref] = (candidate, config_id, fold, budget)
+        pending[ref] = (candidate, config_id, fold, budget, checkpoint)
 
     def advance(candidate):
         while len(candidate.rung_results) == len(candidate.alive) * len(folds):
@@ -800,7 +949,7 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
     while pending:
         done, _ = ray.wait(list(pending), num_returns=1)
         ref = done[0]
-        candidate, config_id, fold, budget = pending.pop(ref)
+        candidate, config_id, fold, budget, prior_checkpoint = pending.pop(ref)
         try:
             result = ray.get(ref)
         except Exception as exc:
@@ -830,10 +979,16 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
             terminal[(candidate.name, config_id, fold.index)] = result
         if result["ok"] and result.get("checkpoint"):
             candidate.checkpoints[(config_id, fold.index)] = result["checkpoint"]
+            if prior_checkpoint != result["checkpoint"]:
+                _discard_checkpoint(prior_checkpoint)
         elif not result["ok"]:
             failures.append(result)
 
         advance(candidate)
+    for candidate in candidates:
+        for checkpoint in candidate.checkpoints.values():
+            _discard_checkpoint(checkpoint)
+        candidate.checkpoints.clear()
     return trials, failures
 
 
@@ -882,13 +1037,82 @@ def _select_candidates(ranking, naive_rmse):
     return selected, pd.DataFrame(rows)
 
 
-def _phase2(data_path, selected, folds, checkpoint_root):
+def _completed_phase2_result(path, candidate, fold, budget, require_tracking=False):
+    """Load a complete compatible fold result, or return None for recomputation."""
+    path = Path(path)
+    if not path.is_file():
+        return None
+    try:
+        result = json.loads(path.read_text())
+        valid = (
+            result.get("ok") is True
+            and result.get("candidate") == candidate.name
+            and int(result.get("config_id")) == 0
+            and int(result.get("fold")) == fold.index
+            and int(result.get("budget")) == budget
+            and result.get("protocol_version") == PROTOCOL_VERSION
+            and (not require_tracking or result.get("forecast_tracking_version") == 1)
+            and len(result.get("actual", [])) == fold.valid_end - fold.train_end
+            and len(result.get("prediction", [])) == len(result["actual"])
+            and np.isfinite(result["actual"]).all()
+            and np.isfinite(result["prediction"]).all()
+        )
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, OSError):
+        return None
+    return result if valid else None
+
+
+def _phase2(
+    data_path,
+    selected,
+    folds,
+    checkpoint_root,
+    resume=False,
+    require_tracking=True,
+):
     pending, predictions, failures = {}, [], []
+
+    def record(candidate, fold, result):
+        for horizon, (actual, prediction) in enumerate(
+            zip(result["actual"], result["prediction"]), start=1
+        ):
+            predictions.append(
+                {
+                    "candidate": candidate.name,
+                    "protocol": candidate.protocol,
+                    "fold": fold.index,
+                    "horizon": horizon,
+                    "actual": actual,
+                    "prediction": prediction,
+                }
+            )
+
     for candidate in selected:
         budget = (
             POLICY["max_steps"] if candidate.protocol in {"scratch_hpo", "lora"} else 0
         )
         for fold in sorted(folds, key=lambda f: f.train_end, reverse=True):
+            result_path = (
+                Path(checkpoint_root)
+                / candidate.name
+                / "0"
+                / str(fold.index)
+                / f"result-{budget}.json"
+            )
+            completed = (
+                _completed_phase2_result(
+                    result_path,
+                    candidate,
+                    fold,
+                    budget,
+                    require_tracking=TRACKING is not None and require_tracking,
+                )
+                if resume
+                else None
+            )
+            if completed is not None:
+                record(candidate, fold, completed)
+                continue
             ref = _evaluate_job.remote(
                 data_path,
                 _payload(candidate),
@@ -931,19 +1155,7 @@ def _phase2(data_path, selected, folds, checkpoint_root):
         if not result["ok"]:
             failures.append(result)
             continue
-        for horizon, (actual, prediction) in enumerate(
-            zip(result["actual"], result["prediction"]), start=1
-        ):
-            predictions.append(
-                {
-                    "candidate": candidate.name,
-                    "protocol": candidate.protocol,
-                    "fold": fold.index,
-                    "horizon": horizon,
-                    "actual": actual,
-                    "prediction": prediction,
-                }
-            )
+        record(candidate, fold, result)
         pd.DataFrame(predictions).to_csv(
             Path(checkpoint_root).parent / "phase2_predictions.csv", index=False
         )
@@ -951,6 +1163,38 @@ def _phase2(data_path, selected, folds, checkpoint_root):
             Path(checkpoint_root).parent / "phase2_failures.csv", index=False
         )
     return predictions, failures
+
+
+def _restore_phase1(output, candidates):
+    """Restore selected candidates from a completed compatible Phase 1."""
+    output = Path(output)
+    trials = pd.read_csv(output / "phase1_trials.csv")
+    ranking = pd.read_csv(output / "phase1_ranking.csv")
+    failures_path = output / "phase1_failures.csv"
+    failures = (
+        pd.read_csv(failures_path).to_dict(orient="records")
+        if failures_path.exists() and failures_path.stat().st_size > 1
+        else []
+    )
+    by_name = {candidate.name: candidate for candidate in candidates}
+    selected = []
+    chosen = ranking["selected"].astype(str).str.lower().eq("true")
+    for row in ranking.loc[chosen].to_dict(orient="records"):
+        candidate = by_name.get(row["candidate"])
+        if candidate is None:
+            raise ValueError(f"Resume candidate is unavailable: {row['candidate']}")
+        rows = trials.loc[trials["candidate"] == candidate.name]
+        rows = rows.loc[rows["rung"] == rows["rung"].max()].sort_values("pooled_rmse")
+        if rows.empty:
+            raise ValueError(f"Resume Phase 1 result is missing: {candidate.name}")
+        config_id = int(rows.iloc[0]["config_id"])
+        candidate.best_config = candidate.configs[config_id]
+        expected = json.loads(row["config"])
+        if safe_config(candidate.best_config) != expected:
+            raise ValueError(f"Resume config differs for {candidate.name}")
+        candidate.best_score = float(row["pooled_rmse"])
+        selected.append(candidate)
+    return trials.to_dict(orient="records"), failures, ranking, selected
 
 
 def _validation_reference(frame, folds):
@@ -968,6 +1212,15 @@ def _validation_reference(frame, folds):
             for horizon, actual in enumerate(valid.y, 1)
         )
     return pd.DataFrame(rows)
+
+
+def _phase2_window(folds, n_obs, start_ratio):
+    """Keep full-series fold identities at or after the requested cutoff."""
+    cutoff = max(folds[0].train_end, int(np.ceil(n_obs * start_ratio)))
+    selected = [fold for fold in folds if fold.train_end >= cutoff]
+    if not selected:
+        raise ValueError("Phase 2 start ratio leaves no complete forecast fold")
+    return selected, cutoff
 
 
 def _leaderboard(predictions, reference):
@@ -1042,22 +1295,29 @@ def _metric_definitions(reference):
 
 
 def main():
-    global TRACKING, SUMMARY, POLICY, ray, _evaluate_job
+    global TRACKING, SUMMARY, POLICY, PROTOCOL_VERSION, ray, _evaluate_job
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", required=True)
     parser.add_argument("--date-col", default="ds")
     parser.add_argument("--target", required=True)
     parser.add_argument("--start-date")
+    parser.add_argument("--end-date")
+    parser.add_argument("--auto-hist-exog", action="store_true")
+    parser.add_argument("--exog-max-abs-corr", type=float, default=0.8)
+    parser.add_argument("--exog-max-missing-ratio", type=float, default=0.05)
     parser.add_argument(
         "--model-config", help="JSON mapping model names to fixed kwargs"
     )
     parser.add_argument("--output", default="results/commodity_sota")
     parser.add_argument("--horizon", type=int, default=16)
-    parser.add_argument("--scheduler", choices=["dynamic", "ray"], default="dynamic")
+    parser.add_argument(
+        "--scheduler", choices=["dynamic", "dynamic-pool", "ray"], default="dynamic"
+    )
     parser.add_argument("--phase2-max-steps", type=int, default=500)
     parser.add_argument("--phase2-val-check-steps", type=int, default=10)
     parser.add_argument("--phase2-patience", type=int, default=5)
     parser.add_argument("--phase2-val-size", type=int, default=16)
+    parser.add_argument("--phase2-start-ratio", type=float, default=0.0)
     parser.add_argument("--wandb", action="store_true")
     parser.add_argument("--wandb-project", default="uni-gasoline")
     parser.add_argument("--wandb-entity", default=os.environ.get("WANDB_ENTITY"))
@@ -1065,7 +1325,11 @@ def main():
     modes.add_argument("--preflight", action="store_true")
     modes.add_argument("--smoke-test", action="store_true")
     parser.add_argument("--validated-candidates", help="JSON report from --smoke-test")
+    parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--phase2-window-migration", action="store_true")
     args = parser.parse_args()
+    if args.auto_hist_exog:
+        PROTOCOL_VERSION = EXOG_PROTOCOL_VERSION
     POLICY = {
         "max_steps": args.phase2_max_steps,
         "interval": args.phase2_val_check_steps,
@@ -1074,6 +1338,7 @@ def main():
     }
     if (
         any(v < 1 for v in POLICY.values())
+        or not 0 <= args.phase2_start_ratio < 1
         or POLICY["val_size"] != args.horizon
         or POLICY["max_steps"] % POLICY["interval"]
         or any(b % POLICY["interval"] for b in SHPlan().budgets)
@@ -1081,56 +1346,111 @@ def main():
         parser.error(
             "Need positive settings, val_size=horizon, and both phase budgets divisible by validation interval"
         )
+    if not 0 < args.exog_max_abs_corr <= 1:
+        parser.error("--exog-max-abs-corr must be in (0, 1]")
+    if not 0 < args.exog_max_missing_ratio <= 1:
+        parser.error("--exog-max-missing-ratio must be in (0, 1]")
+    if args.end_date and args.start_date and args.end_date < args.start_date:
+        parser.error("--end-date must not precede --start-date")
     if args.wandb and (args.preflight or args.smoke_test):
         parser.error("W&B is enabled only for the main experiment")
+    if args.resume and (args.preflight or args.smoke_test):
+        parser.error("--resume is available only for the main experiment")
+    if args.phase2_window_migration and not args.resume:
+        parser.error("--phase2-window-migration requires --resume")
 
     output = Path(args.output).resolve()
-    if (output / "run_config.json").exists():
+    run_config_path = output / "run_config.json"
+    if run_config_path.exists() and not args.resume:
         raise ValueError(
             "Use a fresh output directory; existing experiment results are preserved."
         )
+    if args.resume and not run_config_path.exists():
+        raise ValueError("--resume requires an existing run_config.json")
     output.mkdir(parents=True, exist_ok=True)
     model_config = (
         json.loads(Path(args.model_config).read_text()) if args.model_config else {}
     )
-    frame = _weekly_frame(args.data, args.date_col, args.target, args.start_date)
+    frame = _weekly_frame(
+        args.data,
+        args.date_col,
+        args.target,
+        args.start_date,
+        args.end_date,
+        include_exogenous=args.auto_hist_exog,
+    )
     transform_metadata = _transform_metadata(args.wandb_project)
-    frame.attrs["transform_metadata"] = transform_metadata
     data_path = str(output / "weekly.pkl")
-    frame.to_pickle(data_path)
 
     min_train = _minimum_train(args.horizon, model_config)
-    folds = expanding_folds(
+    all_folds = expanding_folds(
         len(frame),
         h=args.horizon,
         min_train=min_train + POLICY["val_size"],
         step_size=1,
     )
-    if not folds:
+    if not all_folds:
         raise ValueError(
             "dataset is too short for the common feasible cutoff and horizon."
         )
-    reps = representative_folds(folds)
-    candidates, eligibility = _build_candidates(args.horizon, model_config, min_train)
+    exog_report = pd.DataFrame()
+    hist_exog_list = []
+    if args.auto_hist_exog:
+        frame, exog_report, hist_exog_list = _select_historical_exogenous(
+            frame,
+            all_folds[0].train_end,
+            max_abs_correlation=args.exog_max_abs_corr,
+            max_missing_ratio=args.exog_max_missing_ratio,
+        )
+        exog_report.to_csv(output / "exogenous_selection.csv", index=False)
+    exog_metadata = {
+        "auto_hist_exog": args.auto_hist_exog,
+        "hist_exog_list": hist_exog_list,
+        "exog_selection_rows": all_folds[0].train_end if args.auto_hist_exog else None,
+        "exog_max_abs_correlation": (
+            args.exog_max_abs_corr if args.auto_hist_exog else None
+        ),
+        "exog_max_missing_ratio": (
+            args.exog_max_missing_ratio if args.auto_hist_exog else None
+        ),
+        "exog_imputation": "forward_fill" if args.auto_hist_exog else None,
+    }
+    frame.attrs["transform_metadata"] = transform_metadata
+    frame.attrs["exog_metadata"] = exog_metadata
+    reps = representative_folds(all_folds)
+    folds, phase2_start_cutoff = _phase2_window(
+        all_folds, len(frame), args.phase2_start_ratio
+    )
+    candidates, eligibility = _build_candidates(
+        args.horizon, model_config, min_train, hist_exog_list
+    )
     if not candidates:
         raise ValueError("no eligible candidate model was found.")
 
     pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(
         output / "eligibility.csv", index=False
     )
-    fingerprint = hashlib.sha256(
+    fingerprint_payload = (
         Path(args.data).read_bytes()
         + json.dumps(model_config, sort_keys=True).encode()
         + str(args.horizon).encode()
         + str(args.start_date).encode()
         + json.dumps(POLICY, sort_keys=True).encode()
+        + str(args.phase2_start_ratio).encode()
         + str(NUMERICS_VERSION).encode()
         + json.dumps(transform_metadata, sort_keys=True).encode()
         + PROTOCOL_VERSION.encode()
         + json.dumps(SHPlan().__dict__, sort_keys=True).encode()
-    ).hexdigest()
+    )
+    if args.end_date or args.auto_hist_exog:
+        fingerprint_payload += str(args.end_date).encode()
+    if args.auto_hist_exog:
+        fingerprint_payload += json.dumps(exog_metadata, sort_keys=True).encode()
+    fingerprint = hashlib.sha256(fingerprint_payload).hexdigest()
     print(
-        f"rows={len(frame)} min_train={min_train} folds={len(folds)} candidates={len(candidates)}",
+        f"rows={len(frame)} min_train={min_train} folds={len(folds)} "
+        f"phase2_cutoff={phase2_start_cutoff} candidates={len(candidates)} "
+        f"hist_exog={len(hist_exog_list)}",
         flush=True,
     )
     if args.preflight:
@@ -1140,9 +1460,16 @@ def main():
                     "rows": len(frame),
                     "folds": len(folds),
                     "min_train": min_train,
+                    "phase1_folds": [fold.index for fold in reps],
+                    "phase2_start_ratio": args.phase2_start_ratio,
+                    "phase2_start_cutoff": phase2_start_cutoff,
+                    "phase2_first_fold": folds[0].index,
+                    "phase2_last_fold": folds[-1].index,
                     "candidates": [c.name for c in candidates],
                     "fingerprint": fingerprint,
+                    "protocol_version": PROTOCOL_VERSION,
                     **transform_metadata,
+                    **exog_metadata,
                     "phase2_policy": POLICY,
                     "scheduler": args.scheduler,
                 },
@@ -1156,7 +1483,7 @@ def main():
         report = json.loads(Path(args.validated_candidates).read_text())
         if report["fingerprint"] != fingerprint:
             raise ValueError(
-                "Smoke report does not match data/config/horizon/start-date"
+                "Smoke report does not match data/config/horizon/date-range/exogenous-policy"
             )
         allowed = set(report["passed"])
         candidates = [c for c in candidates if c.name in allowed]
@@ -1194,26 +1521,70 @@ def main():
         ).to_csv(output / "eligibility.csv", index=False)
         if not candidates:
             raise ValueError("No smoke-validated candidates")
+    prior_config = None
+    if args.resume:
+        prior_config = json.loads(run_config_path.read_text())
+        expected = {
+            "fingerprint": fingerprint,
+            "horizon": args.horizon,
+            "phase2_policy": POLICY,
+            "protocol_version": PROTOCOL_VERSION,
+            "candidates": [candidate.name for candidate in candidates],
+        }
+        for key, value in expected.items():
+            prior_value = prior_config.get(key)
+            differs = (
+                set(prior_value or []) != set(value)
+                if key == "candidates"
+                else prior_value != value
+            )
+            if differs:
+                raise ValueError(f"Resume {key} differs from the existing experiment")
+        if prior_config.get("status") in {"completed", "no_models_above_naive"}:
+            raise ValueError("The existing experiment is already complete")
+        if prior_config.get("scheduler") != args.scheduler and not (
+            prior_config.get("scheduler") == "dynamic"
+            and args.scheduler == "dynamic-pool"
+        ):
+            raise ValueError("Resume scheduler differs from the existing experiment")
+        if bool(prior_config.get("wandb")) != args.wandb:
+            raise ValueError("Resume must preserve the existing W&B setting")
+    frame.to_pickle(data_path)
     if args.wandb:
         if not args.wandb_entity or not os.environ.get("WANDB_API_KEY"):
             raise ValueError("W&B entity and WANDB_API_KEY are required")
-        TRACKING = {
-            "entity": args.wandb_entity,
-            "project": args.wandb_project,
-            "group": f"{args.wandb_project}-{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:8]}",
-            "directory": str(output / "wandb"),
-        }
+        TRACKING = (
+            prior_config["wandb"]
+            if args.resume
+            else {
+                "entity": args.wandb_entity,
+                "project": args.wandb_project,
+                "group": f"{args.wandb_project}-{time.strftime('%Y%m%dT%H%M%S')}-{uuid.uuid4().hex[:8]}",
+                "directory": str(output / "wandb"),
+            }
+        )
+        if (
+            TRACKING["entity"] != args.wandb_entity
+            or TRACKING["project"] != args.wandb_project
+        ):
+            raise ValueError("Resume W&B destination differs from the existing run")
         SUMMARY = Tracking(
             TRACKING,
             config={
                 "target": args.target,
                 "start_date": args.start_date,
+                "end_date": args.end_date,
                 "horizon": args.horizon,
                 "seed": 42,
                 "rows": len(frame),
                 "folds": len(folds),
+                "phase2_start_ratio": args.phase2_start_ratio,
+                "phase2_start_cutoff": phase2_start_cutoff,
+                "phase2_first_fold": folds[0].index,
+                "phase2_last_fold": folds[-1].index,
                 "fingerprint": fingerprint,
                 **transform_metadata,
+                **exog_metadata,
                 "phase2_policy": POLICY,
                 "scheduler": args.scheduler,
                 "commit": subprocess.check_output(
@@ -1230,13 +1601,23 @@ def main():
                 eligibility, columns=["model", "protocol", "status", "reason"]
             ),
         )
-    if args.scheduler == "dynamic":
+    if args.scheduler in {"dynamic", "dynamic-pool"}:
         import atexit
         import signal
         from types import SimpleNamespace
         from dynamic_queue import DynamicQueue
 
-        queue = DynamicQueue(output, SUMMARY)
+        if args.scheduler == "dynamic-pool":
+            from dynamic_pool import PoolQueue
+
+            queue = PoolQueue(
+                output,
+                SUMMARY,
+                reuse_models={candidate.name for candidate in candidates},
+                resume=args.resume,
+            )
+        else:
+            queue = DynamicQueue(output, SUMMARY, resume=args.resume)
         atexit.register(queue.shutdown)
 
         def shutdown_signal(signum, frame):
@@ -1283,7 +1664,9 @@ def main():
                 json.dumps(
                     {
                         "fingerprint": fingerprint,
+                        "protocol_version": PROTOCOL_VERSION,
                         **transform_metadata,
+                        **exog_metadata,
                         "phase2_policy": POLICY,
                         "scheduler": args.scheduler,
                         "passed": [r["candidate"] for r in results if r["ok"]],
@@ -1294,41 +1677,87 @@ def main():
             )
         ray.shutdown()
         return
-    (output / "run_config.json").write_text(
-        json.dumps(
-            {
-                "horizon": args.horizon,
-                "step_size": 1,
-                "seed": 42,
-                "phase1_folds": [fold.index for fold in reps],
-                "phase2_folds": len(folds),
-                "sh_budgets": list(SHPlan().budgets),
-                "sh_rung_counts": list(SHPlan().survivors),
-                "protocol_version": PROTOCOL_VERSION,
-                "evaluation_split": "validation",
-                "phase2_top_k": 10,
-                "fingerprint": fingerprint,
-                **transform_metadata,
-                "phase2_policy": POLICY,
-                "scheduler": args.scheduler,
-                "wandb": TRACKING,
-                "candidates": [c.name for c in candidates],
-                "status": "phase1",
-            },
-            indent=2,
-        )
-    )
-    phase1, failures1 = _run_phase1(
-        data_path, candidates, reps, output / "checkpoints_phase1"
-    )
-    ranking = sorted(
-        candidates,
-        key=lambda item: rank_key(item.best_score, item.best_fold_scores),
-    )
-    naive_rmse = _naive_score(frame, reps)
-    selected, ranking_frame = _select_candidates(ranking, naive_rmse)
-    ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
     phase1_reference = _validation_reference(frame, reps)
+    if not args.resume:
+        (output / "run_config.json").write_text(
+            json.dumps(
+                {
+                    "target": args.target,
+                    "start_date": args.start_date,
+                    "end_date": args.end_date,
+                    "horizon": args.horizon,
+                    "step_size": 1,
+                    "seed": 42,
+                    "phase1_folds": [fold.index for fold in reps],
+                    "phase2_folds": len(folds),
+                    "phase2_start_ratio": args.phase2_start_ratio,
+                    "phase2_start_cutoff": phase2_start_cutoff,
+                    "phase2_first_fold": folds[0].index,
+                    "phase2_last_fold": folds[-1].index,
+                    "sh_budgets": list(SHPlan().budgets),
+                    "sh_rung_counts": list(SHPlan().survivors),
+                    "protocol_version": PROTOCOL_VERSION,
+                    "evaluation_split": "validation",
+                    "phase2_top_k": 10,
+                    "fingerprint": fingerprint,
+                    **transform_metadata,
+                    **exog_metadata,
+                    "phase2_policy": POLICY,
+                    "scheduler": args.scheduler,
+                    "wandb": TRACKING,
+                    "candidates": [c.name for c in candidates],
+                    "status": "phase1",
+                },
+                indent=2,
+            )
+        )
+        phase1, failures1 = _run_phase1(
+            data_path, candidates, reps, output / "checkpoints_phase1"
+        )
+        ranking = sorted(
+            candidates,
+            key=lambda item: rank_key(item.best_score, item.best_fold_scores),
+        )
+        naive_rmse = _naive_score(frame, reps)
+        selected, ranking_frame = _select_candidates(ranking, naive_rmse)
+        ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
+    else:
+        phase1, failures1, ranking_frame, selected = _restore_phase1(output, candidates)
+        naive_rmse = float(ranking_frame["naive_rmse"].dropna().iloc[0])
+        restored = sum(
+            _completed_phase2_result(
+                output
+                / "checkpoints_phase2"
+                / candidate.name
+                / "0"
+                / str(fold.index)
+                / f"result-{POLICY['max_steps'] if candidate.protocol in {'scratch_hpo', 'lora'} else 0}.json",
+                candidate,
+                fold,
+                (
+                    POLICY["max_steps"]
+                    if candidate.protocol in {"scratch_hpo", "lora"}
+                    else 0
+                ),
+                require_tracking=(
+                    TRACKING is not None and not args.phase2_window_migration
+                ),
+            )
+            is not None
+            for candidate in selected
+            for fold in folds
+        )
+        prior_config.update(
+            status="phase2_resuming",
+            scheduler=args.scheduler,
+            restored_phase2_folds=restored,
+            remaining_phase2_folds=len(selected) * len(folds) - restored,
+        )
+        run_config_path.write_text(json.dumps(prior_config, indent=2))
+        print(
+            f"resume restored={restored} remaining={len(selected) * len(folds) - restored}",
+            flush=True,
+        )
     baseline = _leaderboard([], phase1_reference)[0]
     baseline.update(selected=False, exclusion_reason="baseline")
     phase1_report = pd.concat(
@@ -1343,7 +1772,14 @@ def main():
             "phase1", phase1_report, _metric_definitions(phase1_reference)
         )
     predictions, failures2 = (
-        _phase2(data_path, selected, folds, output / "checkpoints_phase2")
+        _phase2(
+            data_path,
+            selected,
+            folds,
+            output / "checkpoints_phase2",
+            resume=args.resume,
+            require_tracking=not args.phase2_window_migration,
+        )
         if selected
         else ([], [])
     )
@@ -1359,7 +1795,8 @@ def main():
     pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(
         output / "eligibility.csv", index=False
     )
-    pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
+    if not args.resume:
+        pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
     ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
     pd.DataFrame(
         predictions,
@@ -1375,9 +1812,13 @@ def main():
     (output / "run_config.json").write_text(
         json.dumps(
             {
+                "target": args.target,
+                "start_date": args.start_date,
+                "end_date": args.end_date,
                 "horizon": args.horizon,
                 "fingerprint": fingerprint,
                 **transform_metadata,
+                **exog_metadata,
                 "phase2_policy": POLICY,
                 "scheduler": args.scheduler,
                 "wandb": TRACKING,
@@ -1385,6 +1826,10 @@ def main():
                 "seed": 42,
                 "phase1_folds": [fold.index for fold in reps],
                 "phase2_folds": len(folds),
+                "phase2_start_ratio": args.phase2_start_ratio,
+                "phase2_start_cutoff": phase2_start_cutoff,
+                "phase2_first_fold": folds[0].index,
+                "phase2_last_fold": folds[-1].index,
                 "sh_budgets": list(SHPlan().budgets),
                 "sh_rung_counts": list(SHPlan().survivors),
                 "protocol_version": PROTOCOL_VERSION,
@@ -1392,6 +1837,7 @@ def main():
                 "naive_rmse": naive_rmse,
                 "status": status,
                 "phase2_top_k": 10,
+                "candidates": [candidate.name for candidate in candidates],
                 "selected": [item.name for item in selected],
             },
             indent=2,

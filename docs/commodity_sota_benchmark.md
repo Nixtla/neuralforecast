@@ -109,7 +109,26 @@ validation/model-selection scores, not independent test scores.
 
 ## Data
 
-The runner accepts a CSV containing a date column and a target column. It selects the target only and resamples it to weekly Sunday-ending means. Missing values are forward-filled within their own Train or Validation slice, so replacement never uses a later observation. A slice that begins with a missing target is rejected. Validation targets are filled separately and never enter gradient updates.
+The runner accepts a CSV containing a date column and a target column. By default it
+selects the target only and resamples it to weekly Sunday-ending means. Missing target
+values are forward-filled within their own Train or Validation slice, so replacement
+never uses a later observation. A slice that begins with a missing target is rejected.
+Validation targets are filled separately and never enter gradient updates.
+
+`--auto-hist-exog` enables automatic historical-exogenous selection from every other
+CSV column. Missingness is measured over the complete bounded experiment period;
+columns at or above `--exog-max-missing-ratio` (default `0.05`) are removed. Pearson
+correlation is then measured only over the first fold's training rows, and columns
+whose absolute correlation is below `--exog-max-abs-corr` (default `0.8`) are used as
+one fixed `hist_exog_list` for every fold. The upper bound is exclusive: columns at
+exactly `0.8` are removed. Remaining gaps are forward-filled from past observations.
+A column missing at the period start is removed. Models without
+historical-exogenous support are listed as skipped rather than mixed into the same
+leaderboard. `exogenous_selection.csv` records every selection decision.
+
+Use `--end-date` together with `--start-date` to reproduce an earlier experiment's
+exact date range. The range, thresholds and selected feature names are part of the
+experiment fingerprint.
 
 Example:
 
@@ -195,6 +214,24 @@ Export the fixed target (starting 2013-08-11) without changing the source databa
 ```bash
 .venv/bin/python experiments/commodity_sota/export_postgres.py
 ```
+
+Create immutable wide snapshots for the historical-exogenous follow-up experiments:
+
+```bash
+.venv/bin/python experiments/commodity_sota/export_postgres.py \
+  --dataset gasoline --include-exogenous \
+  --start-date 2013-08-11 --end-date 2026-09-06 \
+  --output data/gasoline-exog.csv
+.venv/bin/python experiments/commodity_sota/export_postgres.py \
+  --dataset wti --include-exogenous \
+  --start-date 2015-03-15 --end-date 2026-09-06 \
+  --output data/wti-exog.csv
+```
+
+The manifest records source metadata, exact bounds, headers, per-column missing
+ratios and the snapshot SHA-256. Exogenous nulls are permitted because the runner
+applies the documented selection and causal filling policy; the target must remain
+complete and finite.
 
 The exporter resolves the SQL column through `collector.columns` and restores its
 full header in CSV. It refuses to overwrite an existing snapshot. The adjacent
