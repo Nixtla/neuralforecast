@@ -4,10 +4,12 @@ import importlib.util
 from pathlib import Path
 import sys
 import json
+from types import SimpleNamespace
 import numpy as np
 import pandas as pd
 import torch
 import pytest
+from ray import tune
 
 
 @pytest.fixture
@@ -28,6 +30,38 @@ def runner(monkeypatch):
     torch.set_num_threads(2)
     yield module
     torch.set_num_threads(old_threads)
+
+
+def test_all_phase1_candidate_types_use_sobol(runner, monkeypatch):
+    class Model:
+        MULTIVARIATE = False
+
+    space = {"learning_rate": tune.loguniform(1e-4, 1e-2)}
+
+    class Auto:
+        def __init__(self, **kwargs):
+            self.config = space
+            self.cls_model = Model
+
+    monkeypatch.setattr(
+        runner, "auto_module",
+        SimpleNamespace(__all__=["AutoExample"], AutoExample=Auto),
+    )
+    monkeypatch.setattr(runner, "model_module", SimpleNamespace(Example=Model))
+    monkeypatch.setattr(runner, "INFERENCE_TUNING_MODELS", ["Example"])
+    monkeypatch.setattr(runner, "get_inference_tuning_config", lambda *a, **kw: space)
+    monkeypatch.setattr(
+        runner, "_lora_api", lambda: (["Example"], None, lambda *a, **kw: space)
+    )
+    candidates, eligibility = runner._build_candidates(16, {}, 128)
+    assert len(candidates) == 3, eligibility
+    expected = runner.sample_ray_configs(space)
+    for candidate in candidates:
+        assert [c["learning_rate"] for c in candidate.configs] == [
+            c["learning_rate"] for c in expected
+        ]
+        if candidate.protocol != "zero_shot":
+            assert candidate.plan.survivors == (10, 5, 1)
 
 
 def data():
@@ -401,6 +435,7 @@ def test_no_naive_winner_skips_phase2_and_preserves_results(
     assert config["status"] == "no_models_above_naive"
     assert config["selected"] == []
     assert config["sh_budgets"] == [100, 250, 500]
+    assert config["sampling_policy"] == runner.SAMPLING_POLICY
     assert pd.read_csv(output / "phase2_predictions.csv").empty
     assert pd.read_csv(output / "leaderboard.csv").candidate.tolist() == ["Naive"]
     assert pd.read_csv(output / "phase1_leaderboard.csv").candidate.tolist() == [
@@ -413,6 +448,20 @@ def test_no_naive_winner_skips_phase2_and_preserves_results(
     with pytest.raises(ValueError, match="fresh output"):
         runner.main()
     assert before == (output / "run_config.json").read_bytes()
+    monkeypatch.setattr(sys, "argv", sys.argv + ["--resume"])
+    with pytest.raises(ValueError, match="already complete"):
+        runner.main()
+    legacy = dict(config)
+    legacy.pop("sampling_policy")
+    (output / "run_config.json").write_text(json.dumps(legacy))
+    with pytest.raises(ValueError, match="sampling_policy"):
+        runner.main()
+    report = tmp_path / "smoke.json"
+    report.write_text(json.dumps({"fingerprint": config["fingerprint"], "passed": ["GRU"]}))
+    monkeypatch.setattr(sys, "argv", sys.argv + ["--validated-candidates", str(report)])
+    monkeypatch.setattr(runner, "SAMPLING_POLICY", {**runner.SAMPLING_POLICY, "version": 2})
+    with pytest.raises(ValueError, match="Smoke report does not match"):
+        runner.main()
 
 
 def test_leaderboard_uses_identical_points_and_includes_naive(runner):
@@ -502,7 +551,12 @@ def test_diff_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol
         monkeypatch.setattr(runner, name, predict)
     result = runner._evaluate_job._function(
         str(path),
-        {"name": "GRU", "model_name": "GRU", "protocol": protocol},
+        {
+            "name": "GRU",
+            "model_name": "GRU",
+            "protocol": protocol,
+            "protocol_version": "worker-protocol-v2",
+        },
         0,
         {},
         fold,
@@ -515,3 +569,4 @@ def test_diff_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol
     np.testing.assert_allclose(result["prediction"], np.repeat(frame.y.iloc[95], 16))
     assert result["rmse"] == pytest.approx(runner._naive_score(frame, [fold]))
     assert result["evaluation_scale"] == "level"
+    assert result["protocol_version"] == "worker-protocol-v2"

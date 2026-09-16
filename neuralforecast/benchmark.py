@@ -3,12 +3,29 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from copy import deepcopy
 from math import sqrt
 from typing import Iterable, Sequence
 
 import numpy as np
 from ray import tune
-from ray.tune.search.variant_generator import generate_variants
+from ray.tune.search.sample import (
+    Categorical,
+    Domain,
+    Float,
+    Integer,
+    LogUniform,
+    Uniform,
+)
+from scipy.stats import qmc
+
+SAMPLING_POLICY = {
+    "version": 1,
+    "method": "sobol",
+    "seed": 42,
+    "scramble": True,
+    "n": 10,
+}
 
 
 @dataclass(frozen=True)
@@ -147,14 +164,103 @@ def summary_rank_key(
 
 
 def sample_ray_configs(space: dict, n: int = 10, seed: int = 42) -> list[dict]:
-    """Resolve ``ray.tune`` domains without launching training actors."""
-    if n < 1:
+    """Resolve Ray domains with seeded scrambled Sobol points.
+
+    Args:
+        space: Nested search space with choice, uniform, loguniform or randint.
+        n: Positive number of configurations. Discrete duplicates are retained.
+        seed: Seed for Sobol scrambling, independent of training RNG state.
+
+    Returns:
+        Independent configurations in Sobol sequence order. Non-power-of-two
+        prefixes do not retain the full sequence's balance guarantee.
+
+    Raises:
+        ValueError: If n is invalid or a search domain is unsupported.
+    """
+    if isinstance(n, bool) or not isinstance(n, (int, np.integer)) or n < 1:
         raise ValueError("n must be positive.")
-    random_state = np.random.RandomState(seed)
+    domains: list[tuple[tuple, Domain]] = []
+
+    def collect(value, path=()):
+        if isinstance(value, Domain):
+            sampler = value.get_sampler()
+            supported = (
+                isinstance(value, Categorical)
+                and isinstance(sampler, Uniform)
+                or isinstance(value, Float)
+                and isinstance(sampler, (Uniform, LogUniform))
+                or isinstance(value, Integer)
+                and isinstance(sampler, Uniform)
+            )
+            if not supported:
+                raise ValueError(f"Unsupported Sobol domain at {path}: {value}")
+            if isinstance(value, Categorical):
+                if not value.categories:
+                    raise ValueError(f"Empty Sobol choice at {path}")
+                # Conditional domains within choices cannot use fixed dimensions.
+                for category in value.categories:
+                    before = len(domains)
+                    collect(category, path)
+                    if len(domains) != before:
+                        raise ValueError(f"Conditional Sobol choice at {path}")
+            elif (
+                not np.isfinite([value.lower, value.upper]).all()
+                or value.lower >= value.upper
+                or isinstance(sampler, LogUniform)
+                and value.lower <= 0
+            ):
+                raise ValueError(f"Invalid Sobol bounds at {path}")
+            domains.append((path, value))
+        elif isinstance(value, dict):
+            if "grid_search" in value:
+                raise ValueError(f"Unsupported Sobol grid_search at {path}")
+            for key in sorted(value):
+                collect(value[key], (*path, key))
+        elif isinstance(value, (list, tuple)):
+            for index, item in enumerate(value):
+                collect(item, (*path, index))
+
+    collect(space)
+    if not domains:
+        return [deepcopy(space) for _ in range(n)]
+    points = qmc.Sobol(d=len(domains), scramble=True, seed=seed).random_base2(
+        (int(n) - 1).bit_length()
+    )[:n]
+
+    def resolve(value, replacements, path=()):
+        if isinstance(value, Domain):
+            return deepcopy(replacements[path])
+        if isinstance(value, dict):
+            return {k: resolve(v, replacements, (*path, k)) for k, v in value.items()}
+        if isinstance(value, (list, tuple)):
+            return type(value)(
+                resolve(v, replacements, (*path, i)) for i, v in enumerate(value)
+            )
+        return deepcopy(value)
+
     configs = []
-    for _ in range(n):
-        _, config = next(generate_variants(space, random_state=random_state))
-        configs.append(config)
+    for point in points:
+        replacements = {}
+        for (path, domain), u in zip(domains, point):
+            if isinstance(domain, Categorical):
+                value = domain.categories[int(u * len(domain.categories))]
+            elif isinstance(domain, Integer):
+                value = min(
+                    domain.upper - 1,
+                    int(domain.lower + np.floor(u * (domain.upper - domain.lower))),
+                )
+            elif isinstance(domain.get_sampler(), LogUniform):
+                value = float(
+                    np.exp(
+                        np.log(domain.lower)
+                        + u * (np.log(domain.upper) - np.log(domain.lower))
+                    )
+                )
+            else:
+                value = float(domain.lower + u * (domain.upper - domain.lower))
+            replacements[path] = value
+        configs.append(resolve(space, replacements))
     return configs
 
 

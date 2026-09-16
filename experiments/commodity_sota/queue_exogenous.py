@@ -168,7 +168,7 @@ def prepare():
     source_paths.append(ROOT / "model_config.json")
     reservation = {
         "sequence": [
-            "recover-uni-wti",
+            "uni-wti",
             "uni-wti-diff",
             "uni-gasoline-exog",
             "uni-wti-exog",

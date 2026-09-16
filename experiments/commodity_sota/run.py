@@ -23,6 +23,7 @@ import torch
 import neuralforecast.auto as auto_module
 import neuralforecast.models as model_module
 from neuralforecast.benchmark import (
+    SAMPLING_POLICY,
     SHPlan,
     benchmark_search_space,
     expanding_folds,
@@ -34,13 +35,18 @@ from neuralforecast.benchmark import (
     representative_folds,
     restrict_input_size,
     sample_ray_configs,
-    summary_rank_key,
 )
 from neuralforecast.inference_tuning import (
     INFERENCE_TUNING_MODELS,
     get_inference_tuning_config,
 )
 from neuralforecast.benchmark_tracking import Tracking, training_callback, safe_config
+from neuralforecast.benchmark_leaderboard import (
+    leaderboard as _leaderboard,
+    metric_definitions as _metric_definitions,
+    phase2_publication,
+    validation_reference as _validation_reference,
+)
 from neuralforecast.benchmark_numerics import (
     NUMERICS_VERSION,
     FiniteTraining,
@@ -51,6 +57,19 @@ from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
 
 
 LLM_MODELS = {"Aurora", "ChatTime", "GPT4MTS", "LangTime", "UniTime"}
+# Temporarily disabled after benchmark review; remove an entry to re-enable it.
+# Keep protocol-specific exclusions separate so TimesFM-LoRA remains available.
+DISABLED_CANDIDATES = {
+    "Moirai-ZeroShot",
+    "Moirai2-ZeroShot",
+    "MoiraiMoE-ZeroShot",
+    "Chronos2-ZeroShot",
+    "TimesFM-ZeroShot",
+    "TimesFM3-ZeroShot",
+    "Toto-ZeroShot",
+    "NLinear",
+    "Chronos2-LoRA",
+}
 SKIP_MODELS = {
     "HINT",
     "SearchCast",
@@ -481,6 +500,7 @@ def _evaluate_job(
     started = time.monotonic()
     tracker = None
     result = None
+    protocol_version = candidate.get("protocol_version", PROTOCOL_VERSION)
     try:
         # Backend auto-integrations must not create additional runs.
         os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
@@ -520,7 +540,7 @@ def _evaluate_job(
                 "train_end": str(train.ds.iloc[-1]),
                 "validation_start": str(valid.ds.iloc[0]),
                 "validation_end": str(valid.ds.iloc[-1]),
-                "protocol_version": PROTOCOL_VERSION,
+                "protocol_version": protocol_version,
                 "evaluation_split": "validation",
                 "phase2_policy": stopping,
                 "attempt": candidate.get("attempt", 0),
@@ -579,7 +599,7 @@ def _evaluate_job(
             "checkpoint": next_checkpoint,
             "budget": budget,
             "evaluation_split": "validation",
-            "protocol_version": PROTOCOL_VERSION,
+            "protocol_version": protocol_version,
             "forecast_origin": forecast_origin,
             **transform_metadata,
             **forecast_metrics(
@@ -657,7 +677,10 @@ def _fixed_kwargs(config, name, protocol=None):
     return fixed
 
 
-def _skip_reason(name, hist_exog_list):
+def _skip_reason(name, hist_exog_list, protocol=None):
+    candidate = f"{name}-{protocol}" if protocol else name
+    if candidate in DISABLED_CANDIDATES:
+        return "temporarily disabled after benchmark review"
     if name in LLM_MODELS:
         return "LLM protocol excluded by runner"
     if name in SKIP_MODELS and not (
@@ -735,7 +758,7 @@ def _build_candidates(h, model_config, first_train, hist_exog_list=None):
         eligibility.append((name, "scratch_hpo", "READY", ""))
 
     for name in INFERENCE_TUNING_MODELS:
-        reason = _skip_reason(name, hist_exog_list)
+        reason = _skip_reason(name, hist_exog_list, "ZeroShot")
         if reason:
             eligibility.append(
                 (name, "zero_shot", "SKIP", reason)
@@ -770,6 +793,11 @@ def _build_candidates(h, model_config, first_train, hist_exog_list=None):
 
     lora_models, _, get_lora_config = _lora_api()
     for name in lora_models:
+        if f"{name}-LoRA" in DISABLED_CANDIDATES:
+            eligibility.append(
+                (name, "lora", "SKIP", "temporarily disabled after benchmark review")
+            )
+            continue
         try:
             model_cls = getattr(model_module, name)
             reason = _historical_exog_reason(model_cls, hist_exog_list)
@@ -801,7 +829,11 @@ def _minimum_train(h, model_config):
         if not auto_name.startswith("Auto"):
             continue
         name = auto_name[4:]
-        if name in LLM_MODELS or name in SKIP_MODELS:
+        if (
+            name in LLM_MODELS
+            or name in SKIP_MODELS
+            or name in DISABLED_CANDIDATES
+        ):
             continue
         auto_cls = getattr(auto_module, auto_name, None)
         if auto_cls is None:
@@ -818,7 +850,11 @@ def _minimum_train(h, model_config):
         except Exception:
             pass
     for name in INFERENCE_TUNING_MODELS:
-        if name in LLM_MODELS or name in SKIP_MODELS:
+        if (
+            name in LLM_MODELS
+            or name in SKIP_MODELS
+            or f"{name}-ZeroShot" in DISABLED_CANDIDATES
+        ):
             continue
         try:
             space = get_inference_tuning_config(
@@ -838,6 +874,7 @@ def _payload(candidate):
         "name": candidate.name,
         "protocol": candidate.protocol,
         "model_name": candidate.model_name,
+        "protocol_version": PROTOCOL_VERSION,
         "tracking": TRACKING,
         "phase2_policy": POLICY,
     }
@@ -867,15 +904,35 @@ def _trial_metrics(rows):
     )
 
 
-def _run_phase1(data_path, candidates, folds, checkpoint_root):
+def _run_phase1(data_path, candidates, folds, checkpoint_root, resume=False):
     pending, trials, failures = {}, [], []
     terminal = {}
+    restored = 0
 
     def submit(candidate, config_id, fold, budget):
+        nonlocal restored
         cached = terminal.get((candidate.name, config_id, fold.index))
         if cached is not None:
             candidate.rung_results[(config_id, fold.index)] = cached
             return
+        if resume:
+            path = (
+                Path(checkpoint_root) / candidate.name / str(config_id)
+                / str(fold.index) / f"result-{budget}.json"
+            )
+            cached = _completed_fold_result(
+                path, candidate, fold, budget,
+                require_tracking=TRACKING is not None, config_id=config_id,
+            )
+            if cached is not None:
+                candidate.rung_results[(config_id, fold.index)] = cached
+                restored += 1
+                if cached.get("stop_reason") == "early_stopping":
+                    terminal[(candidate.name, config_id, fold.index)] = cached
+                checkpoint = cached.get("checkpoint")
+                if checkpoint and Path(checkpoint).is_file():
+                    candidate.checkpoints[(config_id, fold.index)] = checkpoint
+                return
         checkpoint = candidate.checkpoints.get((config_id, fold.index))
         ref = _evaluate_job.remote(
             data_path,
@@ -945,6 +1002,12 @@ def _run_phase1(data_path, candidates, folds, checkpoint_root):
         for config_id in candidate.alive:
             for fold in sorted(folds, key=lambda f: f.train_end, reverse=True):
                 submit(candidate, config_id, fold, budget)
+        advance(candidate)
+
+    if resume:
+        print(f"phase1 resume restored={restored} pending={len(pending)}", flush=True)
+        if SUMMARY:
+            SUMMARY.summary({"phase1/restored_jobs": restored, "status": "phase1_resuming"})
 
     while pending:
         done, _ = ray.wait(list(pending), num_returns=1)
@@ -1037,7 +1100,9 @@ def _select_candidates(ranking, naive_rmse):
     return selected, pd.DataFrame(rows)
 
 
-def _completed_phase2_result(path, candidate, fold, budget, require_tracking=False):
+def _completed_fold_result(
+    path, candidate, fold, budget, require_tracking=False, config_id=0,
+):
     """Load a complete compatible fold result, or return None for recomputation."""
     path = Path(path)
     if not path.is_file():
@@ -1047,7 +1112,7 @@ def _completed_phase2_result(path, candidate, fold, budget, require_tracking=Fal
         valid = (
             result.get("ok") is True
             and result.get("candidate") == candidate.name
-            and int(result.get("config_id")) == 0
+            and int(result.get("config_id")) == config_id
             and int(result.get("fold")) == fold.index
             and int(result.get("budget")) == budget
             and result.get("protocol_version") == PROTOCOL_VERSION
@@ -1062,6 +1127,13 @@ def _completed_phase2_result(path, candidate, fold, budget, require_tracking=Fal
     return result if valid else None
 
 
+def _completed_phase2_result(path, candidate, fold, budget, require_tracking=False):
+    """Load a complete Phase 2 result for the selected configuration."""
+    return _completed_fold_result(
+        path, candidate, fold, budget, require_tracking=require_tracking,
+    )
+
+
 def _phase2(
     data_path,
     selected,
@@ -1069,10 +1141,12 @@ def _phase2(
     checkpoint_root,
     resume=False,
     require_tracking=True,
+    on_model_complete=None,
 ):
     pending, predictions, failures = {}, [], []
+    completed_folds = {candidate.name: set() for candidate in selected}
 
-    def record(candidate, fold, result):
+    def record(candidate, fold, result, notify=True):
         for horizon, (actual, prediction) in enumerate(
             zip(result["actual"], result["prediction"]), start=1
         ):
@@ -1086,6 +1160,14 @@ def _phase2(
                     "prediction": prediction,
                 }
             )
+
+        completed_folds[candidate.name].add(fold.index)
+        if (
+            notify
+            and on_model_complete
+            and len(completed_folds[candidate.name]) == len(folds)
+        ):
+            on_model_complete(predictions)
 
     for candidate in selected:
         budget = (
@@ -1111,7 +1193,7 @@ def _phase2(
                 else None
             )
             if completed is not None:
-                record(candidate, fold, completed)
+                record(candidate, fold, completed, notify=False)
                 continue
             ref = _evaluate_job.remote(
                 data_path,
@@ -1124,6 +1206,8 @@ def _phase2(
                 checkpoint_root,
             )
             pending[ref] = (candidate, fold)
+    if resume and on_model_complete:
+        on_model_complete(predictions)
     while pending:
         done, _ = ray.wait(list(pending), num_returns=1)
         ref = done[0]
@@ -1197,23 +1281,6 @@ def _restore_phase1(output, candidates):
     return trials.to_dict(orient="records"), failures, ranking, selected
 
 
-def _validation_reference(frame, folds):
-    rows = []
-    for fold in folds:
-        train = _fill(frame.iloc[fold.train_slice])
-        valid = _fill(frame.iloc[fold.valid_slice])
-        rows.extend(
-            {
-                "fold": fold.index,
-                "horizon": horizon,
-                "actual": float(actual),
-                "forecast_origin": float(train.y.iloc[-1]),
-            }
-            for horizon, actual in enumerate(valid.y, 1)
-        )
-    return pd.DataFrame(rows)
-
-
 def _phase2_window(folds, n_obs, start_ratio):
     """Keep full-series fold identities at or after the requested cutoff."""
     cutoff = max(folds[0].train_end, int(np.ceil(n_obs * start_ratio)))
@@ -1222,76 +1289,6 @@ def _phase2_window(folds, n_obs, start_ratio):
         raise ValueError("Phase 2 start ratio leaves no complete forecast fold")
     return selected, cutoff
 
-
-def _leaderboard(predictions, reference):
-    """Compare complete model predictions and naive on exactly the same points."""
-    naive = reference.assign(
-        candidate="Naive", protocol="naive", prediction=reference.forecast_origin
-    )
-    frame = pd.concat([pd.DataFrame(predictions), naive], ignore_index=True)
-    naive_rmse = fold_rmse(reference.actual, reference.forecast_origin)
-    rows = []
-    for (candidate, protocol), values in frame.groupby(["candidate", "protocol"]):
-        if values.duplicated(["fold", "horizon"]).any():
-            raise ValueError(f"Duplicate fold/horizon predictions for {candidate}")
-        joined = values.drop(columns=["forecast_origin"], errors="ignore").merge(
-            reference,
-            on=["fold", "horizon"],
-            suffixes=("", "_reference"),
-            how="outer",
-            indicator=True,
-            validate="one_to_one",
-        )
-        if not joined["_merge"].eq("both").all():
-            continue
-        if not np.allclose(joined.actual, joined.actual_reference, rtol=0, atol=1e-10):
-            raise ValueError(f"Actual targets differ from reference for {candidate}")
-        metrics = forecast_metrics(
-            joined.actual_reference, joined.prediction, joined.forecast_origin
-        )
-        fold_scores = [
-            fold_rmse(fold["actual"], fold["prediction"])
-            for _, fold in values.groupby("fold")
-        ]
-        score = fold_rmse(values["actual"], values["prediction"])
-        rows.append(
-            {
-                "candidate": candidate,
-                "protocol": protocol,
-                "pooled_rmse": score,
-                "fold_rmse_std": float(np.std(fold_scores)),
-                "worst_fold_rmse": float(np.max(fold_scores)),
-                **metrics,
-                "naive_rmse": naive_rmse,
-                "rmse_vs_naive": metrics["rmse"] / naive_rmse if naive_rmse else None,
-                "beats_naive": metrics["rmse"] < naive_rmse,
-                "evaluation_split": "validation",
-            }
-        )
-    rows.sort(
-        key=lambda row: summary_rank_key(
-            row["pooled_rmse"], row["fold_rmse_std"], row["worst_fold_rmse"]
-        )
-    )
-    for rank, row in enumerate(rows, start=1):
-        row["rank"] = rank
-    return rows
-
-
-def _metric_definitions(reference):
-    difference = reference.actual - reference.forecast_origin
-    return {
-        "evaluation_split": "validation",
-        "evaluation_scale": "level",
-        "aggregation": "Equal weight per fold/horizon point; RMSE ascending",
-        "naive": "Last training observation repeated for every validation horizon",
-        "mape": "Percent; zero actuals excluded, mape_n reports denominator",
-        "da": "Percent matching rise/fall/flat signs relative to last training observation; origin fixed within each fold",
-        "points_per_model": len(reference),
-        "always_up_da_pct": float(100 * (difference > 0).mean()),
-        "always_down_da_pct": float(100 * (difference < 0).mean()),
-        "always_flat_da_pct": float(100 * (difference == 0).mean()),
-    }
 
 
 def main():
@@ -1311,7 +1308,7 @@ def main():
     parser.add_argument("--output", default="results/commodity_sota")
     parser.add_argument("--horizon", type=int, default=16)
     parser.add_argument(
-        "--scheduler", choices=["dynamic", "dynamic-pool", "ray"], default="dynamic"
+        "--scheduler", choices=["dynamic", "dynamic-pool", "taskvine", "ray"], default="dynamic"
     )
     parser.add_argument("--phase2-max-steps", type=int, default=500)
     parser.add_argument("--phase2-val-check-steps", type=int, default=10)
@@ -1438,6 +1435,7 @@ def main():
         + json.dumps(POLICY, sort_keys=True).encode()
         + str(args.phase2_start_ratio).encode()
         + str(NUMERICS_VERSION).encode()
+        + json.dumps(SAMPLING_POLICY, sort_keys=True).encode()
         + json.dumps(transform_metadata, sort_keys=True).encode()
         + PROTOCOL_VERSION.encode()
         + json.dumps(SHPlan().__dict__, sort_keys=True).encode()
@@ -1525,6 +1523,7 @@ def main():
     if args.resume:
         prior_config = json.loads(run_config_path.read_text())
         expected = {
+            "sampling_policy": SAMPLING_POLICY,
             "fingerprint": fingerprint,
             "horizon": args.horizon,
             "phase2_policy": POLICY,
@@ -1545,6 +1544,10 @@ def main():
         if prior_config.get("scheduler") != args.scheduler and not (
             prior_config.get("scheduler") == "dynamic"
             and args.scheduler == "dynamic-pool"
+        ) and not (
+            "taskvine" in {prior_config.get("scheduler"), args.scheduler}
+            and {prior_config.get("scheduler"), args.scheduler}
+            <= {"dynamic", "dynamic-pool", "taskvine"}
         ):
             raise ValueError("Resume scheduler differs from the existing experiment")
         if bool(prior_config.get("wandb")) != args.wandb:
@@ -1553,6 +1556,8 @@ def main():
     if args.wandb:
         if not args.wandb_entity or not os.environ.get("WANDB_API_KEY"):
             raise ValueError("W&B entity and WANDB_API_KEY are required")
+        from neuralforecast.benchmark_tracking import ensure_open_project
+
         TRACKING = (
             prior_config["wandb"]
             if args.resume
@@ -1568,6 +1573,7 @@ def main():
             or TRACKING["project"] != args.wandb_project
         ):
             raise ValueError("Resume W&B destination differs from the existing run")
+        ensure_open_project(args.wandb_entity, args.wandb_project)
         SUMMARY = Tracking(
             TRACKING,
             config={
@@ -1601,13 +1607,17 @@ def main():
                 eligibility, columns=["model", "protocol", "status", "reason"]
             ),
         )
-    if args.scheduler in {"dynamic", "dynamic-pool"}:
+    if args.scheduler in {"dynamic", "dynamic-pool", "taskvine"}:
         import atexit
         import signal
         from types import SimpleNamespace
         from dynamic_queue import DynamicQueue
 
-        if args.scheduler == "dynamic-pool":
+        if args.scheduler == "taskvine":
+            from taskvine_queue import TaskVineQueue
+
+            queue = TaskVineQueue(output, SUMMARY, resume=args.resume)
+        elif args.scheduler == "dynamic-pool":
             from dynamic_pool import PoolQueue
 
             queue = PoolQueue(
@@ -1678,6 +1688,11 @@ def main():
         ray.shutdown()
         return
     phase1_reference = _validation_reference(frame, reps)
+    resume_phase1 = (
+        args.resume
+        and prior_config.get("status") in {"phase1", "phase1_resuming"}
+        and not (output / "phase1_ranking.csv").is_file()
+    )
     if not args.resume:
         (output / "run_config.json").write_text(
             json.dumps(
@@ -1696,6 +1711,7 @@ def main():
                     "phase2_last_fold": folds[-1].index,
                     "sh_budgets": list(SHPlan().budgets),
                     "sh_rung_counts": list(SHPlan().survivors),
+                    "sampling_policy": SAMPLING_POLICY,
                     "protocol_version": PROTOCOL_VERSION,
                     "evaluation_split": "validation",
                     "phase2_top_k": 10,
@@ -1711,8 +1727,13 @@ def main():
                 indent=2,
             )
         )
+    if resume_phase1:
+        prior_config.update(status="phase1_resuming", scheduler=args.scheduler)
+        run_config_path.write_text(json.dumps(prior_config, indent=2))
+    if not args.resume or resume_phase1:
         phase1, failures1 = _run_phase1(
-            data_path, candidates, reps, output / "checkpoints_phase1"
+            data_path, candidates, reps, output / "checkpoints_phase1",
+            **({"resume": True} if resume_phase1 else {}),
         )
         ranking = sorted(
             candidates,
@@ -1771,93 +1792,111 @@ def main():
         SUMMARY.evaluation_table(
             "phase1", phase1_report, _metric_definitions(phase1_reference)
         )
-    predictions, failures2 = (
-        _phase2(
-            data_path,
-            selected,
-            folds,
-            output / "checkpoints_phase2",
-            resume=args.resume,
-            require_tracking=not args.phase2_window_migration,
-        )
-        if selected
-        else ([], [])
-    )
     reference = _validation_reference(frame, folds)
-    leaderboard = _leaderboard(predictions, reference)
-    completed_models = sum(row["protocol"] != "naive" for row in leaderboard)
-    definitions = {
-        "phase1": _metric_definitions(phase1_reference),
-        "phase2": _metric_definitions(reference),
-    }
-    (output / "metric_definitions.json").write_text(json.dumps(definitions, indent=2))
+    publication_config = json.loads(run_config_path.read_text())
+    with phase2_publication(output, TRACKING, publication_config) as publisher:
+        def publish_completed(predictions):
+            publisher.publish(
+                pd.DataFrame(_leaderboard(predictions, reference)),
+                _metric_definitions(reference),
+                total_models=len(selected), status="phase2",
+            )
 
-    pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(
-        output / "eligibility.csv", index=False
-    )
-    if not args.resume:
-        pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
-    ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
-    pd.DataFrame(
-        predictions,
-        columns=["candidate", "protocol", "fold", "horizon", "actual", "prediction"],
-    ).to_csv(output / "phase2_predictions.csv", index=False)
-    pd.DataFrame(leaderboard).to_csv(output / "leaderboard.csv", index=False)
-    status = (
-        "no_models_above_naive"
-        if not selected
-        else "completed" if completed_models else "failed"
-    )
-    pd.DataFrame(failures1 + failures2).to_csv(output / "failures.csv", index=False)
-    (output / "run_config.json").write_text(
-        json.dumps(
-            {
-                "target": args.target,
-                "start_date": args.start_date,
-                "end_date": args.end_date,
-                "horizon": args.horizon,
-                "fingerprint": fingerprint,
-                **transform_metadata,
-                **exog_metadata,
-                "phase2_policy": POLICY,
-                "scheduler": args.scheduler,
-                "wandb": TRACKING,
-                "step_size": 1,
-                "seed": 42,
-                "phase1_folds": [fold.index for fold in reps],
-                "phase2_folds": len(folds),
-                "phase2_start_ratio": args.phase2_start_ratio,
-                "phase2_start_cutoff": phase2_start_cutoff,
-                "phase2_first_fold": folds[0].index,
-                "phase2_last_fold": folds[-1].index,
-                "sh_budgets": list(SHPlan().budgets),
-                "sh_rung_counts": list(SHPlan().survivors),
-                "protocol_version": PROTOCOL_VERSION,
-                "evaluation_split": "validation",
-                "naive_rmse": naive_rmse,
-                "status": status,
-                "phase2_top_k": 10,
-                "candidates": [candidate.name for candidate in candidates],
-                "selected": [item.name for item in selected],
-            },
-            indent=2,
+        if publisher and not args.resume:
+            publish_completed([])
+        predictions, failures2 = (
+            _phase2(
+                data_path,
+                selected,
+                folds,
+                output / "checkpoints_phase2",
+                resume=args.resume,
+                require_tracking=not args.phase2_window_migration,
+                on_model_complete=publish_completed if publisher else None,
+            )
+            if selected
+            else ([], [])
         )
-    )
+        leaderboard = _leaderboard(predictions, reference)
+        completed_models = sum(row["protocol"] != "naive" for row in leaderboard)
+        definitions = {
+            "phase1": _metric_definitions(phase1_reference),
+            "phase2": _metric_definitions(reference),
+        }
+        (output / "metric_definitions.json").write_text(json.dumps(definitions, indent=2))
 
-    if SUMMARY:
-        SUMMARY.table("leaderboard", pd.DataFrame(leaderboard))
-        SUMMARY.evaluation_table(
-            "phase2", pd.DataFrame(leaderboard), definitions["phase2"]
+        pd.DataFrame(eligibility, columns=["model", "protocol", "status", "reason"]).to_csv(
+            output / "eligibility.csv", index=False
         )
-        SUMMARY.summary(
-            {
-                "phase2/completed_models": completed_models,
-                "status": status,
-                "phase1/naive_rmse": naive_rmse,
-            }
+        if not args.resume:
+            pd.DataFrame(phase1).to_csv(output / "phase1_trials.csv", index=False)
+        ranking_frame.to_csv(output / "phase1_ranking.csv", index=False)
+        pd.DataFrame(
+            predictions,
+            columns=["candidate", "protocol", "fold", "horizon", "actual", "prediction"],
+        ).to_csv(output / "phase2_predictions.csv", index=False)
+        pd.DataFrame(leaderboard).to_csv(output / "leaderboard.csv", index=False)
+        status = (
+            "no_models_above_naive"
+            if not selected
+            else "completed" if completed_models else "failed"
         )
-        SUMMARY.artifact(output)
-        SUMMARY.finish(failed=bool(selected) and not completed_models)
+        pd.DataFrame(failures1 + failures2).to_csv(output / "failures.csv", index=False)
+        (output / "run_config.json").write_text(
+            json.dumps(
+                {
+                    "target": args.target,
+                    "start_date": args.start_date,
+                    "end_date": args.end_date,
+                    "horizon": args.horizon,
+                    "fingerprint": fingerprint,
+                    **transform_metadata,
+                    **exog_metadata,
+                    "phase2_policy": POLICY,
+                    "scheduler": args.scheduler,
+                    "wandb": TRACKING,
+                    "step_size": 1,
+                    "seed": 42,
+                    "phase1_folds": [fold.index for fold in reps],
+                    "phase2_folds": len(folds),
+                    "phase2_start_ratio": args.phase2_start_ratio,
+                    "phase2_start_cutoff": phase2_start_cutoff,
+                    "phase2_first_fold": folds[0].index,
+                    "phase2_last_fold": folds[-1].index,
+                    "sh_budgets": list(SHPlan().budgets),
+                    "sh_rung_counts": list(SHPlan().survivors),
+                    "sampling_policy": SAMPLING_POLICY,
+                    "protocol_version": PROTOCOL_VERSION,
+                    "evaluation_split": "validation",
+                    "naive_rmse": naive_rmse,
+                    "status": status,
+                    "phase2_top_k": 10,
+                    "candidates": [candidate.name for candidate in candidates],
+                    "selected": [item.name for item in selected],
+                },
+                indent=2,
+            )
+        )
+
+        if SUMMARY:
+            SUMMARY.table("leaderboard", pd.DataFrame(leaderboard))
+            SUMMARY.evaluation_table(
+                "phase2", pd.DataFrame(leaderboard), definitions["phase2"]
+            )
+            SUMMARY.summary(
+                {
+                    "phase2/completed_models": completed_models,
+                    "status": status,
+                    "phase1/naive_rmse": naive_rmse,
+                }
+            )
+            SUMMARY.artifact(output)
+            SUMMARY.finish(failed=bool(selected) and not completed_models)
+        if publisher:
+            publisher.publish(
+                pd.DataFrame(leaderboard), definitions["phase2"],
+                total_models=len(selected), status=status,
+            )
     ray.shutdown()
     if selected and not completed_models:
         raise RuntimeError("No candidate completed all Phase 2 folds")

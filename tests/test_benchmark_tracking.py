@@ -5,7 +5,50 @@ from types import SimpleNamespace
 
 import pytest
 
-from neuralforecast.benchmark_tracking import Tracking, run_id, safe_config
+from neuralforecast.benchmark_tracking import (
+    Tracking,
+    ensure_open_project,
+    run_id,
+    safe_config,
+)
+
+
+@pytest.mark.parametrize("access", ["USER_WRITE", "USER_READ", "PRIVATE"])
+def test_project_visibility_requires_open(monkeypatch, access):
+    calls = []
+    monkeypatch.setenv("WANDB_API_KEY", "test-key")
+    monkeypatch.setenv("WANDB_BASE_URL", "https://wandb.example/")
+
+    def post(url, **kwargs):
+        calls.append((url, kwargs))
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"data": {"upsertModel": {"project": {"access": access}}}},
+        )
+
+    monkeypatch.setattr("requests.post", post)
+    if access == "USER_WRITE":
+        ensure_open_project("team", "benchmark")
+    else:
+        with pytest.raises(RuntimeError, match="is not Open"):
+            ensure_open_project("team", "benchmark")
+    url, kwargs = calls[0]
+    assert url == "https://wandb.example/graphql"
+    assert kwargs["json"]["variables"] == {"entity": "team", "project": "benchmark"}
+    assert 'access: "USER_WRITE"' in kwargs["json"]["query"]
+
+
+def test_project_visibility_rejects_api_errors(monkeypatch):
+    monkeypatch.setenv("WANDB_API_KEY", "test-key")
+    monkeypatch.setattr(
+        "requests.post",
+        lambda *a, **k: SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"errors": [{"message": "Permission denied"}]},
+        ),
+    )
+    with pytest.raises(RuntimeError, match="Could not set W&B project"):
+        ensure_open_project("team", "benchmark")
 
 
 def test_disabled_tracking_does_not_import_or_initialize_wandb(monkeypatch):

@@ -13,6 +13,43 @@ import re
 _SECRET = re.compile(r"api.?key|password|secret|token", re.I)
 
 
+def ensure_open_project(entity, project):
+    """Set the benchmark project's W&B visibility to Open before launching runs."""
+    import netrc
+
+    import requests
+    from urllib.parse import urlparse
+
+    base_url = os.environ.get("WANDB_BASE_URL", "https://api.wandb.ai").rstrip("/")
+    key = os.environ.get("WANDB_API_KEY")
+    if not key:
+        credentials = netrc.netrc().authenticators(urlparse(base_url).hostname)
+        key = credentials[2] if credentials else None
+    if not key:
+        raise ValueError("W&B credentials are required to set project visibility")
+    response = requests.post(
+        f"{base_url}/graphql",
+        auth=("api", key),
+        timeout=30,
+        json={
+            "query": """
+                mutation OpenProject($entity: String!, $project: String!) {
+                    upsertModel(input: {
+                        entityName: $entity, name: $project, access: "USER_WRITE"
+                    }) { project { name access } }
+                }
+            """,
+            "variables": {"entity": entity, "project": project},
+        },
+    )
+    response.raise_for_status()
+    result = response.json()
+    if result.get("errors"):
+        raise RuntimeError(f"Could not set W&B project {entity}/{project} to Open")
+    if result["data"]["upsertModel"]["project"]["access"] != "USER_WRITE":
+        raise RuntimeError(f"W&B project {entity}/{project} is not Open")
+
+
 def safe_config(value):
     """Serialize configuration without credentials or executable objects."""
     if isinstance(value, dict):

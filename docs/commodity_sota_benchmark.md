@@ -38,6 +38,21 @@ new experiment requires a fresh smoke report.
 
 The runner instantiates the existing `Auto*` wrapper, reuses its search space, removes `max_steps` from HPO, fixes `random_seed=42`, and filters input-size choices against the first representative fold. A shared validation stopper controls training in both phases.
 
+All Phase 1 candidates (Auto, LoRA, and inference-only) use scrambled Sobol
+hyperparameter sampling with seed 42. Each candidate starts its own sequence;
+search parameters use sorted key order. Choices map equal-width intervals to
+categories, continuous values use linear or log-space scaling, and integer
+upper bounds remain exclusive. Fixed values and existing constraints are retained.
+Discrete duplicates are allowed; unsupported or conditional distributions raise
+an error rather than falling back to random sampling.
+
+The sampler generates 16 Sobol points and uses the first ten. This prefix does
+not have the full balance guarantee of a power-of-two sample count. Sampling
+policy version, method, seed, scrambling, and count are recorded in
+`run_config.json` and included in the preparation fingerprint. Old random-sampled
+runs cannot be resumed under this policy; use a fresh output directory and smoke
+report for a new experiment.
+
 Ten sampled configurations enter synchronous successive halving:
 
 | Rung | Cumulative optimizer steps | Survivors |
@@ -188,6 +203,69 @@ skipped, its leaderboard still records the inexpensive Naive reference.
 With `--wandb`, both phases publish `phase1/leaderboard_with_naive` and
 `phase2/leaderboard_with_naive`, metric definitions, and per-model summary metrics.
 The CSVs and definitions are included in the result artifact automatically.
+At launch and resume, `--wandb` sets the destination project's visibility to
+**Open** (W&B API access `USER_WRITE`). This applies to all runs in that project.
+The runner stops if it cannot apply the setting.
+
+### Live Phase 2 leaderboard
+
+`--resume` also supports interruptions during Phase 1. If Phase 1 admission has
+not been written yet, the runner rebuilds successive-halving decisions from
+complete, compatible saved fold results and resumes surviving checkpoints.
+Early-stopped folds retain their predictions; missing or incomplete results are
+run again. The original experiment configuration and W&B group are preserved.
+
+Tracked runs also create a **Phase 2 Leaderboard** run in the same W&B project and
+experiment group (`job_type=phase2-leaderboard`). Open its
+`phase2/leaderboard_with_naive` table to compare models, including Naive. The table
+shows all five metrics, rank, RMSE relative to Naive, and evaluation fold count.
+It refreshes when a model completes every evaluation fold, including restored
+results on resume. `phase2/completed_models` and `phase2/total_models` show progress;
+partial models never enter the ranking. The final update records experiment status.
+Ranking and original-price validation metrics are identical to `leaderboard.csv`.
+
+Publish an existing experiment without retraining:
+
+```bash
+.venv/bin/python experiments/commodity_sota/backfill_phase2_leaderboards.py \
+  --output results/gasoline
+```
+
+Follow an experiment launched before live publication was added, without restarting
+its training process:
+
+```bash
+.venv/bin/python experiments/commodity_sota/backfill_phase2_leaderboards.py \
+  --output results/wti-exog --watch --poll-seconds 60
+```
+
+The watcher waits for Phase 1 admission, reads saved Phase 2 results, and exits after
+publishing the final result. Final CSV scores and metric definitions are validated
+against saved predictions and the configured evaluation window before publication.
+Malformed files being written and transient publication failures are retried.
+Validation failures are reported and never published. Watch mode retries them in
+case the experiment is still updating its output; one-shot mode exits with an error.
+Credentials come from the existing W&B environment or login. Publication is tested
+with W&B SDK 0.30.0 and requires independent-run and mutable-table support.
+Publication uses a stable run ID, unchanged
+snapshots are skipped, and a local lock prevents simultaneous writers. If a watcher
+owns the lock, the runner leaves publication to it. The run URL and latest published
+status are saved in `phase2_leaderboard.json`; training run metadata is preserved.
+
+To collect only completed experiments into a shared project dashboard, install the
+optional `wandb-workspaces` package and run:
+
+```bash
+.venv/bin/python experiments/commodity_sota/publish_completed_dashboard.py \
+  --results results --entity Beat-Sun --project Riotinto
+```
+
+This validates the final results and publishes an overall table, each experiment's
+best model, and separate RMSE charts in a named saved workspace. Rankings remain
+within each experiment; RMSE relative to Naive supports comparison across targets.
+Running experiments are excluded. The saved workspace URL and source experiment
+identities are recorded in `results/Riotinto-dashboard/dashboard.json`. Re-running
+the command refreshes that dashboard without editing other saved views.
 
 ### Offline min_delta review
 
@@ -303,3 +381,98 @@ with fresh `results/gasoline-diff-preflight` and
 The launcher reuses process-environment or local netrc W&B credentials when
 available, otherwise prompts privately. Results and the systemd service are
 separate from the original experiment.
+# TaskVine scheduler
+
+Use `--scheduler taskvine` to keep the existing SH, TSCV, checkpoint and W&B
+protocol while moving CPU/RAM scheduling and task execution to TaskVine. Install
+the scheduler separately from the training environment:
+
+```bash
+bash scripts/setup_taskvine.sh
+NF_COLAB_SESSIONS=2 .venv/bin/python experiments/commodity_sota/run.py \
+  --scheduler taskvine <existing experiment arguments>
+```
+
+The installer pins `ndcctools=7.17.1` in
+`~/.local/share/taskvine/env` and writes an explicit environment lock beside it.
+`NF_TASKVINE_ENV` overrides the environment path. Training continues to use the
+Python interpreter that launches the benchmark. No training dependency upgrade
+is required. TaskVine is optional for the other backends.
+
+## Resource policy
+
+- One worker represents each physical GPU. Local workers divide the host's CPU,
+  RAM and disk budgets, so they cannot each reserve the same host memory.
+- Tasks start with 4 GiB RAM and two CPU cores. RAM allocation uses monitored
+  category measurements with a 2 GiB floor for the Python/Torch runtime. Category
+  identity includes model structure, batch/window sizes, horizon, exogenous
+  features and a power-of-two history-length bucket. Learning rate, seed and SH
+  budget do not create separate categories.
+- TaskVine's proportional CPU/RAM allocation is disabled. Category measurements
+  update after each completion rather than the default 25-task warm-up. The
+  bootstrap guess is retained through version 7.17.1's first-sample transition.
+- TaskVine monitors and retries resource exhaustion, up to three native retries.
+  Maximum allocations leave room for worker telemetry/cache so that retries
+  remain schedulable. Scientific parameters are never reduced after a failure.
+- A separate VRAM admission layer permits up to two tasks per GPU. Unknown
+  categories run alone; known categories reserve observed peak VRAM × 1.25 with
+  2 GiB device headroom. GPU model/driver and source/environment identity separate
+  observations. Missing PID accounting selects conservative accounting.
+- CUDA OOM invalidates the estimate and triggers one exclusive retry. TaskVine's
+  integer GPU accounting is explicitly disabled for these shared workers;
+  worker features and `CUDA_VISIBLE_DEVICES` enforce physical GPU placement.
+
+## Colab workers
+
+`NF_COLAB_SESSIONS` defaults to two; set it to zero for local-only execution.
+`NF_TASKVINE_LOCAL_GPUS=0,1` restricts local devices; an empty value enables
+remote-only validation. Colab uses the already authenticated official CLI with
+SSH support (validated with version 0.7.0). Each owned L4 runtime installs pinned
+training packages and TaskVine, then connects through an SSH reverse tunnel.
+The manager uses a password, worker-to-worker transfers are disabled, and
+credentials are kept separate from source archives.
+
+Source, data and prior checkpoints are TaskVine inputs. Results and checkpoint
+directories return to the local manager before SH advances. A confirmed stopped
+Colab runtime's unfinished tasks may run elsewhere; a connection interruption
+alone does not authorize concurrent duplicate execution. The supervisor retries
+runtime provisioning without holding up local workers and stops only runtimes
+it created.
+
+## Validation, monitoring and migration
+
+Focused tests:
+
+```bash
+.venv/bin/pytest tests/test_taskvine_queue.py tests/test_commodity_phase1_resume.py \
+  tests/test_commodity_phase2.py --no-cov
+```
+
+For real-worker validation, supply a **trusted local saved GRU `input.pkl`**:
+
+```bash
+.venv/bin/python scripts/validate_commodity_taskvine.py \
+  --input <saved-GRU-input.pkl> --output results/vine-local-check
+.venv/bin/python scripts/validate_commodity_taskvine.py \
+  --input <saved-GRU-input.pkl> --output results/vine-colab-check \
+  --local-gpus '' --colab-sessions 2
+```
+
+The local check verifies 10→20-step checkpoint continuation, learned RAM limits
+and overlapping executions on one GPU. The remote check requires both Colab
+workers to execute and verifies checkpoint return/resumption. Both write
+`validation.json` and release their workers afterward.
+
+An experiment's `taskvine/state.json` and `telemetry.jsonl` show connected workers,
+pending/running tasks, GPU reservations and RAM allocations. Per-session manager,
+worker, Colab and TaskVine transaction logs live under `taskvine/session-*`.
+Successful received results are recovered after a manager/parent interruption;
+canonical `result-*.json` remains the resume source of truth.
+
+`scripts/migrate_commodity_taskvine.py` handles the reserved `wti-exog` service.
+It verifies source hashes, pauses only the old manager, drains workers, publishes
+their completed outputs and patches only the frozen scheduler interface. It
+backs up the launcher, runner, reservation and experiment configuration. Use
+`--interrupt-running` only when restarting unfinished work is intended. Startup
+failure restores the legacy launcher/source. `dynamic-pool` remains available as
+a rollback backend, and resume permits migration in either direction.
