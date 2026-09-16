@@ -4,7 +4,7 @@ import torch
 from pytorch_lightning import Callback
 
 NUMERICS_VERSION = 1
-RATE_LIMITED_MODELS = frozenset({"NBEATS", "NBEATSx", "Autoformer", "xLSTM"})
+RATE_LIMITED_MODELS = frozenset({"NBEATS", "NBEATSx", "Autoformer", "xLSTM", "PatchTST"})
 GUARDED_MODELS = RATE_LIMITED_MODELS | {"FEDformer"}
 
 
