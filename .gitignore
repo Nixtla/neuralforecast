@@ -51,4 +51,5 @@ external/
 .venv-*/
 results/
 wandb/
+artifacts/
 model_config.json
