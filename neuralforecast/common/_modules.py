@@ -78,7 +78,8 @@ class MLP(nn.Module):
             activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU', 'ELU').
             Ignored when num_layers=1.
         hidden_size (int): Number of units in each hidden layer. All hidden layers
-            share the same dimensionality. Ignored when num_layers=1.
+            share the same dimensionality. Must be positive when num_layers>=2.
+            Ignored when num_layers=1.
         num_layers (int): Total number of layers including input and output layers.
             Use num_layers=1 for a direct linear projection with no hidden layers or
             activation. For num_layers>=2, creates: input layer, (num_layers-2) hidden
@@ -109,6 +110,10 @@ class MLP(nn.Module):
                 nn.Linear(in_features=in_features, out_features=out_features)
             )
         else:
+            if hidden_size <= 0:
+                raise ValueError(
+                    f"hidden_size must be positive when num_layers>=2, got {hidden_size}"
+                )
             assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
             self.activation = getattr(nn, activation)()
 
