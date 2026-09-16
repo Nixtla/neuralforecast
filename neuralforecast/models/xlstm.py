@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
-from ..common._modules import MLP
+from ..common._modules import MLP, resolve_decoder_activation
 from ..losses.pytorch import MAE
 
 try:
@@ -39,7 +39,7 @@ class xLSTM(BaseModel):
         decoder_hidden_size (int): size of hidden layer for the MLP decoder.
         decoder_layers (int): number of layers for the MLP decoder.
         decoder_dropout (float): dropout regularization applied within the MLP decoder.
-        decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).
+        decoder_activation (Optional[str]): activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'GELU'. Ignored when `decoder_layers=1`, since the decoder is then a single linear layer.
         backbone (str): backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.
         futr_exog_list (List[str]): future exogenous columns.
         hist_exog_list (list): historic exogenous columns.
@@ -103,7 +103,7 @@ class xLSTM(BaseModel):
         decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
         decoder_dropout: float = 0.0,
-        decoder_activation: str = "GELU",
+        decoder_activation: Optional[str] = None,
         backbone: str = "mLSTM",
         futr_exog_list=None,
         hist_exog_list=None,
@@ -218,6 +218,14 @@ class xLSTM(BaseModel):
                 dropout=encoder_dropout,
             )
         self.hist_encoder = xLSTMBlockStack(block_stack_config)
+
+        decoder_activation = resolve_decoder_activation(
+            decoder_activation,
+            "decoder_layers=1, since the decoder is then a single linear layer"
+            if decoder_layers == 1
+            else None,
+            default="GELU",
+        )
 
         # Decoder MLP
         self.mlp_decoder = MLP(
