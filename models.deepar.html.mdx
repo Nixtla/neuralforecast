@@ -129,7 +129,7 @@ Name | Type | Description | Default
 `lstm_hidden_size` | <code>[int](#int)</code> | LSTM hidden size. | <code>128</code>
 `lstm_dropout` | <code>[float](#float)</code> | LSTM dropout. | <code>0.1</code>
 `decoder_hidden_layers` | <code>[int](#int)</code> | number of decoder MLP hidden layers. Default: 0 for linear layer. | <code>0</code>
-`decoder_hidden_size` | <code>[int](#int)</code> | decoder MLP hidden size. Default: 0 for linear layer. | <code>0</code>
+`decoder_hidden_size` | <code>[int](#int)</code> | decoder MLP hidden size. Default: 0 for linear layer. Must be > 0 when decoder_hidden_layers > 0. | <code>0</code>
 `decoder_activation` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'ReLU'. Ignored when `decoder_hidden_layers=0`, since the decoder is then a single linear layer. | <code>None</code>
 `trajectory_samples` | <code>[int](#int)</code> | number of Monte Carlo trajectories during inference. | <code>100</code>
 `stat_exog_list` | <code>str list</code> | static exogenous columns. | <code>None</code>

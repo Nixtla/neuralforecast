@@ -31,7 +31,7 @@ xLSTM(
     decoder_hidden_size=128,
     decoder_layers=2,
     decoder_dropout=0.0,
-    decoder_activation=None,
+    decoder_activation="GELU",
     backbone="mLSTM",
     futr_exog_list=None,
     hist_exog_list=None,
@@ -88,7 +88,7 @@ Name | Type | Description | Default
 `decoder_hidden_size` | <code>[int](#int)</code> | size of hidden layer for the MLP decoder. | <code>128</code>
 `decoder_layers` | <code>[int](#int)</code> | number of layers for the MLP decoder. | <code>2</code>
 `decoder_dropout` | <code>[float](#float)</code> | dropout regularization applied within the MLP decoder. | <code>0.0</code>
-`decoder_activation` | <code>[Optional](#typing.Optional)\[[str](#str)\]</code> | activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'GELU'. Ignored when `decoder_layers=1`, since the decoder is then a single linear layer. | <code>None</code>
+`decoder_activation` | <code>[str](#str)</code> | activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity). | <code>'GELU'</code>
 `backbone` | <code>[str](#str)</code> | backbone for the xLSTM, either 'sLSTM' or 'mLSTM'. | <code>'mLSTM'</code>
 `futr_exog_list` | <code>[List](#List)\[[str](#str)\]</code> | future exogenous columns. | <code>None</code>
 `hist_exog_list` | <code>[list](#list)</code> | historic exogenous columns. | <code>None</code>
