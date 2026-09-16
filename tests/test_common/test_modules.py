@@ -7,7 +7,10 @@ from neuralforecast.common._modules import MLP
 @pytest.mark.parametrize("num_layers", [2, 3])
 @pytest.mark.parametrize("hidden_size", [0, -1])
 def test_mlp_rejects_nonpositive_hidden_size(num_layers, hidden_size):
-    with pytest.raises(ValueError, match="hidden_size must be positive"):
+    with pytest.raises(
+        ValueError,
+        match=rf"hidden_size must be positive when num_layers>=2, got {hidden_size}",
+    ):
         MLP(3, 2, "Tanh", hidden_size, num_layers, 0.0)
 
 

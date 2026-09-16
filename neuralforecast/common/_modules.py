@@ -111,7 +111,9 @@ class MLP(nn.Module):
             )
         else:
             if hidden_size <= 0:
-                raise ValueError("hidden_size must be positive when the MLP has hidden layers")
+                raise ValueError(
+                    f"hidden_size must be positive when num_layers>=2, got {hidden_size}"
+                )
             assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
             self.activation = getattr(nn, activation)()
 

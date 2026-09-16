@@ -26,6 +26,7 @@ class DeepAR(BaseModel):
         lstm_dropout (float): LSTM dropout.
         decoder_hidden_layers (int): number of decoder MLP hidden layers. Default: 0 for linear layer.
         decoder_hidden_size (int): decoder MLP hidden size. Default: 0 for linear layer.
+            Must be > 0 when decoder_hidden_layers > 0.
         decoder_activation (Optional[str]): activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'ReLU'. Ignored when `decoder_hidden_layers=0`, since the decoder is then a single linear layer.
         trajectory_samples (int): number of Monte Carlo trajectories during inference.
         stat_exog_list (str list): static exogenous columns.
