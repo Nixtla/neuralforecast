@@ -1,0 +1,20 @@
+[Unit]
+StartLimitIntervalSec=0
+Description=Cloudflare temporary HTTPS tunnel for NeuralForecast experiment portal
+After=network-online.target neuralforecast-portal.service
+Wants=network-online.target neuralforecast-portal.service
+
+[Service]
+Type=simple
+ExecStart=%h/neuralforecast/.venv/bin/python -u %h/neuralforecast/scripts/experiment_portal/tunnel.py --state %h/neuralforecast/results/experiment-portal/public-url.json --port 18081
+Restart=always
+RestartSec=10
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/neuralforecast/results/experiment-portal
+
+[Install]
+WantedBy=default.target

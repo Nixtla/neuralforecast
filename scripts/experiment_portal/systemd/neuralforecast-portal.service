@@ -1,0 +1,27 @@
+[Unit]
+StartLimitIntervalSec=0
+Description=NeuralForecast public read-only experiment portal
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/neuralforecast
+ExecStart=%h/neuralforecast/.venv/bin/python -u %h/neuralforecast/scripts/experiment_portal/server.py --results %h/neuralforecast/results --cache %h/neuralforecast/results/experiment-portal --port 18081 --interval 120
+Environment=PYTHONUNBUFFERED=1
+Environment=WANDB_CACHE_DIR=%h/neuralforecast/results/experiment-portal/sdk-cache
+Environment=XDG_CACHE_HOME=%h/neuralforecast/results/experiment-portal/xdg-cache
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/neuralforecast/results/experiment-portal
+Nice=10
+CPUQuota=100%
+MemoryMax=2G
+
+[Install]
+WantedBy=default.target

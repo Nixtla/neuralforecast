@@ -1,0 +1,13 @@
+[Unit]
+Description=Check NeuralForecast synchronization and recover stalled connections
+
+[Service]
+Type=oneshot
+ExecStart=%h/neuralforecast/.venv/bin/python %h/neuralforecast/scripts/experiment_portal/watchdog.py --cache %h/neuralforecast/results/experiment-portal
+TimeoutStartSec=100
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/neuralforecast/results/experiment-portal

@@ -1,0 +1,11 @@
+[Unit]
+Description=Monitor NeuralForecast experiment portal every minute
+
+[Timer]
+OnBootSec=2min
+OnUnitInactiveSec=60s
+AccuracySec=5s
+Unit=neuralforecast-portal-watchdog.service
+
+[Install]
+WantedBy=timers.target
