@@ -1,0 +1,54 @@
+name: Short-horizon official model integration
+
+on:
+  push:
+    branches: ['feat/short-horizon-models-*']
+  pull_request:
+    paths:
+      - 'neuralforecast/models/short_horizon.py'
+      - 'neuralforecast/models/searchcast.py'
+      - 'neuralforecast/models/_forecast_source.py'
+      - 'neuralforecast/models/_exogenous.py'
+      - 'neuralforecast/models/__init__.py'
+      - 'neuralforecast/__init__.py'
+      - 'tests/test_short_horizon_models.py'
+      - '.github/workflows/short-horizon-models.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cpu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      SEESAWNET_SOURCE: ${{ github.workspace }}/external/SeesawNet
+      DUALFORMER_SOURCE: ${{ github.workspace }}/external/Dualformer
+      SEARCHCAST_SOURCE: ${{ github.workspace }}/external/SearchCast
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install actual NeuralForecast CPU dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e . pytest einops matplotlib scikit-learn reformer-pytorch ruff
+      - name: Check out the reviewed official sources
+        run: |
+          git clone https://github.com/dreamone-Lee/SeesawNet.git "$SEESAWNET_SOURCE"
+          git -C "$SEESAWNET_SOURCE" checkout f0b49c8de2dceb866ffc8eab40ded169e4b2dd5d
+          git clone https://github.com/Akira-221/Dualformer.git "$DUALFORMER_SOURCE"
+          git -C "$DUALFORMER_SOURCE" checkout ebd4ccf8bc5634f0c965d0b8d5797d1b926daa19
+          git clone https://github.com/SakanaAI/SearchCast.git "$SEARCHCAST_SOURCE"
+          git -C "$SEARCHCAST_SOURCE" checkout 9a12b22525d787c0e0f919b2bd5b26fec5d64d03
+      - name: Lint changed model code
+        run: python -m ruff check neuralforecast/models/short_horizon.py neuralforecast/models/searchcast.py neuralforecast/models/_forecast_source.py tests/test_short_horizon_models.py
+      - name: Test real research backends and pretrained API contracts
+        run: python -m pytest -q -o addopts='' tests/test_short_horizon_models.py

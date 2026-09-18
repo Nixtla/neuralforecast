@@ -50,7 +50,7 @@ jobs:
         run: uv run make all_docs
 
       - name: Deploy (Push to main or Pull Request from same repo)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+        if: github.repository == 'Nixtla/neuralforecast' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -60,7 +60,7 @@ jobs:
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Deploy (Release)
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+        if: github.repository == 'Nixtla/neuralforecast' && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
         uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453 # v4.1.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -70,7 +70,7 @@ jobs:
           user_email: 41898282+github-actions[bot]@users.noreply.github.com
 
       - name: Trigger mintlify workflow (Push to main or Pull Request from same repo)
-        if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+        if: github.repository == 'Nixtla/neuralforecast' && ((github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging'))
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ secrets.DOCS_WORKFLOW_TOKEN }}
@@ -83,7 +83,7 @@ jobs:
             });
 
       - name: Trigger mintlify workflow (Release)
-        if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+        if: github.repository == 'Nixtla/neuralforecast' && (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'))
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           github-token: ${{ secrets.DOCS_WORKFLOW_TOKEN }}

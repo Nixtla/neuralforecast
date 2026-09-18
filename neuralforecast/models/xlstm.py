@@ -5,6 +5,7 @@ __all__ = ['xLSTM']
 
 
 import warnings
+import math
 from typing import Optional
 
 import torch
@@ -24,6 +25,47 @@ except ImportError:
     IS_XLSTM_INSTALLED = False
 
 
+def _finite_mlstm_parallel(
+    queries,
+    keys,
+    values,
+    igate_preact,
+    fgate_preact,
+    lower_triangular_matrix=None,
+    stabilize_rowwise=True,
+    eps=1e-6,
+    **kwargs,
+):
+    """Evaluate mLSTM with a nonnegative log scale and bounded exponentials.
+
+    Rescaling numerator, denominator and epsilon together preserves the
+    reference expression without evaluating exp(-m) for a large negative m.
+    """
+    length = queries.shape[-2]
+    if (
+        lower_triangular_matrix is None
+        or lower_triangular_matrix.shape != (length, length)
+    ):
+        mask = torch.ones(length, length, dtype=torch.bool, device=queries.device).tril()
+    else:
+        mask = lower_triangular_matrix
+    prefix = torch.nn.functional.logsigmoid(fgate_preact).cumsum(dim=-2)
+    log_weights = prefix - prefix.transpose(-1, -2) + igate_preact.transpose(-1, -2)
+    log_weights = log_weights.masked_fill(~mask, -torch.inf)
+    if stabilize_rowwise:
+        original_scale = log_weights.max(dim=-1, keepdim=True).values
+    else:
+        original_scale = log_weights.amax(dim=(-2, -1), keepdim=True)
+    safe_scale = original_scale.clamp_min(0)
+    weights = (log_weights - safe_scale).exp()
+    scores = (queries @ (keys / math.sqrt(keys.shape[-1])).transpose(-1, -2)) * weights
+    denominator = torch.maximum(
+        scores.sum(dim=-1, keepdim=True).abs(), (-safe_scale).exp()
+    )
+    denominator = denominator + eps * (original_scale - safe_scale).exp()
+    return (scores / denominator) @ values
+
+
 class xLSTM(BaseModel):
     """xLSTM
 
@@ -41,6 +83,7 @@ class xLSTM(BaseModel):
         decoder_dropout (float): dropout regularization applied within the MLP decoder.
         decoder_activation (str): activation function for the MLP decoder, see [activations collection](https://docs.pytorch.org/docs/stable/nn.html#non-linear-activations-weighted-sum-nonlinearity).
         backbone (str): backbone for the xLSTM, either 'sLSTM' or 'mLSTM'.
+        numerical_stability (bool): use bounded exponentials in the parallel mLSTM backend.
         futr_exog_list (List[str]): future exogenous columns.
         hist_exog_list (list): historic exogenous columns.
         stat_exog_list (list): static exogenous columns.
@@ -137,6 +180,7 @@ class xLSTM(BaseModel):
         lr_scheduler=None,
         lr_scheduler_kwargs=None,
         dataloader_kwargs=None,
+        numerical_stability: bool = True,
         **trainer_kwargs
     ):
 
@@ -218,6 +262,12 @@ class xLSTM(BaseModel):
                 dropout=encoder_dropout,
             )
         self.hist_encoder = xLSTMBlockStack(block_stack_config)
+        if backbone == "mLSTM" and numerical_stability:
+            from xlstm.blocks.mlstm.cell import mLSTMCell
+
+            for cell in self.hist_encoder.modules():
+                if isinstance(cell, mLSTMCell):
+                    cell.backend_fn = _finite_mlstm_parallel
 
         # Decoder MLP
         self.mlp_decoder = MLP(
