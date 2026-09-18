@@ -1,6 +1,8 @@
 import pytest
 import torch.nn as nn
 
+pytest.importorskip("xlstm")
+
 from neuralforecast.models import xLSTM
 
 from .test_helpers import (

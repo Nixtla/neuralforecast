@@ -190,6 +190,14 @@ class xLSTM(BaseModel):
                 "Please install `xlstm`. You also need to install `mlstm_kernels` for backend='mLSTM' and `ninja` for backend='sLSTM'."
             )
 
+        decoder_activation = resolve_decoder_activation(
+            decoder_activation,
+            "decoder_layers=1, since the decoder is then a single linear layer"
+            if decoder_layers == 1
+            else None,
+            default="GELU",
+        )
+
         # xLSTM input size (1 for target variable y)
         input_encoder = (
             1 + self.hist_exog_size + self.stat_exog_size + self.futr_exog_size
@@ -218,14 +226,6 @@ class xLSTM(BaseModel):
                 dropout=encoder_dropout,
             )
         self.hist_encoder = xLSTMBlockStack(block_stack_config)
-
-        decoder_activation = resolve_decoder_activation(
-            decoder_activation,
-            "decoder_layers=1, since the decoder is then a single linear layer"
-            if decoder_layers == 1
-            else None,
-            default="GELU",
-        )
 
         # Decoder MLP
         self.mlp_decoder = MLP(
