@@ -231,11 +231,24 @@ def _fill(values):
 
 
 def _transform_metadata(project):
+    project = str(project)
+    if project.endswith("-logret"):
+        return {
+            "target_transform": "log_return",
+            "training_scale": "log_return",
+            "evaluation_scale": "level",
+            "transform_version": 1,
+        }
+    if project.endswith("-diff"):
+        return {
+            "target_transform": "first_difference",
+            "training_scale": "difference",
+            "evaluation_scale": "level",
+            "transform_version": 1,
+        }
     return {
-        "target_transform": (
-            "first_difference" if project.endswith("-diff") else "identity"
-        ),
-        "training_scale": "difference" if project.endswith("-diff") else "level",
+        "target_transform": "identity",
+        "training_scale": "level",
         "evaluation_scale": "level",
         "transform_version": 1,
     }
@@ -261,10 +274,33 @@ def _difference_fold(train, valid):
     return train_diff, valid_diff
 
 
+def _log_return_fold(train, valid):
+    """Log-return the target after filling; keep the forecast origin fixed."""
+    train_r, valid_r = train.copy(), valid.copy()
+    y_train = train["y"].to_numpy(dtype=float)
+    y_valid = valid["y"].to_numpy(dtype=float)
+    prices = np.concatenate([y_train, y_valid])
+    if len(y_train) < 2 or not np.isfinite(prices).all() or not (prices > 0).all():
+        raise ValueError(
+            "Log returns require strictly positive finite observations and two training rows"
+        )
+    train_r = train_r.iloc[1:].reset_index(drop=True)
+    train_r["y"] = np.diff(np.log(y_train))
+    valid_r["y"] = np.diff(np.log(np.concatenate([[y_train[-1]], y_valid])))
+    returns = np.concatenate(
+        [train_r["y"].to_numpy(dtype=float), valid_r["y"].to_numpy(dtype=float)]
+    )
+    if not np.isfinite(returns).all():
+        raise ValueError("Log returns produced non-finite values")
+    return train_r, valid_r
+
+
 def _restore_prediction(prediction, origin, transform):
     prediction = np.asarray(prediction, dtype=float)
     if transform == "first_difference":
         return float(origin) + np.cumsum(prediction)
+    if transform == "log_return":
+        return float(origin) * np.exp(np.cumsum(prediction))
     return prediction
 
 
@@ -523,6 +559,8 @@ def _evaluate_job(
         transform = transform_metadata["target_transform"]
         if transform == "first_difference":
             train, valid = _difference_fold(train, valid)
+        elif transform == "log_return":
+            train, valid = _log_return_fold(train, valid)
         workdir = Path(root) / candidate["name"] / str(config_id) / str(fold.index)
         workdir.mkdir(parents=True, exist_ok=True)
         tracker = Tracking(
@@ -1355,6 +1393,11 @@ def main():
         parser.error("--resume is available only for the main experiment")
     if args.phase2_window_migration and not args.resume:
         parser.error("--phase2-window-migration requires --resume")
+    transform_metadata = _transform_metadata(args.wandb_project)
+    if transform_metadata["target_transform"] == "log_return" and args.auto_hist_exog:
+        parser.error(
+            "log_return experiments are univariate; historical exogenous inputs are not supported"
+        )
 
     output = Path(args.output).resolve()
     run_config_path = output / "run_config.json"
@@ -1376,7 +1419,6 @@ def main():
         args.end_date,
         include_exogenous=args.auto_hist_exog,
     )
-    transform_metadata = _transform_metadata(args.wandb_project)
     data_path = str(output / "weekly.pkl")
 
     min_train = _minimum_train(args.horizon, model_config)

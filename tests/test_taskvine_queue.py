@@ -336,3 +336,120 @@ if (prior_config.get("scheduler") == "dynamic"
     assert "TaskVineQueue(output, SUMMARY, resume=args.resume)" in result
     with pytest.raises(ValueError):
         module.patch_runner(result)
+
+
+def test_retry_resources_leave_cache_headroom(manager_module):
+    device = dict(memory=44740, disk=148367)
+    limits = manager_module.resource_limits(device)
+    initial = manager_module.initial_resources(device)
+    assert initial["disk"] == 8192
+    assert initial["memory"] == 4096
+    assert limits["disk"] <= device["disk"] * 0.8
+    assert limits["memory"] <= device["memory"] * 0.8
+    assert all(initial[k] <= limits[k] for k in initial)
+
+
+def scheduling_manager(module, tmp_path, state="READY"):
+    m = module.Manager.__new__(module.Manager)
+    cancelled = []
+    m.m = SimpleNamespace(cancel_by_task_id=cancelled.append)
+    job = dict(
+        task=1,
+        done=False,
+        vine_task=SimpleNamespace(state=state),
+        ready_since=0,
+        device="colab0",
+        attempt=0,
+        reservation=100,
+        folder=tmp_path,
+        checkpoint="prior.ckpt",
+    )
+    m.jobs = {"t": job}
+    m.tasks = {1: ("job", "t")}
+    m.retries = 0
+    return m, job, cancelled
+
+
+def test_ready_timeout_reassigns_once_then_finishes(
+    manager_module, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(manager_module.time, "time", lambda: 901)
+    m, job, cancelled = scheduling_manager(manager_module, tmp_path)
+    m.check_scheduling()
+    assert cancelled == [1]
+    assert job["task"] is None and job["reservation"] == 0
+    assert job["excluded_devices"] == ["colab0"]
+    assert job["attempt"] == 1 and m.retries == 1
+    assert job["checkpoint"] == "prior.ckpt"
+    assert not m.tasks and not (tmp_path / "done.json").exists()
+    job.update(task=2, device="local0", ready_since=901)
+    m.tasks[2] = ("job", "t")
+    monkeypatch.setattr(manager_module.time, "time", lambda: 1802)
+    m.check_scheduling()
+    assert cancelled == [1, 2]
+    assert job["done"] and job["task"] is None and job["reservation"] == 0
+    assert (
+        json.loads((tmp_path / "done.json").read_text())["kind"] == "SCHEDULING_TIMEOUT"
+    )
+    m.check_scheduling()
+    assert cancelled == [1, 2]
+
+
+@pytest.mark.parametrize("state", ["RUNNING", "WAITING_RETRIEVAL", "RETRIEVED"])
+def test_active_tasks_do_not_hit_ready_timeout(manager_module, tmp_path, state):
+    m, job, cancelled = scheduling_manager(manager_module, tmp_path, state)
+    m.check_scheduling()
+    assert not cancelled and job["ready_since"] is None
+    assert job["task_state"] == state
+
+
+def test_ready_timer_restarts_after_running(manager_module, tmp_path, monkeypatch):
+    m, job, cancelled = scheduling_manager(manager_module, tmp_path, "RUNNING")
+    m.check_scheduling()
+    monkeypatch.setattr(manager_module.time, "time", lambda: 1000)
+    job["vine_task"].state = "READY"
+    m.check_scheduling()
+    assert job["ready_since"] == 1000 and not cancelled
+
+
+def test_reassignment_without_available_worker_is_bounded(
+    manager_module, tmp_path, monkeypatch
+):
+    m, job, cancelled = scheduling_manager(manager_module, tmp_path)
+    monkeypatch.setattr(manager_module.time, "time", lambda: 901)
+    m.check_scheduling()
+    monkeypatch.setattr(manager_module.time, "time", lambda: 1802)
+    m.check_scheduling()
+    assert job["done"] and cancelled == [1]
+
+
+def test_first_success_keeps_larger_disk_guess(manager_module, tmp_path):
+    m, job, _ = scheduling_manager(manager_module, tmp_path)
+    attempt = tmp_path / "attempt-0"
+    attempt.mkdir()
+    (attempt / "result.json").write_text(json.dumps(dict(ok=True)))
+    job.update(
+        attempt_folder=attempt,
+        category="TFT",
+        peak=0,
+        exclusive=False,
+        started=0,
+        submitted=0,
+    )
+    m.devices = {"colab0": dict(memory=44740, disk=148367, snapshot={})}
+    m.category_completions = {}
+    guesses = []
+    m.m.set_category_first_allocation_guess = lambda category, value: guesses.append(
+        value
+    )
+    task = SimpleNamespace(
+        id=1,
+        result="success",
+        exit_code=0,
+        output="",
+        resources_measured=SimpleNamespace(memory=100),
+        resources_allocated=SimpleNamespace(memory=4096),
+    )
+    m.complete(task)
+    assert guesses[0]["disk"] == 8192
+    assert job["done"]

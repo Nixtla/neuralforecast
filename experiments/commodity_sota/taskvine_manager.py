@@ -18,6 +18,28 @@ import ndcctools.taskvine as vine
 
 from taskvine_resources import atomic_json, gpu_admission
 
+READY_TIMEOUT = 15 * 60
+
+
+def resource_limits(device):
+    """Leave cache and telemetry headroom even on maximum-resource retries."""
+    return dict(
+        cores=2,
+        memory=min(int(device["memory"] * 0.8), device["memory"] - 256),
+        disk=min(int(device["disk"] * 0.8), device["disk"] - 1024),
+        gpus=0,
+    )
+
+
+def initial_resources(device):
+    limits = resource_limits(device)
+    return dict(
+        cores=2,
+        memory=min(4096, limits["memory"]),
+        disk=min(8192, limits["disk"]),
+        gpus=0,
+    )
+
 
 def memory_mb():
     values = dict(
@@ -216,19 +238,14 @@ class Manager:
                 category,
                 # Leave room for telemetry and the worker's input cache even
                 # on a maximum-resource retry; otherwise it cannot be placed.
-                dict(
-                    cores=2,
-                    memory=device["memory"] - 256,
-                    disk=device["disk"] - 1024,
-                    gpus=0,
-                ),
+                resource_limits(device),
             )
             self.m.set_category_resources_min(
                 category, dict(cores=2, memory=2048, disk=1, gpus=0)
             )
             self.m.set_category_first_allocation_guess(
                 category,
-                dict(cores=2, memory=min(4096, device["memory"]), disk=1024, gpus=0),
+                initial_resources(device),
             )
             self.configured.add(category)
         attempt = job["folder"] / f"attempt-{job['attempt']}"
@@ -273,6 +290,8 @@ class Manager:
             started=time.time(),
             attempt_folder=attempt,
             vine_task=task,
+            ready_since=None,
+            task_state=task.state,
         )
 
     def complete(self, task):
@@ -335,9 +354,7 @@ class Manager:
                 device = self.devices[job["device"]]
                 self.m.set_category_first_allocation_guess(
                     category,
-                    dict(
-                        cores=2, memory=min(4096, device["memory"]), disk=1024, gpus=0
-                    ),
+                    initial_resources(device),
                 )
         result.update(
             worker_mode="taskvine",
@@ -363,6 +380,51 @@ class Manager:
         # Avoid using a pre-completion GPU snapshot for the next admission.
         self.devices[job["device"]]["snapshot"] = None
 
+    def check_scheduling(self):
+        """Bound continuous READY waits without timing out actual training."""
+        now = time.time()
+        for job in self.jobs.values():
+            if job["done"]:
+                continue
+            if job["task"]:
+                job["task_state"] = job["vine_task"].state
+                if job["task_state"] != "READY":
+                    job["ready_since"] = None
+                    continue
+                if job.get("ready_since") is None:
+                    job["ready_since"] = now
+            elif not job.get("scheduling_reassignments"):
+                continue
+            if job.get("ready_since") is None:
+                job["ready_since"] = now
+            if now - job["ready_since"] < READY_TIMEOUT:
+                continue
+            previous_device = job.get("device")
+            if job["task"]:
+                self.m.cancel_by_task_id(job["task"])
+                self.tasks.pop(job["task"], None)
+            job.update(task=None, reservation=0, task_state="READY")
+            if not job.get("scheduling_reassignments"):
+                job.update(
+                    scheduling_reassignments=1,
+                    excluded_devices=[previous_device],
+                    attempt=job["attempt"] + 1,
+                    ready_since=now,
+                )
+                self.retries += 1
+                continue
+            atomic_json(
+                job["folder"] / "done.json",
+                dict(
+                    ok=False,
+                    kind="SCHEDULING_TIMEOUT",
+                    error="Task remained READY for 15 minutes after reassignment",
+                    execution_host=previous_device,
+                    scheduling_reassignments=job["scheduling_reassignments"],
+                ),
+            )
+            job.update(done=True, task_state="DONE")
+
     def tick(self):
         for worker in self.local:
             if worker["process"].poll() is not None:
@@ -380,6 +442,7 @@ class Manager:
         task = self.m.wait(1)
         if task:
             self.complete(task)
+        self.check_scheduling()
         running = [j for j in self.jobs.values() if j["task"]]
         for job in running:
             snapshot = self.devices[job["device"]]["snapshot"]
@@ -408,6 +471,8 @@ class Manager:
                 self.devices.values(),
                 key=lambda d: sum(j["device"] == d["name"] for j in running),
             ):
+                if device["name"] in job.get("excluded_devices", []):
+                    continue
                 if not device["snapshot"] or (
                     job["local_only"] and not device["local"]
                 ):
@@ -427,8 +492,10 @@ class Manager:
                     running.append(job)
                     break
         state = dict(
-            queued=sum(not j["task"] and not j["done"] for j in self.jobs.values()),
-            running=len(running),
+            queued=sum(not j["task"] and not j["done"] for j in self.jobs.values())
+            + sum(j.get("task_state") == "READY" for j in running),
+            running=sum(j.get("task_state") == "RUNNING" for j in running),
+            submitted=len(running),
             workers=self.m.stats.workers_connected,
             retries=self.retries,
             timestamp=time.time(),
@@ -444,6 +511,9 @@ class Manager:
                             "reservation",
                             "exclusive",
                             "started",
+                            "task_state",
+                            "ready_since",
+                            "scheduling_reassignments",
                         )
                     },
                     ram_reserved=max(

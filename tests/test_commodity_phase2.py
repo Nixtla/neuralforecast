@@ -530,6 +530,75 @@ def test_difference_boundaries_exogenous_and_restoration(runner):
     assert runner._transform_metadata("uni-gasoline")["training_scale"] == "level"
 
 
+def test_log_return_boundaries_and_restoration(runner):
+    frame = data().iloc[:8].copy()
+    frame["x"] = [1, 3, 2, 7, 5, 4, 9, 11]
+    train, valid = frame.iloc[:5], frame.iloc[5:]
+    tr, vr = runner._log_return_fold(train, valid)
+    np.testing.assert_allclose(tr.y, np.diff(np.log(train.y)))
+    np.testing.assert_allclose(
+        vr.y, np.diff(np.log(np.concatenate([[train.y.iloc[-1]], valid.y])))
+    )
+    np.testing.assert_allclose(vr.x, valid.x)
+    assert tr.ds.tolist() == train.ds.iloc[1:].tolist()
+    assert vr.ds.tolist() == valid.ds.tolist()
+    np.testing.assert_allclose(
+        runner._restore_prediction(vr.y, train.y.iloc[-1], "log_return"), valid.y
+    )
+    np.testing.assert_allclose(
+        runner._restore_prediction(np.zeros(3), train.y.iloc[-1], "log_return"),
+        np.repeat(train.y.iloc[-1], 3),
+    )
+    changed = valid.copy()
+    changed.y *= 2
+    other_train, _ = runner._log_return_fold(train, changed)
+    pd.testing.assert_frame_equal(tr, other_train)
+    metadata = runner._transform_metadata("uni-gasoline-logret")
+    assert metadata["target_transform"] == "log_return"
+    assert metadata["training_scale"] == "log_return"
+    assert metadata["evaluation_scale"] == "level"
+    assert runner._transform_metadata("uni-gasoline-diff")["target_transform"] == (
+        "first_difference"
+    )
+
+
+def test_log_return_rejects_nonpositive_prices(runner):
+    frame = data().iloc[:6].copy()
+    train, valid = frame.iloc[:4], frame.iloc[4:]
+    train = train.copy()
+    train.loc[train.index[1], "y"] = 0.0
+    with pytest.raises(ValueError, match="strictly positive"):
+        runner._log_return_fold(train, valid)
+    train.loc[train.index[1], "y"] = -1.0
+    with pytest.raises(ValueError, match="strictly positive"):
+        runner._log_return_fold(train, valid)
+
+
+def test_log_return_cli_rejects_exogenous(runner, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "run.py",
+            "--data",
+            str(tmp_path / "missing.csv"),
+            "--target",
+            "y",
+            "--auto-hist-exog",
+            "--wandb-project",
+            "uni-gasoline-logret",
+            "--output",
+            str(tmp_path / "out"),
+            "--preflight",
+        ],
+    )
+    with pytest.raises(SystemExit) as exc:
+        runner.main()
+    assert exc.value.code == 2
+    assert "univariate" in capsys.readouterr().err
+    assert not (tmp_path / "out").exists()
+
+
 @pytest.mark.parametrize("protocol", ["scratch_hpo", "lora", "zeroshot"])
 def test_diff_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol):
     from types import SimpleNamespace
@@ -568,5 +637,54 @@ def test_diff_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol
     np.testing.assert_allclose(result["actual"], frame.y.iloc[96:])
     np.testing.assert_allclose(result["prediction"], np.repeat(frame.y.iloc[95], 16))
     assert result["rmse"] == pytest.approx(runner._naive_score(frame, [fold]))
+    assert result["evaluation_scale"] == "level"
+    assert result["protocol_version"] == "worker-protocol-v2"
+
+
+@pytest.mark.parametrize("protocol", ["scratch_hpo", "lora", "zeroshot"])
+def test_log_return_job_scores_restored_prices(runner, monkeypatch, tmp_path, protocol):
+    from types import SimpleNamespace
+
+    frame = data()
+    frame.attrs["transform_metadata"] = runner._transform_metadata("uni-gasoline-logret")
+    path = tmp_path / "weekly.pkl"
+    frame.to_pickle(path)
+    fold = SimpleNamespace(
+        index=0, train_slice=slice(0, 96), valid_slice=slice(96, 112)
+    )
+    origin = float(frame.y.iloc[95])
+    train_returns = np.diff(np.log(frame.y.iloc[:96].to_numpy(dtype=float)))
+    valid_returns = np.diff(
+        np.log(np.concatenate([[origin], frame.y.iloc[96:].to_numpy(dtype=float)]))
+    )
+
+    def predict(model, config, train, valid, *args, **kwargs):
+        np.testing.assert_allclose(train.y, train_returns)
+        np.testing.assert_allclose(valid.y, valid_returns)
+        return np.zeros(16), None
+
+    for name in ["_fit_trainable", "_fit_lora", "_fit_inference"]:
+        monkeypatch.setattr(runner, name, predict)
+    result = runner._evaluate_job._function(
+        str(path),
+        {
+            "name": "GRU",
+            "model_name": "GRU",
+            "protocol": protocol,
+            "protocol_version": "worker-protocol-v2",
+        },
+        0,
+        {},
+        fold,
+        2,
+        None,
+        tmp_path / "checkpoints_phase1",
+    )
+    assert result["ok"], result
+    np.testing.assert_allclose(result["actual"], frame.y.iloc[96:])
+    np.testing.assert_allclose(result["prediction"], np.repeat(origin, 16))
+    assert result["rmse"] == pytest.approx(runner._naive_score(frame, [fold]))
+    assert result["target_transform"] == "log_return"
+    assert result["training_scale"] == "log_return"
     assert result["evaluation_scale"] == "level"
     assert result["protocol_version"] == "worker-protocol-v2"

@@ -130,6 +130,44 @@ def test_native_spaces_convert_to_optuna_without_expanding_integer_bounds(name, 
             assert sample[key] == domain
 
 
+@pytest.mark.parametrize("backend", ["ray", "optuna"])
+def test_transformer_default_space_excludes_unscaled_attention_inputs(backend):
+    wrapper = _native("AutoVanillaTransformer", 16, backend=backend)
+    if backend == "ray":
+        choices = wrapper.config["scaler_type"].categories
+    else:
+        trial = optuna.create_study().ask()
+        wrapper.config(trial)
+        choices = trial.distributions["scaler_type"].choices
+    assert set(choices) == {"robust", "standard"}
+
+
+@pytest.mark.parametrize("backend", ["ray", "optuna"])
+def test_fedformer_default_space_excludes_divergent_learning_rates(backend):
+    wrapper = _native("AutoFEDformer", 16, backend=backend)
+    if backend == "ray":
+        domain = wrapper.config["learning_rate"]
+        bounds = domain.lower, domain.upper
+    else:
+        trial = optuna.create_study().ask()
+        wrapper.config(trial)
+        domain = trial.distributions["learning_rate"]
+        bounds = domain.low, domain.high
+        assert domain.log
+    assert bounds == (1e-4, 1e-3)
+
+
+@pytest.mark.parametrize("name", ["AutoVanillaTransformer", "AutoFEDformer"])
+@pytest.mark.parametrize("backend", ["ray", "optuna"])
+def test_numerical_default_restrictions_preserve_explicit_config(name, backend):
+    config = {"input_size": 16, "learning_rate": 0.03, "scaler_type": None}
+    supplied = config if backend == "ray" else lambda trial: config.copy()
+    wrapper = _native(name, 16, backend=backend, config=supplied)
+    result = wrapper.config if backend == "ray" else wrapper.config(None)
+    assert result["learning_rate"] == 0.03
+    assert result["scaler_type"] is None
+
+
 def test_integer_conversion_uses_exclusive_ray_upper_bound():
     study = optuna.create_study()
     trial = study.ask()

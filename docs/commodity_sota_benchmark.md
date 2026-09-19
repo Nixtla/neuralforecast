@@ -381,6 +381,43 @@ with fresh `results/gasoline-diff-preflight` and
 The launcher reuses process-environment or local netrc W&B credentials when
 available, otherwise prompts privately. Results and the systemd service are
 separate from the original experiment.
+
+### Log-return experiments
+
+A project name ending in `-logret` trains on weekly log returns after the same
+Sunday-ending mean aggregation used by level and `-diff` runs. Detection checks
+`-logret` before `-diff`. `uni-gasoline-logret`, `uni-wti-logret`,
+`uni-copper-logret` and `uni-gold-logret` reuse the existing target-only CSVs and
+unchanged fold dates. Each fold is filled with the slice-local policy, then the
+target becomes `r_t = log(P_t) - log(P_{t-1})`. Training loses its first row;
+validation log returns start from the last training price. Dates, identifiers and
+any extra columns are left unchanged. Historical exogenous inputs are rejected:
+this transform is univariate.
+
+Training and early stopping use log returns. Forecasts are restored as
+`P_origin * exp(cumsum(predicted returns))`, without future actuals. HPO ranking,
+Naive admission, and all five leaderboard metrics use restored prices. Naive
+remains a constant last-training-price forecast (zero predicted log returns).
+Strictly positive finite prices are required. Transform metadata is included in
+fingerprints and W&B; level and `-diff` smoke reports and checkpoints cannot be
+reused. `weekly.pkl` retains original levels, with transform metadata in its
+DataFrame attributes; workers transform per fold.
+
+Use `--wandb-project uni-gasoline-logret` for both preflight and smoke
+invocations, with fresh `results/gasoline-logret-preflight` and
+`results/gasoline-logret-dynamic-smoke` outputs. After smoke validation, launch
+the reserved four-commodity queue:
+
+```bash
+.venv/bin/python experiments/commodity_sota/queue_univariate_logret.py --prepare
+systemctl --user start neuralforecast-univariate-logret-queue.service
+```
+
+`--prepare` freezes the runner into `results/univariate-logret-queue/source` and
+refuses to overwrite existing reservation or result directories. The queue runs
+gasoline, WTI, copper, then gold. Completed experiments are skipped on resume.
+Do not point `--output` at an existing level, `-diff` or `-exog` tree.
+
 # TaskVine scheduler
 
 Use `--scheduler taskvine` to keep the existing SH, TSCV, checkpoint and W&B

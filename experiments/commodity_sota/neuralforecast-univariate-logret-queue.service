@@ -1,0 +1,13 @@
+[Unit]
+Description=NeuralForecast reserved univariate log-return experiment queue
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/t-lab01/neuralforecast
+Environment=PATH=/home/t-lab01/neuralforecast/.venv/bin:/home/t-lab01/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/t-lab01/neuralforecast/.venv/bin/python -u /home/t-lab01/neuralforecast/results/univariate-logret-queue/start.py
+StandardOutput=append:/home/t-lab01/neuralforecast/results/univariate-logret-queue/session.log
+StandardError=append:/home/t-lab01/neuralforecast/results/univariate-logret-queue/session.log
+KillMode=control-group
+TimeoutStopSec=45

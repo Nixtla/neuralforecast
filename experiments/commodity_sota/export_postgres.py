@@ -16,7 +16,7 @@ DATASETS = {
         "sheet_id": 484490350,
         "target": (
             "Oil_EIA_NY_Harbor_Conventional_Gasoline_"
-            "Spot_Price_Daily_USD_Per_Gallon"
+            "Spot_Price_Daily_USD_Per_Gallon_lag_0"
         ),
         "start": "2013-08-11",
         "label": "Gasoline",
@@ -24,7 +24,7 @@ DATASETS = {
     "wti": {
         "table": "wti_crude_oil_ml",
         "sheet_id": 2026091101,
-        "target": "Oil_EIA_Cushing_WTI_Spot_Price_Daily_USD_Per_Barrel",
+        "target": "Oil_EIA_Cushing_WTI_Spot_Price_Daily_USD_Per_Barrel_lag_0",
         "start": "2015-03-15",
         "label": "WTI Crude Oil",
     },
@@ -68,14 +68,23 @@ def _snapshot(database, dataset, start_date, end_date, include_exogenous):
         if end_date:
             predicates.append(sql.SQL("week_end <= %s"))
             parameters.append(end_date)
+        if not include_exogenous:
+            predicates.append(sql.SQL("header = %s"))
+            parameters.append(dataset["target"])
         query = sql.SQL(
-            "SELECT week_end, {} FROM public.{} WHERE {} ORDER BY week_end"
+            "SELECT week_end, header, value FROM public.{} WHERE {} ORDER BY week_end, header"
         ).format(
-            sql.SQL(", ").join(sql.Identifier(column) for _, column in columns),
             sql.Identifier(dataset["table"]),
             sql.SQL(" AND ").join(predicates),
         )
-        rows = conn.execute(query, parameters).fetchall()
+        triples = conn.execute(query, parameters).fetchall()
+    by_date = {}
+    for week_end, header, value in triples:
+        by_date.setdefault(week_end, {})[header] = value
+    rows = [
+        (week_end, *(by_date[week_end].get(header) for header, _ in columns))
+        for week_end in sorted(by_date)
+    ]
     return columns, rows
 
 
