@@ -17,6 +17,13 @@ from ..losses.pytorch import MAE, DistributionLoss
 class DeepAR(BaseModel):
     """DeepAR
 
+    Historical exogenous variables condition the recurrent state using observations
+    available before the forecast origin. BaseModel masks their forecast-range
+    values before the LSTM receives them; no future historical values are required.
+    This past-only input stream extends the paper's formulation, which assumes
+    covariates are known throughout the prediction range (Sections 3 and 3.4).
+    Use ``futr_exog_list`` for covariates known over the full forecast horizon.
+
     Args:
         h (int): Forecast horizon.
         input_size (int): maximum sequence length for truncated train backpropagation. Default -1 uses 3 * horizon
@@ -28,10 +35,10 @@ class DeepAR(BaseModel):
         decoder_hidden_size (int): decoder MLP hidden size. Default: 0 for linear layer.
         trajectory_samples (int): number of Monte Carlo trajectories during inference.
         stat_exog_list (str list): static exogenous columns.
-        cat_exog_list (str list): exogenous columns (from `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
+        cat_exog_list (str list): exogenous columns (from `hist_exog_list` / `futr_exog_list` / `stat_exog_list`) to embed instead of scale.
         categorical_cardinalities (dict): mapping from each categorical column to its number of distinct categories.
         cat_emb_dim (str or int): categorical embedding size strategy ('fastai', 'sqrt', 'half') or an explicit integer.
-        hist_exog_list (str list): historic exogenous columns.
+        hist_exog_list (str list): historic exogenous columns observed before the forecast origin; future values are masked by the shared recurrent preprocessing.
         futr_exog_list (str list): future exogenous columns.
         exclude_insample_y (bool): the model skips the autoregressive features y[t-input_size:t] if True.
         loss (PyTorch module): instantiated train loss class from [losses collection](./losses.pytorch.html).
@@ -68,7 +75,7 @@ class DeepAR(BaseModel):
 
     # Class attributes
     EXOGENOUS_FUTR = True
-    EXOGENOUS_HIST = False
+    EXOGENOUS_HIST = True
     EXOGENOUS_STAT = True
     EXOGENOUS_CAT = True
     MULTIVARIATE = False
@@ -171,7 +178,9 @@ class DeepAR(BaseModel):
         self.encoder_dropout = lstm_dropout
 
         # LSTM input size (1 for target variable y)
-        input_encoder = 1 + self.futr_exog_size + self.stat_exog_size
+        input_encoder = (
+            1 + self.hist_exog_size + self.futr_exog_size + self.stat_exog_size
+        )
 
         # Instantiate model
         self.rnn_state = None
@@ -198,10 +207,14 @@ class DeepAR(BaseModel):
 
         # Parse windows_batch
         encoder_input = windows_batch["insample_y"]  # <- [B, T, 1]
+        hist_exog = windows_batch.get("hist_exog")
         futr_exog = windows_batch["futr_exog"]
         stat_exog = windows_batch["stat_exog"]
 
         _, input_size = encoder_input.shape[:2]
+        if self.hist_exog_size > 0:
+            encoder_input = torch.cat((encoder_input, hist_exog), dim=2)
+
         if self.futr_exog_size > 0:
             encoder_input = torch.cat((encoder_input, futr_exog), dim=2)
 
