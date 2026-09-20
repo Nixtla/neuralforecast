@@ -3,7 +3,7 @@ import pandas as pd
 import polars as pl
 import pytest
 
-from neuralforecast.losses.volatility import (
+from neuralforecast.losses.numpy import (
     _reshape_windows_by_date,
     cross_validation_to_windows,
     excess_volatility,
