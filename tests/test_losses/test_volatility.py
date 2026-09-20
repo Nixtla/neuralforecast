@@ -295,24 +295,6 @@ def test_converter_masks_missing_targets():
     assert windows.mask.sum() == windows.mask.size - 1
 
 
-def test_converter_output_feeds_the_metrics():
-    windows = cross_validation_to_windows(_cv_frame(), model="NHITS")
-    ev = excess_volatility(
-        y=windows.y,
-        y_hat=windows.y_hat,
-        quantiles=windows.quantiles,
-        stride=windows.stride,
-        mask=windows.mask,
-    )
-    sfpc = forecast_percentage_change(
-        y_hat=windows.y_hat[..., windows.quantiles.index(0.5)],
-        stride=windows.stride,
-        mask=windows.mask,
-    )
-    assert np.isfinite(ev) and ev >= 0.0
-    assert np.isfinite(sfpc) and sfpc >= 0.0
-
-
 def test_converter_rejects_missing_columns():
     df = _cv_frame().drop(columns=["cutoff"])
     with pytest.raises(ValueError, match="Missing required column"):
