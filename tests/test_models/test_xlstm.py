@@ -3,12 +3,19 @@ import torch.nn as nn
 
 pytest.importorskip("xlstm")
 
+from neuralforecast.auto import AutoxLSTM
 from neuralforecast.models import xLSTM
 
 from .test_helpers import (
     assert_decoder_activation_applied,
     assert_no_decoder_activation_warning,
+    check_args,
 )
+
+
+def test_autoxlstm():
+    # Unit test to test that Auto* model contains all required arguments from BaseAuto
+    check_args(AutoxLSTM, exclude_args=["cls_model"])
 
 
 def test_xlstm_decoder_activation():
