@@ -542,22 +542,31 @@ def excess_volatility(
     mask: Optional[np.ndarray] = None,
     eps: float = 1e-8,
 ) -> float:
-    r"""Excess Volatility
+    r"""Scaled Excess Volatility (sEV)
 
-    Measures *harmful* forecast instability, by charging a forecast revision for its
-    cost and crediting it for the accuracy it buys. A forecaster that revises its
-    predictions only when the revision improves accuracy scores at or below zero; one
-    that churns its predictions without becoming more accurate scores above zero.
+    Measures *harmful* forecast volatility, by charging a forecast revision for its
+    cost and crediting it for the accuracy it buys. A multi-horizon system run on a
+    schedule issues several overlapping forecasts for the same target date, one per
+    forecast creation date (FCD); this penalises only the revisions that move a
+    forecast away from the truth, or that overshoot it, rewarding accuracy-improving
+    revisions while separating them from harmful volatility.
 
-    For each pair of overlapping windows that target the same date, let
-    $\hat{y}^{before}$ be the forecast made from the earlier window and
-    $\hat{y}^{update}$ the forecast made from the later one. Then
+    Indexing by series $b$, FCD $t$ and horizon step $h$, the forecast
+    $\hat{\mathbf{y}}_{b,t,h+1}$ issued at FCD $t$ and the forecast
+    $\hat{\mathbf{y}}_{b,t+1,h}$ issued one FCD later land on the same target date,
+    the second being a revision of the first:
 
-    $$ \mathrm{EV} = \mathrm{QL}(\mathbf{\hat{y}}^{update}, \mathbf{\hat{y}}^{before}) - \Big( \mathrm{QL}(\mathbf{y}, \mathbf{\hat{y}}^{before}) - \mathrm{QL}(\mathbf{y}, \mathbf{\hat{y}}^{update}) \Big) $$
+    $$ \mathrm{sEV}\left(\mathbf{y}_{[b][t][h]},\; \hat{\mathbf{y}}_{[b][t][h]} \right) = \frac{\sum_{b,t,h}\mathrm{EV}(y_{b,t,h},\;\mathbf{\hat{y}}_{b,t,h+1},\;\mathbf{\hat{y}}_{b,t+1,h})}{\sum_{b,t,h}|y_{b,t,h}|} $$
 
-    where the first term is the *revision cost* (how far the older forecast sits from
-    the newer one) and the bracketed term is the *accuracy improvement* the revision
-    produced. $\mathrm{QL}$ is the pinball loss averaged over quantiles.
+    $$ \mathrm{EV}(y,\;\mathbf{\hat{y}}_1,\; \mathbf{\hat{y}}_2) = \mathrm{QL}(\mathbf{\hat{y}}_2,\mathbf{\hat{y}}_1) - (\mathrm{QL}(y,\mathbf{\hat{y}}_1)-\mathrm{QL}(y,\mathbf{\hat{y}}_2)) $$
+
+    where $\mathrm{QL}$ is the quantile loss at level $q \in \mathcal{Q}$:
+
+    $$ \mathrm{QL}_q(y, \hat{y}^{(q)}) = q(y-\hat{y}^{(q)})_+ + (1-q)(\hat{y}^{(q)}-y)_+ $$
+
+    The first EV term is the *revision cost*, how far the older forecast sits from the
+    newer one; the bracketed term is the *accuracy improvement* the revision produced.
+    Setting `scaling=False` returns the unscaled numerator, $\sum \mathrm{EV}$.
 
     Args:
         y (np.ndarray): Target values of shape `[B, T, H, C]`, for `B` series, `T`
@@ -679,23 +688,29 @@ def forecast_percentage_change(
     mask: Optional[np.ndarray] = None,
     eps: float = 1e-6,
 ) -> float:
-    r"""Forecast Percentage Change
+    r"""Scaled Forecast Percentage Change (sFPC)
 
-    Measures the relative size of the revisions a forecaster makes as new data arrives,
-    ignoring whether those revisions were justified. Use it alongside
-    `excess_volatility`, which accounts for the accuracy a revision bought.
+    Measures the relative change in predicted quantiles across consecutive forecast
+    creation dates (FCDs), giving a quantitative view of the forecast revision rate.
+    Unlike `excess_volatility` it treats every revision as equally undesirable, even
+    ones that improve accuracy, so the two are best read together.
 
-    For each pair of overlapping windows targeting the same date, with
-    $\hat{y}^{before}$ the forecast from the earlier window and $\hat{y}^{update}$ the
-    forecast from the later one:
+    Indexing by series $b$, FCD $t$ and horizon step $h$, the forecasts
+    $\hat{Y}^{(q)}_{b,t,h+1}$ and $\hat{Y}^{(q)}_{b,t+1,h}$ land on the same target
+    date, the second being a revision of the first:
 
-    $$ \mathrm{sFPC} = 200 \cdot \mathrm{mean}\left( \frac{|\hat{y}^{update} - \hat{y}^{before}|}{|\hat{y}^{update}| + |\hat{y}^{before}| + \epsilon} \right) $$
+    $$ \mathrm{sFPC}_{q}\left(\hat{\mathbf{Y}}^{(q)}_{{[b][t][h]}} \right) = \frac{200}{B \times T \times H} \sum_{b,t,h} \frac{|\hat{Y}^{(q)}_{b,t+1,h}-\hat{Y}^{(q)}_{b,t,h+1}|}{|\hat{Y}^{(q)}_{b,t+1,h}| + |\hat{Y}^{(q)}_{b,t,h+1}|} $$
 
-    $$ \mathrm{FPC} = \mathrm{mean}\left( \frac{|\hat{y}^{update} - \hat{y}^{before}|}{|\hat{y}^{before}| + \epsilon} \right) $$
+    Inspired by sMAPE, the denominator is symmetric in the two forecasts. This keeps
+    the metric well behaved when predicted values are small and avoids the
+    division-by-zero problems common to traditional percentage-based metrics. A small
+    `eps`, omitted from the equation above, is added to the denominator as a guard.
 
-    These are two different quantities, not two scalings of one: sFPC is bounded in
-    `[0, 200]` and symmetric in the two forecasts, while FPC is unbounded and measures
-    revisions relative to the earlier forecast only. Higher values mean a more volatile
+    Setting `symmetric=False` instead returns the one-sided variant, which divides by
+    $|\hat{Y}^{(q)}_{b,t,h+1}|$ alone and applies no factor of 200. The two are
+    different quantities, not two scalings of one: sFPC is bounded in `[0, 200]` and
+    symmetric in the two forecasts, while FPC is unbounded and measures revisions
+    relative to the earlier forecast only. Higher values mean a more volatile
     forecaster in both cases.
 
     Args:

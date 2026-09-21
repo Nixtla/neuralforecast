@@ -66,7 +66,7 @@
               "docs/tutorials/intermittent_data.html",
               "docs/tutorials/using_mlflow.html",
               "docs/tutorials/robust_forecasting.html",
-              "docs/tutorials/forecast_stability.html",
+              "docs/tutorials/forecast_volatility.html",
               "docs/tutorials/interpretable_decompositions.html",
               "docs/tutorials/comparing_methods.html",
               "docs/tutorials/temporal_classification.html",
