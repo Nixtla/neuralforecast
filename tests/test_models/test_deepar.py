@@ -88,7 +88,7 @@ def test_deepar_decoder_preserves_encoder_gradients(decoder_hidden_layers, decod
         decoder_hidden_size=decoder_hidden_size,
     )
     inputs = torch.randn(2, 8, 1, requires_grad=True)
-    output = model({"insample_y": inputs, "futr_exog": None, "stat_exog": None})
+    output = model({"insample_y": inputs, "hist_exog": None, "futr_exog": None, "stat_exog": None})
     assert output.shape == (2, model.h, model.loss.outputsize_multiplier)
     output.square().mean().backward()
 
@@ -157,8 +157,7 @@ def test_deepar_hist_exog_disabled_preserves_forward(mixed):
     y = torch.randn(2, 7, 1)
     futr = torch.randn(2, 7, 1) if mixed else None
     stat = torch.randn(2, 1) if mixed else None
-    # Also preserve callers that omit the unused historical input entirely.
-    output = model(dict(insample_y=y, futr_exog=futr, stat_exog=stat))
+    output = model(dict(insample_y=y, hist_exog=None, futr_exog=futr, stat_exog=stat))
     original_input = y
     if mixed:
         original_input = torch.cat((y, futr, stat[:, None].expand(-1, 7, -1)), 2)
