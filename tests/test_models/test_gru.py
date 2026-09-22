@@ -1,9 +1,16 @@
+import pytest
+
+
 from neuralforecast.auto import AutoGRU, RayOptions
 from neuralforecast.common._base_auto import MockTrial
 from neuralforecast.common._model_checks import check_model
 from neuralforecast.models import GRU
 
-from .test_helpers import check_args
+from .test_helpers import (
+    assert_decoder_activation_applied,
+    assert_no_decoder_activation_warning,
+    check_args,
+)
 
 
 def test_gru(suppress_warnings):
@@ -34,3 +41,23 @@ def test_autogru(setup_dataset):
     my_config['encoder_hidden_size'] = 8
     model = AutoGRU(h=12, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=dataset)
+
+
+def test_gru_decoder_activation():
+    kwargs = dict(h=4, input_size=8, max_steps=1)
+
+    # Ignored when there is no MLP decoder to apply it to
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        GRU(**kwargs, recurrent=True, decoder_activation="Tanh")
+    with pytest.warns(UserWarning, match="decoder_activation is ignored"):
+        GRU(**kwargs, decoder_layers=1, decoder_activation="Tanh")
+
+    # Silent when left at its default, whether or not a decoder exists
+    assert_no_decoder_activation_warning(GRU, **kwargs, recurrent=True)
+    assert_no_decoder_activation_warning(GRU, **kwargs)
+
+    assert_decoder_activation_applied(GRU, **kwargs)
+
+    # Rejected even where the decoder that would consume it is never built
+    with pytest.raises(AssertionError, match="is not in"):
+        GRU(**kwargs, recurrent=True, decoder_activation="NotAnActivation")

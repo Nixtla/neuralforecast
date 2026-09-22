@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
-from ..common._modules import MLP, TemporalConvolutionEncoder
+from ..common._modules import MLP, resolve_decoder_activation, TemporalConvolutionEncoder
 from ..losses.pytorch import MAE
 
 
@@ -32,6 +32,7 @@ class TCN(BaseModel):
         context_size (int): size of context vector for each timestamp on the forecasting window.
         decoder_hidden_size (int): size of hidden layer for the MLP decoder.
         decoder_layers (int): number of layers for the MLP decoder.
+        decoder_activation (Optional[str]): activation function for the MLP decoder, one of `ACTIVATIONS` in `neuralforecast.common._modules`. Default None uses 'ReLU'. Ignored when `decoder_layers=1`, since the decoder is then a single linear layer.
         futr_exog_list (str list): future exogenous columns.
         hist_exog_list (str list): historic exogenous columns.
         stat_exog_list (str list): static exogenous columns.
@@ -87,6 +88,7 @@ class TCN(BaseModel):
         context_size: int = 10,
         decoder_hidden_size: int = 128,
         decoder_layers: int = 2,
+        decoder_activation: Optional[str] = None,
         futr_exog_list=None,
         hist_exog_list=None,
         stat_exog_list=None,
@@ -169,6 +171,12 @@ class TCN(BaseModel):
         # MLP decoder
         self.decoder_hidden_size = decoder_hidden_size
         self.decoder_layers = decoder_layers
+        self.decoder_activation = resolve_decoder_activation(
+            decoder_activation,
+            "decoder_layers=1, since the decoder is then a single linear layer"
+            if decoder_layers == 1
+            else None,
+        )
 
         # TCN input size (1 for target variable y)
         input_encoder = (
@@ -194,7 +202,7 @@ class TCN(BaseModel):
             out_features=self.loss.outputsize_multiplier,
             hidden_size=self.decoder_hidden_size,
             num_layers=self.decoder_layers,
-            activation="ReLU",
+            activation=self.decoder_activation,
             dropout=0.0,
         )
 
