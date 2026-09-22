@@ -178,9 +178,9 @@ class iTransformer(BaseModel):
             input_size, self.hidden_size, self.dropout
         )
 
-        # Inverted embedding for future exogenous variables: projects horizon length (h) -> hidden_size
+        # Inverted embedding for future exogenous variables: projects lookback + horizon (input_size + h) -> hidden_size
         if self.futr_exog_size > 0:
-            self.futr_embedding = nn.Linear(h, self.hidden_size)
+            self.futr_embedding = nn.Linear(input_size + h, self.hidden_size)
             self.futr_dropout = nn.Dropout(self.dropout)
 
         self.encoder = TransEncoder(
@@ -234,23 +234,12 @@ class iTransformer(BaseModel):
 
         # Inverted embedding for future exogenous variables
         if self.futr_exog_size > 0 and futr_exog is not None:
-            if futr_exog.ndim == 3:
-                futr_exog = futr_exog.unsqueeze(-1)
+            # The future exogenous features are already of shape [B, F, L + h, N]
+            futr = futr_exog
+            B_f, F_f, L_f, N_f = futr.shape
 
-            # Extract future horizon: [B, F, L + h, N] -> [B, F, h, N]
-            futr = futr_exog[:, :, self.input_size :, :]
-            B_f, F_f, h_f, N_f = futr.shape
-
-            # Reshape each feature for each series as a token: [B, N * F, h]
-            futr = futr.permute(0, 3, 1, 2).reshape(B_f, N_f * F_f, h_f)
-
-            if self.use_norm:
-                f_means = futr.mean(-1, keepdim=True).detach()
-                futr = futr - f_means
-                f_stdev = torch.sqrt(
-                    torch.var(futr, dim=-1, keepdim=True, unbiased=False) + 1e-5
-                )
-                futr /= f_stdev
+            # Reshape each feature for each series as a token: [B, N * F, L + h]
+            futr = futr.permute(0, 3, 1, 2).reshape(B_f, N_f * F_f, L_f)
 
             futr_tokens = self.futr_dropout(self.futr_embedding(futr))
             tokens = torch.cat([enc_out, futr_tokens], dim=1)
