@@ -1503,8 +1503,8 @@ def test_save_runs_on_rank0_ddp(monkeypatch, tmp_path, setup_airplane_data):
         )
 
     assert save_path.exists()
-    assert (save_path / "alias_to_model.pkl").exists()
-    assert (save_path / "configuration.pkl").exists()
+    assert (save_path / "configuration.json").exists()
+    assert list(save_path.glob("*.safetensors"))
 
 # test `enable_checkpointing=True` should generate chkpt
 def test_enable_checkpointing(setup_airplane_data):
