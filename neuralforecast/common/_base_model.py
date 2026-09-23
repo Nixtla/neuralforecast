@@ -904,11 +904,37 @@ class BaseModel(pl.LightningModule):
 
     @classmethod
     def load(cls, path, **kwargs):
-        if "weights_only" in inspect.signature(torch.load).parameters:
-            kwargs["weights_only"] = False
-        with fsspec.open(path, "rb") as f, warnings.catch_warnings():
-            # ignore possible warnings about weights_only=False
-            warnings.filterwarnings("ignore", category=FutureWarning)
+        """Load a model from a checkpoint.
+
+        .. warning::
+            Checkpoints are deserialized with pickle unless ``weights_only=True``
+            is passed. Loading a pickle-format checkpoint **executes arbitrary code
+            contained in that file**, so only load checkpoints from a source you
+            trust. This applies to remote paths (``s3://``, ``gcs://``, ``http://``)
+            resolved through fsspec exactly as it does to local ones.
+
+        Args:
+            path (str): Path to the checkpoint, local or any fsspec-supported URL.
+            **kwargs: Additional keyword arguments passed to `torch.load`. Pass
+                `weights_only=True` to refuse pickle and load tensors only; it is
+                honored rather than overridden.
+
+        Returns:
+            result (BaseModel): The loaded model.
+        """
+        # `weights_only` defaults to False for backwards compatibility with
+        # checkpoints that carry non-tensor hyperparameters, but a caller asking
+        # for a restricted load must get one.
+        kwargs.setdefault("weights_only", False)
+        if not kwargs["weights_only"]:
+            warnings.warn(
+                f"Loading {path} with `weights_only=False`, which deserializes "
+                "the checkpoint with pickle and executes any code it contains. "
+                "Only load checkpoints from a trusted source.",
+                UserWarning,
+                stacklevel=2,
+            )
+        with fsspec.open(path, "rb") as f:
             content = torch.load(f, **kwargs)
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])

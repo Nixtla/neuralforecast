@@ -2812,6 +2812,13 @@ class NeuralForecast:
 
         `core.NeuralForecast`'s method to load checkpoint from path.
 
+        .. warning::
+            Loading a saved directory deserializes it with pickle and therefore
+            **executes arbitrary code contained in those files**. Only load
+            directories from a source you trust. This applies to remote paths
+            (``s3://``, ``gcs://``, ``http://``) resolved through fsspec exactly
+            as it does to local ones.
+
         Args:
             path (str): Directory with stored artifacts.
             verbose (bool): Defaults to False.
