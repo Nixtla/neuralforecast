@@ -32,7 +32,15 @@ def _fit(panel, **kwargs):
     nf = NeuralForecast(
         models=[
             NLinear(
-                h=4, input_size=8, max_steps=1, enable_progress_bar=False, logger=False
+                h=4,
+                input_size=8,
+                max_steps=1,
+                enable_progress_bar=False,
+                logger=False,
+                # macOS CI runs this file and its MPS pool is tiny; the suite's
+                # convention is to pin tests that build models to the CPU.
+                accelerator="cpu",
+                devices=1,
             )
         ],
         freq="ME",
@@ -111,7 +119,15 @@ def _fit_with_intervals(panel):
     nf = NeuralForecast(
         models=[
             NLinear(
-                h=4, input_size=8, max_steps=1, enable_progress_bar=False, logger=False
+                h=4,
+                input_size=8,
+                max_steps=1,
+                enable_progress_bar=False,
+                logger=False,
+                # macOS CI runs this file and its MPS pool is tiny; the suite's
+                # convention is to pin tests that build models to the CPU.
+                accelerator="cpu",
+                devices=1,
             )
         ],
         freq="ME",

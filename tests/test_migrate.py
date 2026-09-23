@@ -37,7 +37,15 @@ def legacy_with_dataset(tmp_path):
     nf = NeuralForecast(
         models=[
             NLinear(
-                h=4, input_size=8, max_steps=1, enable_progress_bar=False, logger=False
+                h=4,
+                input_size=8,
+                max_steps=1,
+                enable_progress_bar=False,
+                logger=False,
+                # macOS CI runs this file and its MPS pool is tiny; the suite's
+                # convention is to pin tests that build models to the CPU.
+                accelerator="cpu",
+                devices=1,
             )
         ],
         freq="ME",
@@ -80,6 +88,20 @@ def legacy_with_dataset(tmp_path):
     return str(directory), nf
 
 
+
+def _on_cpu(nf):
+    """Pin a forecaster loaded from a fixture to the CPU.
+
+    The fixtures were fitted before these tests pinned the accelerator, so their
+    stored trainer kwargs still auto-select one. macOS CI has almost no MPS
+    memory available by the time this file runs.
+    """
+    for model in nf.models:
+        model.trainer_kwargs["accelerator"] = "cpu"
+        model.trainer_kwargs["devices"] = 1
+    return nf
+
+
 @pytest.mark.parametrize("legacy", FIXTURE_NAMES, indirect=True)
 def test_migrated_directory_loads_without_pickle(legacy):
     destination = migrate(legacy, verbose=False)
@@ -100,12 +122,12 @@ def test_migration_preserves_predictions(legacy):
     test_df = panel[panel.ds >= panel["ds"].values[-horizon]]
 
     with pytest.warns(UserWarning):
-        before = NeuralForecast.load(legacy, allow_pickle=True).predict(
+        before = _on_cpu(NeuralForecast.load(legacy, allow_pickle=True)).predict(
             df=train_df, futr_df=test_df
         )
 
     destination = migrate(legacy, verbose=False)
-    after = NeuralForecast.load(destination, allow_pickle=False).predict(
+    after = _on_cpu(NeuralForecast.load(destination, allow_pickle=False)).predict(
         df=train_df, futr_df=test_df
     )
     assert before.equals(after)
