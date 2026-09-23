@@ -150,6 +150,12 @@ def _registries(kind: str) -> Tuple[Dict[str, type], Dict[str, type]]:
     return registries[kind]
 
 
+def registered_classes(kind: str) -> Tuple[type, ...]:
+    """Every class currently registered under `kind`, built-in and user."""
+    builtin, user = _registries(kind)
+    return tuple(dict.fromkeys(list(builtin.values()) + list(user.values())))
+
+
 def _resolve(name: str, kind: str) -> type:
     builtin, user = _registries(kind)
     cls = builtin.get(name) or user.get(name)

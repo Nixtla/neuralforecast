@@ -2,9 +2,12 @@ __all__ = ["DistributedConfig", "BaseModel"]
 
 
 import inspect
+import io
+import json
 import math
 import os
 import random
+import re
 import warnings
 from contextlib import contextmanager, nullcontext
 from copy import deepcopy
@@ -20,6 +23,16 @@ import torch.nn.functional as F
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 import neuralforecast.losses.pytorch as losses
+from neuralforecast._serialization import (
+    HPARAM_TENSOR_PREFIX,
+    decode_mapping,
+    encode_mapping,
+    load_state_dict_exact,
+    load_tensors,
+    looks_like_safetensors,
+    registered_classes,
+    save_tensors,
+)
 from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.tsdataset import (
     BaseTimeSeriesDataset,
@@ -131,6 +144,54 @@ def _local_rendezvous_addr():
         yield
     finally:
         os.environ.pop("PET_LOCAL_ADDR", None)
+
+
+# Globals that PyTorch's restricted unpickler is allowed to reconstruct when
+# reading a legacy v1 checkpoint. Treat additions here as a security review, not
+# a bug fix: the allowlist is content-dependent, and widening it far enough to
+# accept every checkpoint anyone reports eventually reproduces the vulnerability
+# this exists to close. In particular `torch.storage._load_from_bytes` must never
+# appear -- it is a call to `torch.load(weights_only=False)` on attacker bytes.
+#
+# PENDING SECURITY SIGN-OFF: real quantile and distribution checkpoints also
+# need `numpy._core.multiarray.scalar`, `numpy.dtype`, `numpy.dtypes.StrDType`
+# and `_codecs.encode`, because `level_to_outputs` stores `np.str_` in
+# `output_names`. Those four have not been reviewed as non-exploitable under the
+# restricted unpickler, so they are withheld and such checkpoints fail closed.
+# Once reviewed, append them here.
+_V1_EXTRA_SAFE_GLOBALS: tuple = ()
+
+
+def _restricted_torch_load(data, path, kwargs):
+    """Read a v1 checkpoint without letting it execute code.
+
+    Raises rather than falling back to an unrestricted read. The fallback is the
+    whole bug: an attacker who can make the restricted read fail would otherwise
+    get the unrestricted one for free.
+    """
+    kwargs = dict(kwargs)
+    kwargs["weights_only"] = True
+    allowlist = list(registered_classes("loss")) + list(_V1_EXTRA_SAFE_GLOBALS)
+    try:
+        with torch.serialization.safe_globals(allowlist):
+            return torch.load(io.BytesIO(data), **kwargs)
+    except Exception as e:
+        raise _restricted_load_error(path, e) from e
+
+
+def _restricted_load_error(path, error):
+    refused = re.search(r"GLOBAL ([\w.]+)", str(error))
+    detail = (
+        f"It requires `{refused.group(1)}`, which is not on the allowlist."
+        if refused
+        else f"The restricted reader refused it: {error}"
+    )
+    return ValueError(
+        f"Cannot safely load the legacy checkpoint at {path}. {detail} "
+        f"Re-save it in the safe format with `model.save(path)` from a trusted "
+        f"environment, or pass `allow_pickle=True` to read it with pickle, which "
+        f"executes any code the file contains."
+    )
 
 
 class BaseModel(pl.LightningModule):
@@ -885,57 +946,120 @@ class BaseModel(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def save(self, path):
+        """Save the model in the v2 format: safetensors weights, JSON metadata.
+
+        Hyperparameters live in the safetensors `__metadata__` header rather than
+        a sibling file, so weights and the config that must match them cannot be
+        separated or mismatched by a partial copy.
+
+        Args:
+            path (str): Destination, local or any fsspec-supported URL.
+        """
         import copy
 
-        # Strip callbacks from hparams before saving: callback objects are not
+        # Strip callbacks and logger from hparams before saving: both are runtime
+        # objects rather than model state, and callback objects are not
         # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
-        # during predict() on a loaded model. Callbacks can be re-attached after
-        # loading via `model.trainer_kwargs["callbacks"] = [...]`.
+        # during predict() on a loaded model. They can be re-attached after
+        # loading via `model.trainer_kwargs[...] = ...`.
         # Note: save_hyperparameters() stores **trainer_kwargs contents flat, so
-        # `callbacks` is a top-level key in hparams, not nested under trainer_kwargs.
+        # these are top-level keys in hparams, not nested under trainer_kwargs.
         hparams = copy.deepcopy(dict(self.hparams))
-        if "callbacks" in hparams:
-            del hparams["callbacks"]
+        for runtime_only in ("callbacks", "logger"):
+            hparams.pop(runtime_only, None)
+
+        encoded, hparam_tensors = encode_mapping(hparams)
+        payload = dict(self.state_dict())
+        for key, tensor in hparam_tensors.items():
+            # Clone so a hyperparameter tensor can never alias a weight and get
+            # dropped as a duplicate, which would leave its pointer dangling.
+            payload[key] = tensor.clone()
+
+        blob = save_tensors(
+            payload,
+            {
+                "model_class": type(self).__name__,
+                "hyper_parameters": json.dumps(encoded),
+            },
+        )
         with fsspec.open(path, "wb") as f:
-            torch.save(
-                {"hyper_parameters": hparams, "state_dict": self.state_dict()},
-                f,
-            )
+            f.write(blob)
 
     @classmethod
-    def load(cls, path, **kwargs):
+    def load(cls, path, allow_pickle=True, **kwargs):
         """Load a model from a checkpoint.
 
-        .. warning::
-            Checkpoints are deserialized with pickle unless ``weights_only=True``
-            is passed. Loading a pickle-format checkpoint **executes arbitrary code
-            contained in that file**, so only load checkpoints from a source you
-            trust. This applies to remote paths (``s3://``, ``gcs://``, ``http://``)
-            resolved through fsspec exactly as it does to local ones.
+        v2 checkpoints (safetensors + JSON) are loaded without executing any code
+        contained in the file. Legacy v1 checkpoints are pickle-based:
+
+        - with ``allow_pickle=True`` they are read with `torch.load` in full-pickle
+          mode, which **executes arbitrary code contained in the file**;
+        - with ``allow_pickle=False`` they are read through PyTorch's restricted
+          unpickler, which refuses anything outside a small allowlist. There is no
+          fallback from the restricted read to the unrestricted one.
+
+        The format is decided by inspecting the file's own bytes. Nothing the
+        artifact declares about itself is allowed to select the reader.
 
         Args:
             path (str): Path to the checkpoint, local or any fsspec-supported URL.
-            **kwargs: Additional keyword arguments passed to `torch.load`. Pass
-                `weights_only=True` to refuse pickle and load tensors only; it is
-                honored rather than overridden.
+            allow_pickle (bool): Permit the unrestricted legacy read. Defaults to
+                True; ignored for v2 checkpoints, which never use pickle.
+            **kwargs: Additional keyword arguments passed to `torch.load` on the
+                legacy path. `weights_only=True` is honored and forces the
+                restricted read.
 
         Returns:
             result (BaseModel): The loaded model.
         """
-        # `weights_only` defaults to False for backwards compatibility with
-        # checkpoints that carry non-tensor hyperparameters, but a caller asking
-        # for a restricted load must get one.
-        kwargs.setdefault("weights_only", False)
-        if not kwargs["weights_only"]:
+        with fsspec.open(path, "rb") as f:
+            data = f.read()
+
+        if looks_like_safetensors(data):
+            return cls._load_v2(data, path)
+        return cls._load_v1(data, path, allow_pickle, kwargs)
+
+    @classmethod
+    def _load_v2(cls, data, path):
+        tensors, metadata = load_tensors(data)
+
+        model_class = metadata.get("model_class")
+        if model_class is not None and model_class != cls.__name__:
+            raise ValueError(
+                f"{path} holds a {model_class} checkpoint, but it is being loaded "
+                f"as {cls.__name__}."
+            )
+
+        hparam_tensors = {
+            key: tensors.pop(key)
+            for key in list(tensors)
+            if key.startswith(f"{HPARAM_TENSOR_PREFIX}.")
+        }
+        hparams = decode_mapping(
+            json.loads(metadata["hyper_parameters"]), hparam_tensors
+        )
+        with _disable_torch_init():
+            model = cls(**hparams)
+        load_state_dict_exact(model, tensors, metadata)
+        return model
+
+    @classmethod
+    def _load_v1(cls, data, path, allow_pickle, kwargs):
+        restricted = not allow_pickle or kwargs.get("weights_only") is True
+        if restricted:
+            content = _restricted_torch_load(data, path, kwargs)
+        else:
+            kwargs.setdefault("weights_only", False)
             warnings.warn(
                 f"Loading {path} with `weights_only=False`, which deserializes "
                 "the checkpoint with pickle and executes any code it contains. "
-                "Only load checkpoints from a trusted source.",
+                "Only load checkpoints from a trusted source. Re-save it with "
+                "`model.save(path)` to migrate it to the safe format.",
                 UserWarning,
-                stacklevel=2,
+                stacklevel=3,
             )
-        with fsspec.open(path, "rb") as f:
-            content = torch.load(f, **kwargs)
+            content = torch.load(io.BytesIO(data), **kwargs)
+
         with _disable_torch_init():
             model = cls(**content["hyper_parameters"])
         if "assign" in inspect.signature(model.load_state_dict).parameters:
