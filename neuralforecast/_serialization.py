@@ -18,6 +18,7 @@ import json
 import struct
 from typing import Any, Dict, Optional, Tuple
 
+import fsspec
 import numpy as np
 import torch
 from safetensors.torch import load as _st_load
@@ -150,6 +151,30 @@ def _registries(kind: str) -> Tuple[Dict[str, type], Dict[str, type]]:
     return registries[kind]
 
 
+_LOCAL_PROTOCOLS = frozenset({"file", "local", "memory"})
+
+
+def ensure_trusted_path(path, trust_remote: bool) -> None:
+    """Refuse a non-local artifact path unless the caller opted in.
+
+    Fetching an artifact over `s3://`, `gcs://` or `http://` is the deployment
+    pattern this class of bug is exploited through: whoever can write that object
+    -- a leaked CI token, a broad bucket ACL, a staging-to-prod promotion -- picks
+    the bytes that get deserialized on the loading host.
+    """
+    if trust_remote:
+        return
+    protocol = fsspec.utils.get_protocol(str(path))
+    if protocol in _LOCAL_PROTOCOLS:
+        return
+    raise ValueError(
+        f"Refusing to load from the remote path {path!r} ({protocol}://). Anyone "
+        f"who can write that location chooses what gets loaded here. Pass "
+        f"`trust_remote=True` if you control it, or download it first and inspect "
+        f"it."
+    )
+
+
 def registered_classes(kind: str) -> Tuple[type, ...]:
     """Every class currently registered under `kind`, built-in and user."""
     builtin, user = _registries(kind)
@@ -237,12 +262,16 @@ class _SerializableLoss:
 _POLARS_DTYPES = ("String", "Int32", "Int64", "Float32", "Float64", "Datetime", "Date")
 
 
-def encode_value(value: Any, tensors: Dict[str, torch.Tensor], path: str) -> Any:
-    """Encode one value to JSON-safe data, moving tensors into `tensors`.
+def encode_value(
+    value: Any, tensors: Optional[Dict[str, torch.Tensor]], path: str
+) -> Any:
+    """Encode one value to JSON-safe data.
 
     Args:
         value: The value to encode.
-        tensors (dict): Collects tensors keyed by their pointer; mutated in place.
+        tensors (dict or None): Collects tensors keyed by their pointer, mutated
+            in place. Pass None to inline arrays into the JSON instead, for
+            metadata that ships without a safetensors sidecar.
         path (str): Dotted path of `value`, used for tensor keys and error messages.
 
     Returns:
@@ -307,18 +336,25 @@ def _encode_tagged(value, tensors, path):
             "name": _name_of(value, "lr_scheduler"),
         }
     if isinstance(value, torch.Tensor):
-        key = f"{HPARAM_TENSOR_PREFIX}.{path}"
-        tensors[key] = value.detach().cpu().contiguous()
-        return {TAG: "tensor", "key": key, "kind": "torch"}
+        return _encode_array(value.detach().cpu(), tensors, path, "torch")
     if isinstance(value, np.ndarray):
         if value.dtype.kind == "M":
             return _encode_datetime64(value)
-        if value.dtype.kind in "US":
-            return {TAG: "index", "kind": "numpy", "dtype": "str", "values": value.tolist()}
-        key = f"{HPARAM_TENSOR_PREFIX}.{path}"
-        tensors[key] = torch.as_tensor(np.ascontiguousarray(value))
-        return {TAG: "tensor", "key": key, "kind": "numpy", "dtype": str(value.dtype)}
+        if value.dtype.kind in "USO":
+            return _encode_str_array(value, path)
+        return _encode_array(value, tensors, path, "numpy")
+    if _is_scaler(value):
+        return _encode_scaler(value, tensors, path)
+    prediction_intervals = _as_prediction_intervals(value)
+    if prediction_intervals is not None:
+        return prediction_intervals
 
+    pandas_frame = _as_pandas_frame(value, tensors, path)
+    if pandas_frame is not None:
+        return pandas_frame
+    polars_frame = _as_polars_frame(value, tensors, path)
+    if polars_frame is not None:
+        return polars_frame
     pandas_index = _as_pandas_index(value)
     if pandas_index is not None:
         return pandas_index
@@ -328,6 +364,96 @@ def _encode_tagged(value, tensors, path):
     return None
 
 
+def _encode_array(value, tensors, path, kind):
+    dtype = str(value.dtype)
+    if tensors is None:
+        array = value.numpy() if isinstance(value, torch.Tensor) else value
+        return {
+            TAG: "array",
+            "kind": kind,
+            "dtype": dtype,
+            "shape": list(array.shape),
+            "values": array.reshape(-1).tolist(),
+        }
+    key = f"{HPARAM_TENSOR_PREFIX}.{path}"
+    if isinstance(value, torch.Tensor):
+        tensors[key] = value.contiguous()
+        return {TAG: "tensor", "key": key, "kind": "torch"}
+    tensors[key] = torch.as_tensor(np.ascontiguousarray(value))
+    return {TAG: "tensor", "key": key, "kind": "numpy", "dtype": dtype}
+
+
+def _encode_str_array(value, path):
+    values = value.tolist()
+    if not all(v is None or isinstance(v, str) for v in values):
+        raise SerializationError(
+            f"{path}: object arrays can only be encoded when every element is a "
+            f"string or None."
+        )
+    return {TAG: "index", "kind": "numpy", "dtype": str(value.dtype), "values": values}
+
+
+def _as_prediction_intervals(value):
+    from neuralforecast.utils import PredictionIntervals
+
+    if type(value) is not PredictionIntervals:
+        return None
+    return {
+        TAG: "prediction_intervals",
+        "n_windows": value.n_windows,
+        "method": value.method,
+        "step_size": value.step_size,
+    }
+
+
+def _scaler_classes():
+    from neuralforecast.core import _type2scaler
+
+    return tuple({type(factory()) for factory in _type2scaler.values()})
+
+
+def _is_scaler(value):
+    return isinstance(value, _scaler_classes())
+
+
+def _scaler_type_name(value):
+    """`_type2scaler` is already a closed registry; find the key for this object.
+
+    Some entries share a class and differ only by a constructor argument
+    (robust/mad vs robust-iqr), so the probe is compared on those too.
+    """
+    from neuralforecast.core import _type2scaler
+
+    for name, factory in _type2scaler.items():
+        probe = factory()
+        if type(probe) is not type(value):
+            continue
+        if all(
+            getattr(probe, attr, None) == getattr(value, attr, None)
+            for attr in ("scale", "method", "lower")
+        ):
+            return name
+    return None
+
+
+def _encode_scaler(value, tensors, path):
+    """coreforecast scalers hold their whole fitted state in `stats_`."""
+    name = _scaler_type_name(value)
+    if name is None:
+        raise SerializationError(
+            f"{path}: {type(value).__name__} is not one of the supported local "
+            f"scalers, so it cannot be saved."
+        )
+    stats = getattr(value, "stats_", None)
+    return {
+        TAG: "scaler",
+        "type": name,
+        "stats_": None
+        if stats is None
+        else encode_value(stats, tensors, f"{path}.stats_"),
+    }
+
+
 def _encode_datetime64(values, kind="numpy"):
     unit = np.datetime_data(values.dtype)[0]
     return {
@@ -335,6 +461,43 @@ def _encode_datetime64(values, kind="numpy"):
         "kind": kind,
         "unit": unit,
         "values": values.astype("int64").tolist(),
+    }
+
+
+def _as_pandas_frame(value, tensors, path):
+    import pandas as pd
+
+    if isinstance(value, pd.Series):
+        return {
+            TAG: "series",
+            "kind": "pandas",
+            "name": value.name,
+            "dtype": str(value.dtype),
+            "data": encode_value(value.to_numpy(), tensors, f"{path}.values"),
+        }
+    if isinstance(value, pd.DataFrame):
+        return {
+            TAG: "dataframe",
+            "kind": "pandas",
+            "columns": [
+                [str(col), encode_value(value[col], tensors, f"{path}.{col}")]
+                for col in value.columns
+            ],
+        }
+    return None
+
+
+def _as_polars_frame(value, tensors, path):
+    polars = _polars_or_none()
+    if polars is None or not isinstance(value, polars.DataFrame):
+        return None
+    return {
+        TAG: "dataframe",
+        "kind": "polars",
+        "columns": [
+            [name, encode_value(value[name], tensors, f"{path}.{name}")]
+            for name in value.columns
+        ],
     }
 
 
@@ -413,6 +576,22 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
         return _decode_datetime64(value)
     if kind == "index":
         return _decode_index(value)
+    if kind == "array":
+        return _decode_array(value)
+    if kind == "scaler":
+        return _decode_scaler(value, tensors)
+    if kind == "prediction_intervals":
+        from neuralforecast.utils import PredictionIntervals
+
+        return PredictionIntervals(
+            n_windows=value["n_windows"],
+            method=value["method"],
+            step_size=value["step_size"],
+        )
+    if kind == "series":
+        return _decode_series(value, tensors)
+    if kind == "dataframe":
+        return _decode_frame(value, tensors)
     raise SerializationError(
         f"Unknown tag {kind!r} in artifact metadata. Refusing to load rather "
         f"than guessing at its meaning."
@@ -429,6 +608,45 @@ def _decode_tensor(value, tensors):
     if value["kind"] == "numpy":
         return tensor.numpy().astype(value["dtype"])
     return tensor
+
+
+def _decode_array(value):
+    array = np.asarray(value["values"], dtype=value["dtype"]).reshape(value["shape"])
+    if value["kind"] == "torch":
+        return torch.as_tensor(array)
+    return array
+
+
+def _decode_scaler(value, tensors):
+    from neuralforecast.core import _type2scaler
+
+    name = value["type"]
+    if name not in _type2scaler:
+        raise SerializationError(f"Unknown local scaler type {name!r} in artifact.")
+    scaler = _type2scaler[name]()
+    stats = value.get("stats_")
+    if stats is not None:
+        scaler.stats_ = np.ascontiguousarray(decode_value(stats, tensors))
+    return scaler
+
+
+def _decode_series(value, tensors):
+    import pandas as pd
+
+    data = decode_value(value["data"], tensors)
+    return pd.Series(data, name=value.get("name"), dtype=value["dtype"])
+
+
+def _decode_frame(value, tensors):
+    columns = [(name, decode_value(data, tensors)) for name, data in value["columns"]]
+    if value["kind"] == "pandas":
+        import pandas as pd
+
+        return pd.DataFrame({name: data for name, data in columns})
+    polars = _polars_or_none()
+    if polars is None:
+        raise SerializationError("Artifact holds polars data but polars is not installed.")
+    return polars.DataFrame({name: data for name, data in columns})
 
 
 def _decode_datetime64(value):
@@ -463,10 +681,19 @@ def _decode_index(value):
     )
 
 
-def encode_mapping(mapping: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
-    """Encode a dict of hyperparameters into (JSON-safe dict, tensors)."""
+def encode_mapping(
+    mapping: Dict[str, Any], inline: bool = False
+) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
+    """Encode a dict into (JSON-safe dict, tensors).
+
+    Args:
+        mapping (dict): Values to encode.
+        inline (bool): Write arrays into the JSON instead of a tensor sidecar.
+            Used for `configuration.json`, which ships without one.
+    """
     tensors: Dict[str, torch.Tensor] = {}
-    encoded = {k: encode_value(v, tensors, k) for k, v in mapping.items()}
+    target = None if inline else tensors
+    encoded = {k: encode_value(v, target, k) for k, v in mapping.items()}
     return encoded, tensors
 
 
@@ -566,3 +793,61 @@ def load_state_dict_exact(
             f"{sorted(missing - expected_missing)}, unexpected keys "
             f"{sorted(incompatible.unexpected_keys)}."
         )
+
+
+# ---------------------------------------------------------------------------
+# Datasets
+# ---------------------------------------------------------------------------
+
+# Constructor arguments per dataset class. Explicit rather than a `vars()` dump,
+# so a new attribute is a visible decision instead of a silent round-trip gap.
+_DATASET_FIELDS = {
+    "TimeSeriesDataset": (
+        "temporal",
+        "temporal_cols",
+        "indptr",
+        "y_idx",
+        "static",
+        "static_cols",
+    ),
+    "LocalFilesTimeSeriesDataset": (
+        "files_ds",
+        "temporal_cols",
+        "id_col",
+        "time_col",
+        "target_col",
+        "last_times",
+        "indices",
+        "max_size",
+        "min_size",
+        "y_idx",
+        "static",
+        "static_cols",
+    ),
+}
+_DATASET_EXTRA = ("updated",)
+
+
+def encode_dataset(dataset) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
+    """Encode a dataset into (JSON-safe dict, tensors for the safetensors sidecar)."""
+    name = _name_of(type(dataset), "dataset")
+    tensors: Dict[str, torch.Tensor] = {}
+    fields = {
+        field: encode_value(getattr(dataset, field), tensors, field)
+        for field in _DATASET_FIELDS[name]
+    }
+    extra = {
+        field: encode_value(getattr(dataset, field), tensors, field)
+        for field in _DATASET_EXTRA
+        if hasattr(dataset, field)
+    }
+    return {"dataset_class": name, "fields": fields, "extra": extra}, tensors
+
+
+def decode_dataset(meta: Dict[str, Any], tensors: Dict[str, torch.Tensor]):
+    """Inverse of `encode_dataset`."""
+    cls = _resolve(meta["dataset_class"], "dataset")
+    dataset = cls(**decode_mapping(meta["fields"], tensors))
+    for field, value in decode_mapping(meta.get("extra", {}), tensors).items():
+        setattr(dataset, field, value)
+    return dataset

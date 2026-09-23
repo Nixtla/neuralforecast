@@ -26,6 +26,7 @@ import neuralforecast.losses.pytorch as losses
 from neuralforecast._serialization import (
     HPARAM_TENSOR_PREFIX,
     decode_mapping,
+    ensure_trusted_path,
     encode_mapping,
     load_state_dict_exact,
     load_tensors,
@@ -153,12 +154,16 @@ def _local_rendezvous_addr():
 # this exists to close. In particular `torch.storage._load_from_bytes` must never
 # appear -- it is a call to `torch.load(weights_only=False)` on attacker bytes.
 #
-# PENDING SECURITY SIGN-OFF: real quantile and distribution checkpoints also
-# need `numpy._core.multiarray.scalar`, `numpy.dtype`, `numpy.dtypes.StrDType`
-# and `_codecs.encode`, because `level_to_outputs` stores `np.str_` in
-# `output_names`. Those four have not been reviewed as non-exploitable under the
-# restricted unpickler, so they are withheld and such checkpoints fail closed.
-# Once reviewed, append them here.
+# PENDING SECURITY SIGN-OFF, measured against real checkpoints:
+#   - `lightning_fabric.utilities.data.AttributeDict` -- every checkpoint under
+#     tests/backward_comp/data/ stores `hyper_parameters` as this dict subclass,
+#     so without it the restricted reader loads no real legacy checkpoint at all;
+#   - `numpy._core.multiarray.scalar`, `numpy.dtype`, `numpy.dtypes.StrDType`
+#     and `_codecs.encode` -- needed by quantile and distribution losses, whose
+#     `level_to_outputs` stores `np.str_` in `output_names`.
+# None of these have been reviewed as non-exploitable under torch's restricted
+# unpickler, so they are withheld and such checkpoints fail closed. Once
+# reviewed, append them here.
 _V1_EXTRA_SAFE_GLOBALS: tuple = ()
 
 
@@ -191,6 +196,31 @@ def _restricted_load_error(path, error):
         f"Re-save it in the safe format with `model.save(path)` from a trusted "
         f"environment, or pass `allow_pickle=True` to read it with pickle, which "
         f"executes any code the file contains."
+    )
+
+
+
+def _check_model_class(model_class, cls, path):
+    """Cross-check the class a v2 checkpoint says it holds.
+
+    This is a mismatch guard, not a security control -- the registry in
+    `_serialization` is what makes the metadata safe to act on. It stays lenient
+    for user subclasses, which v1 also loaded as their registered base.
+    """
+    if not model_class or model_class == cls.__name__:
+        return
+    from neuralforecast.core import MODEL_FILENAME_DICT
+
+    registered = MODEL_FILENAME_DICT.get(model_class.lower())
+    if registered is not None and not issubclass(cls, registered):
+        raise ValueError(
+            f"{path} holds a {model_class} checkpoint, but it is being loaded "
+            f"as {cls.__name__}."
+        )
+    warnings.warn(
+        f"{path} was saved by {model_class}; loading it as {cls.__name__}.",
+        UserWarning,
+        stacklevel=4,
     )
 
 
@@ -986,7 +1016,7 @@ class BaseModel(pl.LightningModule):
             f.write(blob)
 
     @classmethod
-    def load(cls, path, allow_pickle=True, **kwargs):
+    def load(cls, path, allow_pickle=True, trust_remote=False, **kwargs):
         """Load a model from a checkpoint.
 
         v2 checkpoints (safetensors + JSON) are loaded without executing any code
@@ -1005,6 +1035,8 @@ class BaseModel(pl.LightningModule):
             path (str): Path to the checkpoint, local or any fsspec-supported URL.
             allow_pickle (bool): Permit the unrestricted legacy read. Defaults to
                 True; ignored for v2 checkpoints, which never use pickle.
+            trust_remote (bool): Permit loading from a non-local path. Defaults to
+                False.
             **kwargs: Additional keyword arguments passed to `torch.load` on the
                 legacy path. `weights_only=True` is honored and forces the
                 restricted read.
@@ -1012,6 +1044,7 @@ class BaseModel(pl.LightningModule):
         Returns:
             result (BaseModel): The loaded model.
         """
+        ensure_trusted_path(path, trust_remote)
         with fsspec.open(path, "rb") as f:
             data = f.read()
 
@@ -1023,12 +1056,7 @@ class BaseModel(pl.LightningModule):
     def _load_v2(cls, data, path):
         tensors, metadata = load_tensors(data)
 
-        model_class = metadata.get("model_class")
-        if model_class is not None and model_class != cls.__name__:
-            raise ValueError(
-                f"{path} holds a {model_class} checkpoint, but it is being loaded "
-                f"as {cls.__name__}."
-            )
+        _check_model_class(metadata.get("model_class"), cls, path)
 
         hparam_tensors = {
             key: tensors.pop(key)

@@ -1,6 +1,8 @@
 __all__ = ['NeuralForecast']
 
 
+import io
+import json
 import pickle
 import warnings
 from copy import deepcopy
@@ -22,6 +24,15 @@ from coreforecast.scalers import (
 )
 from utilsforecast.compat import DataFrame, DFType, Series, pl_DataFrame, pl_Series
 from utilsforecast.validation import validate_freq
+from neuralforecast._serialization import (
+    decode_dataset,
+    decode_mapping,
+    encode_dataset,
+    encode_mapping,
+    ensure_trusted_path,
+    load_tensors,
+    save_tensors,
+)
 from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.models import (
     GRU,
@@ -286,6 +297,150 @@ MODEL_FILENAME_DICT = {
     "xlinear": XLinear,
     "autoxlinear": XLinear,
 }
+
+
+
+class _RestrictedUnpickler(pickle.Unpickler):
+    """A `pickle.Unpickler` that only reconstructs an explicit set of classes.
+
+    This is a best-effort reader for the two legacy sidecars whose contents allow
+    it. It is NOT a general hardening of pickle, and it cannot be one: a legacy
+    `dataset.pkl` holds torch tensors, so restoring it requires
+    `torch.storage._load_from_bytes`, which is itself a call to
+    `torch.load(weights_only=False)` on bytes from the file. Allowlisting that
+    would hand back arbitrary code execution through the allowlist, which is why
+    `dataset.pkl` is refused outright instead.
+
+    Treat additions to the allowlist as security review, not bug fixes.
+    """
+
+    def find_class(self, module, name):
+        full = f"{module}.{name}"
+        if full in _V1_SIDECAR_DENIED:
+            raise pickle.UnpicklingError(
+                f"{full} is explicitly denied: reconstructing it would re-open "
+                f"the unrestricted deserialization this reader exists to avoid."
+            )
+        allowed = _v1_sidecar_allowlist()
+        if full not in allowed:
+            raise pickle.UnpicklingError(
+                f"{full} is not on the allowlist for restricted loading."
+            )
+        return allowed[full]
+
+
+# Globals that may never be allowlisted, whatever a future contributor needs.
+_V1_SIDECAR_DENIED = frozenset(
+    {
+        "torch.storage._load_from_bytes",
+        "pandas._libs.internals._unpickle_block",
+        "pandas._libs.arrays.__pyx_unpickle_NDArrayBacked",
+    }
+)
+
+# PENDING SECURITY SIGN-OFF: a legacy `configuration.pkl` that stores fitted
+# scalers, conformity scores or a dataset index also needs numpy and pandas
+# reconstruction helpers. Those have not been reviewed as non-exploitable, so
+# they are withheld and such files fail closed. See the migration plan.
+_V1_SIDECAR_EXTRA: dict = {}
+
+
+def _v1_sidecar_allowlist():
+    allowed = {
+        "neuralforecast.utils.PredictionIntervals": PredictionIntervals,
+    }
+    for factory in _type2scaler.values():
+        cls = type(factory())
+        allowed[f"{cls.__module__}.{cls.__qualname__}"] = cls
+    allowed.update(_V1_SIDECAR_EXTRA)
+    return allowed
+
+
+def _restricted_pickle_load(path, what):
+    with fsspec.open(path, "rb") as f:
+        data = f.read()
+    try:
+        return _RestrictedUnpickler(io.BytesIO(data)).load()
+    except Exception as e:
+        raise ValueError(
+            f"Cannot safely load the legacy {what} at {path}. {e} Re-save the "
+            f"directory with `nf.save(...)` from a trusted environment, or pass "
+            f"`allow_pickle=True` to read it with pickle, which executes any code "
+            f"the files contain."
+        ) from e
+
+
+def _warn_pickle(path):
+    warnings.warn(
+        f"Reading {path} with pickle, which executes any code it contains. Only "
+        f"load directories from a trusted source. Re-save with `nf.save(...)` to "
+        f"migrate to the safe format.",
+        UserWarning,
+        stacklevel=3,
+    )
+
+
+def _load_v2_configuration(path):
+    with fsspec.open(f"{path}/configuration.json", "r") as f:
+        document = json.load(f)
+    return decode_mapping(document["configuration"])
+
+
+def _load_v2_dataset(path, files):
+    if "dataset.json" not in files:
+        return None
+    with fsspec.open(f"{path}/dataset.json", "r") as f:
+        meta = json.load(f)
+    with fsspec.open(f"{path}/dataset.safetensors", "rb") as f:
+        tensors, _ = load_tensors(f.read())
+    return decode_dataset(meta, tensors)
+
+
+def _load_v1_alias_to_model(path, allow_pickle):
+    target = f"{path}/alias_to_model.pkl"
+    try:
+        if allow_pickle:
+            _warn_pickle(target)
+            with fsspec.open(target, "rb") as f:
+                return pickle.load(f)
+        return _restricted_pickle_load(target, "alias map")
+    except FileNotFoundError:
+        return {}
+
+
+def _load_v1_configuration(path, allow_pickle):
+    target = f"{path}/configuration.pkl"
+    try:
+        if allow_pickle:
+            _warn_pickle(target)
+            with fsspec.open(target, "rb") as f:
+                return pickle.load(f)
+        return _restricted_pickle_load(target, "configuration")
+    except FileNotFoundError:
+        raise Exception("No configuration found in directory.")
+
+
+def _v1_dataset_refusal(target):
+    return ValueError(
+        f"Refusing to load the legacy dataset at {target}. It stores torch "
+        f"tensors inside a plain pickle, so there is no way to read it without "
+        f"allowing arbitrary code execution. Re-save the directory with "
+        f"`nf.save(...)` from a trusted environment, or save with "
+        f"`save_dataset=False` and pass `df` to `predict()`. Passing "
+        f"`allow_pickle=True` reads it with pickle, which executes any code the "
+        f"file contains."
+    )
+
+
+def _load_v1_dataset(path, files, allow_pickle):
+    target = f"{path}/dataset.pkl"
+    if "dataset.pkl" not in files:
+        return None
+    if not allow_pickle:
+        raise _v1_dataset_refusal(target)
+    _warn_pickle(target)
+    with fsspec.open(target, "rb") as f:
+        return pickle.load(f)
 
 
 _type2scaler = {
@@ -2756,9 +2911,7 @@ class NeuralForecast:
                 )
             alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
-            model.save(f"{path}/{model_name}_{count_names[model_name]}.ckpt")
-        with fsspec.open(f"{path}/alias_to_model.pkl", "wb") as f:
-            pickle.dump(alias_to_model, f)
+            model.save(f"{path}/{model_name}_{count_names[model_name]}.safetensors")
 
         # Save dataset
         if save_dataset and hasattr(self, "dataset"):
@@ -2768,8 +2921,11 @@ class NeuralForecast:
                     "You can set `save_dataset=False` and use the `df` argument in the predict method after loading "
                     "this model to use it for inference."
                 )
-            with fsspec.open(f"{path}/dataset.pkl", "wb") as f:
-                pickle.dump(self.dataset, f)
+            dataset_meta, dataset_tensors = encode_dataset(self.dataset)
+            with fsspec.open(f"{path}/dataset.safetensors", "wb") as f:
+                f.write(save_tensors(dataset_tensors, {}))
+            with fsspec.open(f"{path}/dataset.json", "w") as f:
+                f.write(json.dumps(dataset_meta))
         elif save_dataset:
             raise Exception(
                 "You need to have a stored dataset to save it, \
@@ -2803,31 +2959,51 @@ class NeuralForecast:
                 }
             )
 
-        with fsspec.open(f"{path}/configuration.pkl", "wb") as f:
-            pickle.dump(config_dict, f)
+        # `alias_to_model` is folded in here: it existed only to tell `load` which
+        # class each checkpoint holds, and one fewer file is one fewer place to
+        # deserialize from. It was also the first thing `load` used to read.
+        config_dict["alias_to_model"] = alias_to_model
+        encoded, _ = encode_mapping(config_dict, inline=True)
+        with fsspec.open(f"{path}/configuration.json", "w") as f:
+            f.write(json.dumps({"nf_format": "2", "configuration": encoded}))
 
     @staticmethod
-    def load(path, verbose=False, **kwargs):
+    def load(
+        path,
+        verbose=False,
+        allow_pickle=True,
+        trust_remote=False,
+        **kwargs,
+    ):
         """Load NeuralForecast
 
         `core.NeuralForecast`'s method to load checkpoint from path.
 
-        .. warning::
-            Loading a saved directory deserializes it with pickle and therefore
-            **executes arbitrary code contained in those files**. Only load
-            directories from a source you trust. This applies to remote paths
-            (``s3://``, ``gcs://``, ``http://``) resolved through fsspec exactly
-            as it does to local ones.
+        Directories saved by this version hold safetensors weights and JSON
+        metadata, and are loaded without executing any code they contain. Legacy
+        directories hold pickles:
+
+        - with ``allow_pickle=True`` they are read with `pickle.load`, which
+          **executes arbitrary code contained in those files**;
+        - with ``allow_pickle=False`` the sidecars are read through a restricted
+          unpickler, and a legacy ``dataset.pkl`` is refused outright because no
+          restricted reader for it can exist.
 
         Args:
             path (str): Directory with stored artifacts.
             verbose (bool): Defaults to False.
-            **kwargs: Additional keyword arguments to be passed to the function
-                `load_from_checkpoint`.
+            allow_pickle (bool): Permit the unrestricted legacy read. Defaults to
+                True.
+            trust_remote (bool): Permit loading from a non-local path. Defaults to
+                False.
+            **kwargs: Additional keyword arguments to be passed to each model's
+                `load`.
 
         Returns:
             result (NeuralForecast): Instantiated `NeuralForecast` class.
         """
+        ensure_trusted_path(path, trust_remote)
+
         # Standardize path without '/'
         if path[-1] == "/":
             path = path[:-1]
@@ -2837,25 +3013,45 @@ class NeuralForecast:
             f.split("/")[-1] for f in _fsspec_listdir(fs, path) if fs.isfile(f)
         ]
 
-        # Load models
-        models_ckpt = [f for f in files if f.endswith(".ckpt")]
-        if len(models_ckpt) == 0:
-            raise Exception("No model found in directory.")
+        # The reader decides the format, from which files are present. A v2
+        # directory is never downgraded to the v1 path because stray legacy files
+        # happen to sit next to it, and nothing a file *declares* about itself is
+        # allowed to make this choice.
+        is_v2 = "configuration.json" in files
+
+        if not is_v2 and not allow_pickle and "dataset.pkl" in files:
+            # Fail before loading anything: this directory cannot be read safely
+            # whatever happens next, and the caller should hear that first.
+            raise _v1_dataset_refusal(f"{path}/dataset.pkl")
 
         if verbose:
             print(10 * "-" + " Loading models " + 10 * "-")
-        models = []
-        try:
-            with fsspec.open(f"{path}/alias_to_model.pkl", "rb") as f:
-                alias_to_model = pickle.load(f)
-        except FileNotFoundError:
-            alias_to_model = {}
+        if is_v2:
+            config_dict = _load_v2_configuration(path)
+            alias_to_model = config_dict.pop("alias_to_model", {})
+            model_files = sorted(f for f in files if f.endswith(".safetensors"))
+            model_files = [f for f in model_files if f != "dataset.safetensors"]
+        else:
+            alias_to_model = _load_v1_alias_to_model(path, allow_pickle)
+            model_files = [f for f in files if f.endswith(".ckpt")]
 
-        for model in models_ckpt:
-            model_name = "_".join(model.split("_")[:-1])
+        if not model_files:
+            raise Exception("No model found in directory.")
+
+        models = []
+        for model_file in model_files:
+            model_name = "_".join(model_file.split("_")[:-1])
             model_class_name = alias_to_model.get(model_name, model_name)
+            if model_class_name not in MODEL_FILENAME_DICT:
+                raise ValueError(
+                    f"Cannot load {model_file}: {model_class_name!r} is not a "
+                    f"known model."
+                )
             loaded_model = MODEL_FILENAME_DICT[model_class_name].load(
-                f"{path}/{model}", **kwargs
+                f"{path}/{model_file}",
+                allow_pickle=allow_pickle,
+                trust_remote=True,  # the directory itself was already checked
+                **kwargs,
             )
             loaded_model.alias = model_name
             models.append(loaded_model)
@@ -2864,27 +3060,19 @@ class NeuralForecast:
 
         if verbose:
             print(10 * "-" + " Loading dataset " + 10 * "-")
-        # Load dataset
-        try:
-            with fsspec.open(f"{path}/dataset.pkl", "rb") as f:
-                dataset = pickle.load(f)
-            if verbose:
-                print("Dataset loaded.")
-        except FileNotFoundError:
-            dataset = None
-            if verbose:
-                print("No dataset found in directory.")
-
+        if is_v2:
+            dataset = _load_v2_dataset(path, files)
+        else:
+            dataset = _load_v1_dataset(path, files, allow_pickle)
         if verbose:
-            print(10 * "-" + " Loading configuration " + 10 * "-")
-        # Load configuration
-        try:
-            with fsspec.open(f"{path}/configuration.pkl", "rb") as f:
-                config_dict = pickle.load(f)
+            print("Dataset loaded." if dataset is not None else "No dataset found in directory.")
+
+        if not is_v2:
+            if verbose:
+                print(10 * "-" + " Loading configuration " + 10 * "-")
+            config_dict = _load_v1_configuration(path, allow_pickle)
             if verbose:
                 print("Configuration loaded.")
-        except FileNotFoundError:
-            raise Exception("No configuration found in directory.")
 
         # in 1.6.4, `local_scaler_type` / `scalers_` lived on the dataset.
         # in order to preserve backwards-compatibility, we check to see if these are found on the dataset
