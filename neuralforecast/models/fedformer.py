@@ -597,14 +597,14 @@ class FEDformer(BaseModel):
         decoder_self_att = FourierBlock(
             in_channels=hidden_size,
             out_channels=hidden_size,
-            seq_len=input_size // 2 + self.h,
+            seq_len=self.label_len + self.h,
             modes=modes,
             mode_select_method=mode_select,
         )
         decoder_cross_att = FourierCrossAttention(
             in_channels=hidden_size,
             out_channels=hidden_size,
-            seq_len_q=input_size // 2 + self.h,
+            seq_len_q=self.label_len + self.h,
             seq_len_kv=input_size,
             modes=modes,
             mode_select_method=mode_select,

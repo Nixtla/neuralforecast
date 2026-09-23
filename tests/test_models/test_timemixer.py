@@ -16,7 +16,7 @@ def test_autotimemixer(setup_dataset):
     my_config = AutoTimeMixer.get_default_config(h=12, n_series=1, backend='optuna')
     def my_config_new(trial):
         config = {**my_config(trial)}
-        config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': 12, 'd_model': 16})
+        config.update({'max_steps': 1, 'val_check_steps': 1, 'input_size': 16, 'd_model': 16})
         return config
 
     model = AutoTimeMixer(h=12, n_series=1, config=my_config_new, backend='optuna', num_samples=1)
@@ -27,7 +27,7 @@ def test_autotimemixer(setup_dataset):
     my_config = AutoTimeMixer.get_default_config(h=12, n_series=1, backend='ray')
     my_config['max_steps'] = 1
     my_config['val_check_steps'] = 1
-    my_config['input_size'] = 12
+    my_config['input_size'] = 16
     my_config['d_model'] = 16
     model = AutoTimeMixer(h=12, n_series=1, config=my_config, backend='ray', num_samples=1, ray_options=RayOptions(cpus=1))
     model.fit(dataset=setup_dataset)
