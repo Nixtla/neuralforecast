@@ -329,8 +329,13 @@ nf.save(save_path, save_dataset=False, overwrite=True)
 
 And load them back
 
+`load` refuses non-local paths unless you opt in with
+`trust_remote=True`, because whoever can write that location chooses
+what gets loaded on this machine. Here the artifacts were just written
+by this notebook, so opting in is safe.
+
 ```python
-nf2 = NeuralForecast.load(save_path)
+nf2 = NeuralForecast.load(save_path, trust_remote=True)
 ```
 
 ``` text

@@ -165,12 +165,17 @@ nf.save(path='./checkpoints/test_run/',
         save_dataset=True)
 ```
 
-For each model, two files are created and stored:
+For each model a single file is created:
 
--   `[model_name]_[suffix].ckpt`: Pytorch Lightning checkpoint file with
-    the model parameters and hyperparameters.
--   `[model_name]_[suffix].pkl`: Dictionary with configuration
-    attributes.
+-   `[model_name]_[suffix].safetensors`: the learnable weights, with the
+    hyperparameters stored in the file’s metadata header.
+
+Two files describe the rest of the state:
+
+-   `configuration.json`: the `NeuralForecast` configuration, including
+    which class each checkpoint holds.
+-   `dataset.json` and `dataset.safetensors`: the stored dataset, when
+    `save_dataset=True`.
 
 Where `model_name` corresponds to the name of the model in lowercase
 (eg. `nhits`). We use a numerical suffix to distinguish multiple models
@@ -182,6 +187,54 @@ of each class. In this example the names will be `automlp_0`,
 > The `Auto` models will be stored as their base model. For example, the
 > `AutoMLP` trained above is stored as an `MLP` model, with the best
 > hyparparameters found during tuning.
+
+### A note on the artifact format
+
+Directories saved by version 3.3.0 and later hold
+[safetensors](https://github.com/huggingface/safetensors) weights and
+JSON metadata, and they are loaded without executing any code they
+contain.
+
+Earlier versions used pickle, which **executes arbitrary code contained
+in the artifact when it is loaded**. Reading one of those directories
+therefore requires you to say so:
+
+```python
+nf = NeuralForecast.load(path='./old_checkpoints/', allow_pickle=True)
+```
+
+Only do that for artifacts you trust. To convert an old directory once,
+instead of passing the flag every time:
+
+```bash
+python -m neuralforecast.migrate ./old_checkpoints/
+```
+
+This writes `./old_checkpoints_v2/`, leaves the original untouched, and
+checks that the result loads with no pickle consent at all.
+
+Two cases to be aware of:
+
+-   A directory saved with `save_dataset=True` by an older version
+    **must** be migrated. Its `dataset.pkl` stores tensors inside a
+    plain pickle, and there is no way to read that safely. If you would
+    rather not migrate, re-save with `save_dataset=False` and pass `df`
+    to `predict()`.
+-   `TimeLLM` can no longer be saved or loaded. It resolves its `llm`
+    argument through `from_pretrained` while being constructed, so an
+    artifact could direct that fetch. Train and predict with it in the
+    same process.
+
+### Loading from remote storage
+
+`load` refuses non-local paths unless you opt in:
+
+```python
+nf = NeuralForecast.load(path='s3://my-bucket/models/', trust_remote=True)
+```
+
+Anyone who can write that location chooses what gets loaded on the
+machine doing the loading, so this is worth being deliberate about.
 
 ## 5. Load models
 

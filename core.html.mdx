@@ -233,12 +233,22 @@ Name | Type | Description | Default
 #### `NeuralForecast.load`
 
 ```python
-load(path, verbose=False, **kwargs)
+load(path, verbose=False, allow_pickle=False, trust_remote=False, **kwargs)
 ```
 
 Load NeuralForecast
 
 `core.NeuralForecast`'s method to load checkpoint from path.
+
+Directories saved by this version hold safetensors weights and JSON
+metadata, and are loaded without executing any code they contain. Legacy
+directories hold pickles:
+
+- with `allow_pickle=True` they are read with `pickle.load`, which
+  **executes arbitrary code contained in those files**;
+- with `allow_pickle=False` the sidecars are read through a restricted
+  unpickler, and a legacy `dataset.pkl` is refused outright because no
+  restricted reader for it can exist.
 
 **Parameters:**
 
@@ -246,7 +256,9 @@ Name | Type | Description | Default
 ---- | ---- | ----------- | -------
 `path` | <code>[str](#str)</code> | Directory with stored artifacts. | *required*
 `verbose` | <code>[bool](#bool)</code> | Defaults to False. | <code>False</code>
-`**kwargs` | | Additional keyword arguments to be passed to the function `load_from_checkpoint`. | <code>{}</code>
+`allow_pickle` | <code>[bool](#bool)</code> | Permit the unrestricted legacy read. Defaults to False. | <code>False</code>
+`trust_remote` | <code>[bool](#bool)</code> | Permit loading from a non-local path. Defaults to False. | <code>False</code>
+`**kwargs` | | Additional keyword arguments to be passed to each model's `load`. | <code>{}</code>
 
 **Returns:**
 
