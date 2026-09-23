@@ -1,6 +1,7 @@
 __all__ = ["DistributedConfig", "BaseModel"]
 
 
+import codecs
 import inspect
 import io
 import json
@@ -147,6 +148,32 @@ def _local_rendezvous_addr():
         os.environ.pop("PET_LOCAL_ADDR", None)
 
 
+
+# Models that may not be written to or read from an artifact at all.
+#
+# TimeLLM takes its base model as a plain string hyperparameter and hands it to
+# `AutoConfig/AutoModel/AutoTokenizer.from_pretrained` inside `__init__`, which
+# runs before weights are applied. A hand-written artifact could therefore make
+# a load fetch from an attacker-chosen repository or path while passing every
+# registry check, because the string is valid JSON and names no class. The
+# refusal is at both ends deliberately: an attacker writes the artifact by hand,
+# so refusing only `save` would close nothing.
+_UNSAVEABLE_MODELS = {
+    "TimeLLM": (
+        "TimeLLM cannot be saved or loaded. It resolves its `llm` argument "
+        "through `from_pretrained` while being constructed, so an artifact "
+        "could direct that fetch. Train and predict with it in the same "
+        "process instead."
+    ),
+}
+
+
+def _refuse_unsaveable(model_class):
+    reason = _UNSAVEABLE_MODELS.get(model_class)
+    if reason is not None:
+        raise ValueError(reason)
+
+
 # Globals that PyTorch's restricted unpickler is allowed to reconstruct when
 # reading a legacy v1 checkpoint. Treat additions here as a security review, not
 # a bug fix: the allowlist is content-dependent, and widening it far enough to
@@ -154,17 +181,27 @@ def _local_rendezvous_addr():
 # this exists to close. In particular `torch.storage._load_from_bytes` must never
 # appear -- it is a call to `torch.load(weights_only=False)` on attacker bytes.
 #
-# PENDING SECURITY SIGN-OFF, measured against real checkpoints:
-#   - `lightning_fabric.utilities.data.AttributeDict` -- every checkpoint under
-#     tests/backward_comp/data/ stores `hyper_parameters` as this dict subclass,
-#     so without it the restricted reader loads no real legacy checkpoint at all;
-#   - `numpy._core.multiarray.scalar`, `numpy.dtype`, `numpy.dtypes.StrDType`
-#     and `_codecs.encode` -- needed by quantile and distribution losses, whose
-#     `level_to_outputs` stores `np.str_` in `output_names`.
-# None of these have been reviewed as non-exploitable under torch's restricted
-# unpickler, so they are withheld and such checkpoints fail closed. Once
-# reviewed, append them here.
-_V1_EXTRA_SAFE_GLOBALS: tuple = ()
+# Reviewed and signed off for the restricted reader. Needed by quantile losses,
+# whose `level_to_outputs` stores `np.str_` in `output_names`.
+#
+# Adding to this tuple is a security review, not a bug fix. The allowlist is
+# content-dependent, so users will report checkpoints it refuses; widening it
+# once per report eventually reproduces the vulnerability it exists to close.
+# `torch.storage._load_from_bytes` must never appear -- see above. Neither may
+# `getattr`, which a `DistributionLoss` checkpoint asks for: a general attribute
+# reader is precisely the primitive that makes an allowlist meaningless.
+#
+# Deliberately NOT here, because it cannot work rather than because it was
+# refused: `lightning_fabric.utilities.data.AttributeDict`. Checkpoints written
+# before v3.1.6 store `hyper_parameters` as one, and torch's unpickler restricts
+# SETITEMS to dict, OrderedDict and Counter at the opcode level, so no allowlist
+# entry makes those readable. Those checkpoints need `migrate`.
+_V1_EXTRA_SAFE_GLOBALS: tuple = (
+    np.core.multiarray.scalar,  # type: ignore[attr-defined]
+    np.dtype,
+    np.dtypes.StrDType,
+    codecs.encode,
+)
 
 
 def _restricted_torch_load(data, path, kwargs):
@@ -987,6 +1024,8 @@ class BaseModel(pl.LightningModule):
         """
         import copy
 
+        _refuse_unsaveable(type(self).__name__)
+
         # Strip callbacks and logger from hparams before saving: both are runtime
         # objects rather than model state, and callback objects are not
         # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
@@ -1016,7 +1055,7 @@ class BaseModel(pl.LightningModule):
             f.write(blob)
 
     @classmethod
-    def load(cls, path, allow_pickle=True, trust_remote=False, **kwargs):
+    def load(cls, path, allow_pickle=False, trust_remote=False, **kwargs):
         """Load a model from a checkpoint.
 
         v2 checkpoints (safetensors + JSON) are loaded without executing any code
@@ -1034,7 +1073,7 @@ class BaseModel(pl.LightningModule):
         Args:
             path (str): Path to the checkpoint, local or any fsspec-supported URL.
             allow_pickle (bool): Permit the unrestricted legacy read. Defaults to
-                True; ignored for v2 checkpoints, which never use pickle.
+                False; ignored for v2 checkpoints, which never use pickle.
             trust_remote (bool): Permit loading from a non-local path. Defaults to
                 False.
             **kwargs: Additional keyword arguments passed to `torch.load` on the
@@ -1044,6 +1083,7 @@ class BaseModel(pl.LightningModule):
         Returns:
             result (BaseModel): The loaded model.
         """
+        _refuse_unsaveable(cls.__name__)
         ensure_trusted_path(path, trust_remote)
         with fsspec.open(path, "rb") as f:
             data = f.read()
@@ -1056,6 +1096,7 @@ class BaseModel(pl.LightningModule):
     def _load_v2(cls, data, path):
         tensors, metadata = load_tensors(data)
 
+        _refuse_unsaveable(metadata.get("model_class") or "")
         _check_model_class(metadata.get("model_class"), cls, path)
 
         hparam_tensors = {

@@ -227,9 +227,14 @@ def test_restricted_read_never_falls_back_to_pickle(tmp_path, monkeypatch):
 
 
 def test_restricted_read_error_names_the_refused_global(tmp_path):
-    path = _write_v1(_model(loss=MQLoss(level=[80, 90])), tmp_path / "mq.ckpt")
-    with pytest.raises(ValueError, match=r"numpy\._core\.multiarray\.scalar"):
-        NLinear.load(path, allow_pickle=False)
+    """A DistributionLoss checkpoint asks for `getattr`, which stays refused."""
+    from neuralforecast.losses.pytorch import DistributionLoss
+    from neuralforecast.models import DeepAR
+
+    model = DeepAR(h=2, input_size=4, max_steps=1, loss=DistributionLoss("Normal"))
+    path = _write_v1(model, tmp_path / "deepar.ckpt")
+    with pytest.raises(ValueError, match="`getattr`"):
+        DeepAR.load(path, allow_pickle=False)
 
 
 def test_load_from_bytes_is_not_on_the_allowlist():
@@ -245,11 +250,83 @@ def test_load_from_bytes_is_not_on_the_allowlist():
     assert not any("_unpickle_block" in n or "__pyx_unpickle" in n for n in names)
 
 
-def test_numpy_globals_are_withheld_pending_sign_off():
-    """Remove this test only together with the review it is waiting on."""
+def test_allowlist_is_exactly_what_was_signed_off():
+    """Widening this list is a security review. Adding an entry fails here first."""
     from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
 
-    assert _V1_EXTRA_SAFE_GLOBALS == ()
+    names = {f"{c.__module__}.{c.__qualname__}" for c in _V1_EXTRA_SAFE_GLOBALS}
+    assert names == {
+        "numpy._core.multiarray.scalar",
+        "numpy.dtype",
+        "numpy.dtypes.StrDType",
+        "_codecs.encode",
+    }
+
+
+def test_getattr_is_never_allowlisted():
+    """A DistributionLoss checkpoint asks for `getattr`; it must stay refused.
+
+    A general attribute reader is the primitive that makes an allowlist
+    meaningless, so those checkpoints migrate instead.
+    """
+    from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
+
+    assert getattr not in _V1_EXTRA_SAFE_GLOBALS
+
+
+def test_quantile_loss_checkpoint_loads_restricted(tmp_path):
+    """What the signed-off numpy entries buy."""
+    path = _write_v1(_model(loss=MQLoss(level=[80, 90])), tmp_path / "mq.ckpt")
+    loaded = NLinear.load(path, allow_pickle=False)
+    assert isinstance(loaded.loss, MQLoss)
+
+
+def test_legacy_default_is_now_restricted(v1_ckpt, monkeypatch):
+    seen = {}
+    real_load = torch.load
+
+    def spy(f, **kwargs):
+        seen.update(kwargs)
+        return real_load(f, **kwargs)
+
+    monkeypatch.setattr(torch, "load", spy)
+    NLinear.load(v1_ckpt)
+    assert seen["weights_only"] is True, "pickle must not be reached without consent"
+
+
+def test_timellm_cannot_be_saved_or_loaded(tmp_path):
+    """Its `llm` argument is resolved through `from_pretrained` during __init__.
+
+    Refused at both ends: an attacker writes the artifact by hand, so refusing
+    only `save` would close nothing.
+    """
+    from neuralforecast.models import TimeLLM
+
+    path = str(tmp_path / "m.safetensors")
+    with pytest.raises(ValueError, match="cannot be saved or loaded"):
+        TimeLLM.load(path)
+
+    model = NLinear.__new__(TimeLLM)
+    with pytest.raises(ValueError, match="cannot be saved or loaded"):
+        TimeLLM.save(model, path)
+
+
+def test_artifact_claiming_to_be_timellm_is_refused(tmp_path):
+    from neuralforecast import _serialization
+
+    path = str(tmp_path / "m.safetensors")
+    _model().save(path)
+    with open(path, "rb") as f:
+        data = f.read()
+    metadata = _serialization.read_metadata(data)
+    tensors, _ = _serialization.load_tensors(data)
+    with open(path, "wb") as f:
+        f.write(
+            _serialization.save_tensors(tensors, {**metadata, "model_class": "TimeLLM"})
+        )
+
+    with pytest.raises(ValueError, match="cannot be saved or loaded"):
+        NLinear.load(path)
 
 
 def test_warnings_from_torch_load_are_not_suppressed(v1_ckpt, monkeypatch):

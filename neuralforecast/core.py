@@ -2971,7 +2971,7 @@ class NeuralForecast:
     def load(
         path,
         verbose=False,
-        allow_pickle=True,
+        allow_pickle=False,
         trust_remote=False,
         **kwargs,
     ):
@@ -2993,7 +2993,7 @@ class NeuralForecast:
             path (str): Directory with stored artifacts.
             verbose (bool): Defaults to False.
             allow_pickle (bool): Permit the unrestricted legacy read. Defaults to
-                True.
+                False.
             trust_remote (bool): Permit loading from a non-local path. Defaults to
                 False.
             **kwargs: Additional keyword arguments to be passed to each model's
