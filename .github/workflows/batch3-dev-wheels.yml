@@ -1,0 +1,28 @@
+name: Batch 3 development wheels
+on:
+  push:
+    branches: [feat/exogenous-models-batch3-10-20260908]
+    paths: ['.github/workflows/batch3-dev-wheels.yml']
+permissions:
+  contents: read
+jobs:
+  wheels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: >-
+          python -m pip download --only-binary=:all: --no-deps -d wheels
+          coreforecast utilsforecast 'ray==2.49.2' 'transformers==4.48.3'
+          'tokenizers==0.21.4' 'huggingface-hub==0.36.0' accelerate
+          'datasets==3.6.0' pyarrow dill multiprocess xxhash
+          reformer-pytorch axial-positional-embedding local-attention
+          product-key-memory hyper-connections rotary-embedding-torch
+          colt5-attention einx frozendict
+      - uses: actions/upload-artifact@v4
+        with:
+          name: batch3-dev-wheels
+          path: wheels/
+          retention-days: 3
