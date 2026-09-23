@@ -315,16 +315,20 @@ def encode_value(
 def _encode_tagged(value, tensors, path):
     if isinstance(value, _SerializableLoss):
         args = getattr(value, "_nf_init_kwargs", None)
+        state: Dict[str, Any] = {}
         if args is None:
-            raise SerializationError(
-                f"{path}: {type(value).__name__} was built before its constructor "
-                f"arguments could be recorded, so it cannot be saved."
-            )
-        return {
+            # Unpickling restores an object without calling `__init__`, so a loss
+            # read from a legacy checkpoint has nothing recorded. Recover what the
+            # constructor would have been given from the object itself.
+            args, state = _recover_loss_args(value, path)
+        encoded = {
             TAG: "loss",
             "cls": _name_of(type(value), "loss"),
             "args": encode_value(args, tensors, f"{path}.args"),
         }
+        if state:
+            encoded["state"] = encode_value(state, tensors, f"{path}.state")
+        return encoded
     if isinstance(value, type) and issubclass(value, torch.optim.Optimizer):
         return {TAG: "torch_cls", "kind": "optimizer", "name": _name_of(value, "optimizer")}
     if isinstance(value, type) and issubclass(
@@ -391,6 +395,89 @@ def _encode_str_array(value, path):
             f"string or None."
         )
     return {TAG: "index", "kind": "numpy", "dtype": str(value.dtype), "values": values}
+
+
+# Attributes `__init__` derives rather than stores, which therefore have to be
+# re-applied when constructor arguments were recovered instead of recorded.
+_LOSS_DERIVED_STATE = ("output_names",)
+
+# Attributes that must match after a recovered rebuild. A mismatch means the
+# recovery was lossy and the reconstructed loss would behave differently.
+_LOSS_INVARIANTS = ("outputsize_multiplier", "is_distribution_output")
+
+
+def _recover_loss_args(loss, path):
+    """Rebuild a loss's constructor arguments from the object itself.
+
+    Only needed for losses restored from a legacy pickle. This is verified by
+    trial reconstruction rather than trusted: if the rebuilt loss would differ
+    from the original, saving fails instead of writing a subtly wrong artifact.
+    """
+    cls = type(loss)
+    parameters = list(inspect.signature(cls.__init__).parameters.items())[1:]
+    args: Dict[str, Any] = {}
+    for name, parameter in parameters:
+        if parameter.kind in (parameter.VAR_POSITIONAL, parameter.VAR_KEYWORD):
+            continue
+        if hasattr(loss, name):
+            attribute = getattr(loss, name)
+            # A Parameter is registered state that `__init__` built; hand it back
+            # as plain data. A plain tensor attribute is what the caller passed.
+            args[name] = (
+                attribute.detach().tolist()
+                if isinstance(attribute, torch.nn.Parameter)
+                else attribute
+            )
+        elif parameter.default is not parameter.empty:
+            args[name] = parameter.default
+        else:
+            raise SerializationError(
+                f"{path}: cannot recover the `{name}` argument of "
+                f"{cls.__name__}, so it cannot be saved. Re-supply the loss at "
+                f"load time, e.g. `Model.load(path, loss=...)`."
+            )
+
+    num_pieces = _recover_num_pieces(loss)
+    if num_pieces is not None:
+        args["num_pieces"] = num_pieces
+
+    state = {
+        name: getattr(loss, name)
+        for name in _LOSS_DERIVED_STATE
+        if hasattr(loss, name)
+    }
+    _verify_recovered_loss(loss, cls, args, state, path)
+    return args, state
+
+
+def _recover_num_pieces(loss):
+    """`DistributionLoss` pops `num_pieces` into its `domain_map` partial."""
+    domain_map = getattr(loss, "domain_map", None)
+    keywords = getattr(domain_map, "keywords", None)
+    if isinstance(keywords, dict) and "num_pieces" in keywords:
+        return keywords["num_pieces"]
+    return None
+
+
+def _verify_recovered_loss(loss, cls, args, state, path):
+    try:
+        rebuilt = cls(**args)
+    except Exception as e:
+        raise SerializationError(
+            f"{path}: could not rebuild {cls.__name__} from the arguments "
+            f"recovered from it ({e}). Re-supply the loss at load time, e.g. "
+            f"`Model.load(path, loss=...)`."
+        ) from e
+    for name, expected in state.items():
+        setattr(rebuilt, name, expected)
+    for name in _LOSS_INVARIANTS:
+        if getattr(rebuilt, name, None) != getattr(loss, name, None):
+            raise SerializationError(
+                f"{path}: rebuilding {cls.__name__} from its own attributes "
+                f"changes `{name}`, so saving it would produce a different loss. "
+                f"Re-supply the loss at load time, e.g. "
+                f"`Model.load(path, loss=...)`."
+            )
 
 
 def _as_prediction_intervals(value):
@@ -567,7 +654,14 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
     kind = value[TAG]
     if kind == "loss":
         cls = _resolve(value["cls"], "loss")
-        return cls(**decode_value(value["args"], tensors))
+        loss = cls(**decode_value(value["args"], tensors))
+        for name, attribute in decode_value(value.get("state", {}), tensors).items():
+            if name not in _LOSS_DERIVED_STATE:
+                raise SerializationError(
+                    f"Refusing to restore unexpected loss attribute {name!r}."
+                )
+            setattr(loss, name, attribute)
+        return loss
     if kind == "torch_cls":
         return _resolve(value["name"], value["kind"])
     if kind == "tensor":

@@ -313,3 +313,62 @@ def test_upstream_canary():
     shared = _remove_duplicate_names(TCN(h=2, input_size=4, max_steps=1).state_dict())
     assert shared, "upstream no longer reports TCN's tied tensors"
     assert all(isinstance(v, list) for v in shared.values())
+
+
+# --------------------------------------------------------------------------
+# Recovering constructor arguments from an unpickled loss
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "loss",
+    [
+        MAE(),
+        MQLoss(level=[80, 90]),
+        DistributionLoss(distribution="Normal"),
+        DistributionLoss(distribution="ISQF", num_pieces=7),
+    ],
+    ids=["MAE", "MQLoss", "Normal", "ISQF"],
+)
+def test_loss_args_are_recovered_when_init_never_ran(loss):
+    """Unpickling restores an object without calling `__init__`."""
+    del loss._nf_init_kwargs
+
+    decoded = roundtrip(loss)
+    assert type(decoded) is type(loss)
+    assert decoded.output_names == loss.output_names
+    assert decoded.outputsize_multiplier == loss.outputsize_multiplier
+
+
+def test_recovery_keeps_num_pieces_out_of_the_default():
+    """ISQF's `num_pieces` survives only via the `domain_map` partial."""
+    loss = DistributionLoss(distribution="ISQF", num_pieces=7)
+    default = DistributionLoss(distribution="ISQF")
+    assert loss.outputsize_multiplier != default.outputsize_multiplier
+
+    del loss._nf_init_kwargs
+    assert roundtrip(loss).outputsize_multiplier == loss.outputsize_multiplier
+
+
+def test_recovery_fails_loudly_when_it_would_change_the_loss(monkeypatch):
+    from neuralforecast import _serialization
+
+    loss = MQLoss(level=[80, 90])
+    del loss._nf_init_kwargs
+    monkeypatch.setattr(_serialization, "_LOSS_DERIVED_STATE", ())
+    monkeypatch.setattr(
+        _serialization, "_LOSS_INVARIANTS", ("output_names", "outputsize_multiplier")
+    )
+    with pytest.raises(SerializationError, match="changes `output_names`"):
+        encode_value(loss, {}, "loss")
+
+
+def test_decode_refuses_unexpected_loss_state():
+    payload = {
+        TAG: "loss",
+        "cls": "MAE",
+        "args": {"horizon_weight": None},
+        "state": {"forward": "anything"},
+    }
+    with pytest.raises(SerializationError, match="unexpected loss attribute"):
+        decode_value(payload)
