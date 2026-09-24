@@ -89,17 +89,21 @@ def _datasets() -> Dict[str, type]:
 def register_loss(cls: type, name: Optional[str] = None) -> type:
     """Allow a user-defined loss to be saved and loaded.
 
+    Any `nn.Module` is accepted. One that does not inherit a neuralforecast loss
+    base has no recorded init kwargs, so they are recovered from the object and
+    checked by trial rebuild at save time.
+
     Registration is always an explicit in-process call, never driven by data
     read from an artifact -- that would defeat the registry.
 
     Args:
-        cls (type): The loss class, a subclass of a `neuralforecast` loss base.
+        cls (type): The loss class.
         name (Optional[str]): Name to register under. Defaults to `cls.__name__`.
 
     Returns:
         type: `cls`, so this can be used as a decorator.
     """
-    return _register(cls, name, _USER_LOSSES, _SerializableLoss, "loss")
+    return _register(cls, name, _USER_LOSSES, torch.nn.Module, "loss")
 
 
 def register_optimizer(cls: type, name: Optional[str] = None) -> type:
@@ -297,7 +301,7 @@ def encode_value(
 
 
 def _encode_tagged(value, tensors, path):
-    if isinstance(value, _SerializableLoss):
+    if isinstance(value, _SerializableLoss) or type(value) in _USER_LOSSES.values():
         args = getattr(value, "_nf_init_kwargs", None)
         if args is None:
             # Unpickling skips __init__, so a legacy loss recorded nothing.
@@ -421,9 +425,7 @@ def _recover_loss_args(loss, path):
                 f"load time, e.g. `Model.load(path, loss=...)`."
             )
 
-    num_pieces = _recover_num_pieces(loss)
-    if num_pieces is not None:
-        args["num_pieces"] = num_pieces
+    args.update(_recover_partial_kwargs(loss, parameters, args))
 
     state = {
         name: getattr(loss, name)
@@ -434,13 +436,22 @@ def _recover_loss_args(loss, path):
     return args, state
 
 
-def _recover_num_pieces(loss):
-    """`DistributionLoss` pops `num_pieces` into its `domain_map` partial."""
-    domain_map = getattr(loss, "domain_map", None)
-    keywords = getattr(domain_map, "keywords", None)
-    if isinstance(keywords, dict) and "num_pieces" in keywords:
-        return keywords["num_pieces"]
-    return None
+def _recover_partial_kwargs(loss, parameters, recovered):
+    """Read back kwargs `__init__` kept only inside a `functools.partial`.
+
+    `DistributionLoss` pops `num_pieces` and `rho` out of distribution_kwargs and
+    binds them to `domain_map` or `scale_decouple`.
+    """
+    named = {name for name, _ in parameters}
+    extra = {}
+    for attr in ("domain_map", "scale_decouple"):
+        keywords = getattr(getattr(loss, attr, None), "keywords", None)
+        if not isinstance(keywords, dict):
+            continue
+        for key, value in keywords.items():
+            if key not in named and key not in recovered:
+                extra[key] = value
+    return extra
 
 
 def _verify_recovered_loss(loss, cls, args, state, path):
@@ -809,19 +820,50 @@ def _decode_index(value):
 
 
 def encode_mapping(
-    mapping: Dict[str, Any], inline: bool = False
-) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
-    """Encode a dict into (JSON-safe dict, tensors).
+    mapping: Dict[str, Any],
+    inline: bool = False,
+    droppable: Optional[Any] = None,
+):
+    """Encode a dict into (JSON-safe dict, tensors[, dropped keys]).
 
     Args:
         mapping (dict): Values to encode.
         inline (bool): Write arrays into the JSON instead of a tensor sidecar.
             Used for `configuration.json`, which ships without one.
+        droppable: Keys whose values may be skipped when they need pickle,
+            reported instead of raising. Runtime plumbing such as
+            `worker_init_fn` lives in hparams and cannot be removed by the
+            caller, but a model argument must never be dropped silently, so the
+            caller decides which keys qualify.
     """
     tensors: Dict[str, torch.Tensor] = {}
     target = None if inline else tensors
-    encoded = {k: encode_value(v, target, k) for k, v in mapping.items()}
-    return encoded, tensors
+    encoded: Dict[str, Any] = {}
+    dropped = []
+    for key, value in mapping.items():
+        try:
+            encoded[key] = encode_value(value, target, key)
+        except SerializationError:
+            if droppable is None or key not in droppable:
+                raise
+            if isinstance(value, dict):
+                # Keep the entries that do encode: only the callables inside
+                # `dataloader_kwargs` and friends are a problem.
+                kept, inner = {}, []
+                for inner_key, inner_value in value.items():
+                    try:
+                        kept[inner_key] = encode_value(
+                            inner_value, target, f"{key}.{inner_key}"
+                        )
+                    except SerializationError:
+                        inner.append(f"{key}.{inner_key}")
+                encoded[key] = kept
+                dropped.extend(inner)
+            else:
+                dropped.append(key)
+    if droppable is None:
+        return encoded, tensors
+    return encoded, tensors, dropped
 
 
 def decode_mapping(

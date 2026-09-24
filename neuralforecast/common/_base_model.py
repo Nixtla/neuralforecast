@@ -170,7 +170,8 @@ def _refuse_unsaveable(model_class):
 
 
 # Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint;
-# quantile losses store `np.str_` in output_names.
+# quantile losses store `np.str_` in output_names, and `optimizer=` /
+# `lr_scheduler=` hold plain torch classes.
 #
 # Adding an entry is a security review, not a bug fix. Never add
 # `torch.storage._load_from_bytes` (an unrestricted load on attacker bytes) or
@@ -178,12 +179,24 @@ def _refuse_unsaveable(model_class):
 #
 # `AttributeDict` is absent because it cannot work: torch restricts SETITEMS to
 # dict/OrderedDict/Counter. Checkpoints older than v3.1.6 need `migrate`.
-_V1_EXTRA_SAFE_GLOBALS: tuple = (
-    np.core.multiarray.scalar,  # type: ignore[attr-defined]
-    np.dtype,
-    np.dtypes.StrDType,
-    codecs.encode,
-)
+#
+# Resolved lazily: `np.dtypes` arrived in numpy 1.25 while the floor is 1.21.6,
+# and `np.core` is deprecated in numpy 2. A missing entry narrows the allowlist
+# rather than breaking the import.
+def _numpy_scalar():
+    try:
+        from numpy._core.multiarray import scalar
+    except ImportError:  # numpy < 2
+        from numpy.core.multiarray import scalar  # type: ignore[no-redef]
+    return scalar
+
+
+def _v1_extra_safe_globals():
+    entries = [_numpy_scalar(), np.dtype, codecs.encode]
+    str_dtype = getattr(getattr(np, "dtypes", None), "StrDType", None)
+    if str_dtype is not None:
+        entries.append(str_dtype)
+    return tuple(entries)
 
 
 # Trainer and DataLoader settings an artifact may restore. Everything omitted is
@@ -224,17 +237,39 @@ _RESTORABLE_TRAINER_KWARGS = frozenset(
 )
 _RESTORABLE_DATALOADER_KWARGS = frozenset({"drop_last", "pin_memory", "shuffle"})
 
+# Hyperparameters a caller may re-supply at load time, for classes the registry
+# cannot name and for values dropped on save.
+_LOAD_OVERRIDES = ("loss", "valid_loss", "optimizer", "lr_scheduler")
 
-def _drop_unrestorable_kwargs(cls, hparams):
-    """Strip runtime settings an artifact should not choose. Returns dropped keys."""
-    # Model arguments are spread across the init chain: a model declares some and
-    # forwards the rest to BaseModel, so `cls.__init__` alone is not enough.
-    model_params = {
+
+def _looks_like_pickle(data):
+    """Whether `data` starts like a torch checkpoint: a zip, or a pickle opcode."""
+    return data[:2] in (b"PK", b"\x80\x02", b"\x80\x03", b"\x80\x04", b"\x80\x05")
+
+
+def _model_parameters(cls):
+    """Every argument name in a model's init chain."""
+    return {
         name
         for klass in cls.__mro__
         if "__init__" in vars(klass)
         for name in inspect.signature(klass.__init__).parameters
     }
+
+
+def _droppable_hparams(cls, hparams):
+    """Hparams that may be skipped on save: trainer kwargs and `*_kwargs` dicts."""
+    model_params = _model_parameters(cls)
+    return {
+        key
+        for key in hparams
+        if key not in model_params or key.endswith("_kwargs")
+    }
+
+
+def _drop_unrestorable_kwargs(cls, hparams):
+    """Strip runtime settings an artifact should not choose. Returns dropped keys."""
+    model_params = _model_parameters(cls)
     dropped = [
         key
         for key in hparams
@@ -259,7 +294,12 @@ def _restricted_torch_load(data, path, kwargs):
     """
     kwargs = dict(kwargs)
     kwargs["weights_only"] = True
-    allowlist = list(registered_classes("loss")) + list(_V1_EXTRA_SAFE_GLOBALS)
+    allowlist = [
+        *registered_classes("loss"),
+        *registered_classes("optimizer"),
+        *registered_classes("lr_scheduler"),
+        *_v1_extra_safe_globals(),
+    ]
     try:
         with torch.serialization.safe_globals(allowlist):
             return torch.load(io.BytesIO(data), **kwargs)
@@ -275,9 +315,9 @@ def _restricted_load_error(path, error):
         else f"The restricted reader refused it: {error}"
     )
     return ValueError(
-        f"Cannot safely load the legacy checkpoint at {path}. {detail} "
-        f"Re-save it in the safe format with `model.save(path)` from a trusted "
-        f"environment, or pass `allow_pickle=True` to read it with pickle, which "
+        f"Cannot safely load the legacy checkpoint at {path}. {detail} Convert "
+        f"it from a trusted environment with `python -m neuralforecast.migrate "
+        f"{path}`, or pass `allow_pickle=True` to read it with pickle, which "
         f"executes any code the file contains."
     )
 
@@ -1065,12 +1105,27 @@ class BaseModel(pl.LightningModule):
         _refuse_unsaveable(type(self).__name__)
 
         # Runtime objects, not model state; callbacks also break predict() after
-        # a load. Re-attach via `model.trainer_kwargs[...]`.
+        # a load. Re-attach via `model.trainer_kwargs[...]`. A bool `logger` is
+        # configuration, not an object, so it stays.
         hparams = copy.deepcopy(dict(self.hparams))
-        for runtime_only in ("callbacks", "logger"):
-            hparams.pop(runtime_only, None)
+        hparams.pop("callbacks", None)
+        if not isinstance(hparams.get("logger"), bool):
+            hparams.pop("logger", None)
 
-        encoded, hparam_tensors = encode_mapping(hparams)
+        # Only runtime plumbing may be dropped. A model argument that cannot be
+        # encoded has to fail loudly: silently saving a model without its loss
+        # would reload as a different model.
+        encoded, hparam_tensors, unencodable = encode_mapping(
+            hparams, droppable=_droppable_hparams(type(self), hparams)
+        )
+        if unencodable:
+            warnings.warn(
+                f"Dropping hyperparameters that cannot be saved without pickle: "
+                f"{', '.join(sorted(unencodable))}. Re-supply them when loading, "
+                f"e.g. `{type(self).__name__}.load(path, ...)`.",
+                UserWarning,
+                stacklevel=3,
+            )
         payload = dict(self.state_dict())
         for key, tensor in hparam_tensors.items():
             # Clone so a hparam tensor cannot alias a weight and be dropped as a
@@ -1105,9 +1160,10 @@ class BaseModel(pl.LightningModule):
                 False; ignored for v2 checkpoints, which never use pickle.
             trust_remote (bool): Permit loading from a non-local path. Defaults to
                 False.
-            **kwargs: Additional keyword arguments passed to `torch.load` on the
-                legacy path. `weights_only=True` is honored and forces the
-                restricted read.
+            **kwargs: `map_location`, and `loss`, `valid_loss`, `optimizer` or
+                `lr_scheduler` to replace what the artifact stored. On the legacy
+                path these are passed to `torch.load`, where `weights_only=True`
+                forces the restricted read.
 
         Returns:
             result (BaseModel): The loaded model.
@@ -1118,12 +1174,27 @@ class BaseModel(pl.LightningModule):
             data = f.read()
 
         if looks_like_safetensors(data):
-            return cls._load_v2(data, path)
+            return cls._load_v2(data, path, kwargs)
+        if not _looks_like_pickle(data):
+            raise ValueError(
+                f"{path} is not a neuralforecast checkpoint: it is neither "
+                f"safetensors nor a legacy pickle. The file is corrupt or "
+                f"truncated; re-copy it from the source."
+            )
         return cls._load_v1(data, path, allow_pickle, kwargs)
 
     @classmethod
-    def _load_v2(cls, data, path):
+    def _load_v2(cls, data, path, kwargs):
         tensors, metadata = load_tensors(data)
+        kwargs = dict(kwargs)
+        map_location = kwargs.pop("map_location", None)
+        overrides = {k: kwargs.pop(k) for k in _LOAD_OVERRIDES if k in kwargs}
+        if kwargs:
+            raise TypeError(
+                f"Unexpected keyword arguments for a v2 checkpoint: "
+                f"{', '.join(sorted(kwargs))}. Supported: map_location, "
+                f"{', '.join(_LOAD_OVERRIDES)}."
+            )
 
         _refuse_unsaveable(metadata.get("model_class") or "")
         _check_model_class(metadata.get("model_class"), cls, path)
@@ -1145,9 +1216,22 @@ class BaseModel(pl.LightningModule):
                 UserWarning,
                 stacklevel=4,
             )
+        hparams.update(overrides)
         with _disable_torch_init():
             model = cls(**hparams)
-        load_state_dict_exact(model, tensors, metadata)
+        if map_location is not None:
+            tensors = {k: v.to(map_location) for k, v in tensors.items()}
+        try:
+            load_state_dict_exact(model, tensors, metadata)
+        except RuntimeError as e:
+            if not overrides:
+                raise
+            raise ValueError(
+                f"The weights in {path} do not fit the model built with "
+                f"{', '.join(sorted(overrides))}. An override has to match what "
+                f"the model was trained with; a loss with a different number of "
+                f"outputs changes the architecture. ({e})"
+            ) from e
         return model
 
     @classmethod
@@ -1160,8 +1244,8 @@ class BaseModel(pl.LightningModule):
             warnings.warn(
                 f"Loading {path} with `weights_only=False`, which deserializes "
                 "the checkpoint with pickle and executes any code it contains. "
-                "Only load checkpoints from a trusted source. Re-save it with "
-                "`model.save(path)` to migrate it to the safe format.",
+                "Only load checkpoints from a trusted source. Convert it with "
+                f"`python -m neuralforecast.migrate {path}`.",
                 UserWarning,
                 stacklevel=3,
             )

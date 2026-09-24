@@ -420,3 +420,34 @@ def test_decode_refuses_unexpected_loss_state():
     }
     with pytest.raises(SerializationError, match="unexpected loss attribute"):
         decode_value(payload)
+
+
+@pytest.mark.parametrize(
+    "loss",
+    [
+        DistributionLoss(distribution="Tweedie", rho=1.7),
+        DistributionLoss(distribution="ISQF", num_pieces=7),
+    ],
+    ids=["Tweedie-rho", "ISQF-num_pieces"],
+)
+def test_kwargs_kept_only_in_a_partial_are_recovered(loss):
+    """__init__ pops these into domain_map/scale_decouple, not an attribute."""
+    del loss._nf_init_kwargs
+
+    decoded = roundtrip(loss)
+    assert decoded.outputsize_multiplier == loss.outputsize_multiplier
+    assert decoded.output_names == loss.output_names
+
+
+def test_droppable_keys_keep_the_entries_that_do_encode():
+    import numpy as np
+
+    mapping = {"dataloader_kwargs": {"drop_last": True, "worker_init_fn": np.random.seed}}
+    encoded, _, dropped = encode_mapping(mapping, droppable={"dataloader_kwargs"})
+    assert encoded["dataloader_kwargs"] == {"drop_last": True}
+    assert dropped == ["dataloader_kwargs.worker_init_fn"]
+
+
+def test_a_key_outside_droppable_still_raises():
+    with pytest.raises(SerializationError):
+        encode_mapping({"loss": object()}, droppable={"dataloader_kwargs"})

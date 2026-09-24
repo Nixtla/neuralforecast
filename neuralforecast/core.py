@@ -3,6 +3,7 @@ __all__ = ['NeuralForecast']
 
 import io
 import json
+import os
 import pickle
 import warnings
 from copy import deepcopy
@@ -356,8 +357,9 @@ def _restricted_pickle_load(path, what):
         return _RestrictedUnpickler(io.BytesIO(data)).load()
     except Exception as e:
         raise ValueError(
-            f"Cannot safely load the legacy {what} at {path}. {e} Re-save the "
-            f"directory with `nf.save(...)` from a trusted environment, or pass "
+            f"Cannot safely load the legacy {what} at {path}. {e} Convert the "
+            f"directory from a trusted environment with "
+            f"`python -m neuralforecast.migrate {os.path.dirname(path)}`, or pass "
             f"`allow_pickle=True` to read it with pickle, which executes any code "
             f"the files contain."
         ) from e
@@ -366,8 +368,8 @@ def _restricted_pickle_load(path, what):
 def _warn_pickle(path):
     warnings.warn(
         f"Reading {path} with pickle, which executes any code it contains. Only "
-        f"load directories from a trusted source. Re-save with `nf.save(...)` to "
-        f"migrate to the safe format.",
+        f"load directories from a trusted source. Convert it with "
+        f"`python -m neuralforecast.migrate {os.path.dirname(path)}`.",
         UserWarning,
         stacklevel=3,
     )
@@ -417,11 +419,11 @@ def _v1_dataset_refusal(target):
     return ValueError(
         f"Refusing to load the legacy dataset at {target}. It stores torch "
         f"tensors inside a plain pickle, so there is no way to read it without "
-        f"allowing arbitrary code execution. Re-save the directory with "
-        f"`nf.save(...)` from a trusted environment, or save with "
-        f"`save_dataset=False` and pass `df` to `predict()`. Passing "
-        f"`allow_pickle=True` reads it with pickle, which executes any code the "
-        f"file contains."
+        f"allowing arbitrary code execution. Convert the directory from a "
+        f"trusted environment with `python -m neuralforecast.migrate "
+        f"{os.path.dirname(target)}`, or save with `save_dataset=False` and pass "
+        f"`df` to `predict()`. Passing `allow_pickle=True` reads it with pickle, "
+        f"which executes any code the file contains."
     )
 
 

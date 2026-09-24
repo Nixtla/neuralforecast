@@ -237,18 +237,18 @@ def test_restricted_read_error_names_the_refused_global(tmp_path):
 
 def test_load_from_bytes_is_not_on_the_allowlist():
     """`_load_from_bytes` is an unrestricted load; deleting this is a decision."""
-    from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
+    from neuralforecast.common._base_model import _v1_extra_safe_globals
 
-    names = {f"{c.__module__}.{c.__qualname__}" for c in _V1_EXTRA_SAFE_GLOBALS}
+    names = {f"{c.__module__}.{c.__qualname__}" for c in _v1_extra_safe_globals()}
     assert "torch.storage._load_from_bytes" not in names
     assert not any("_unpickle_block" in n or "__pyx_unpickle" in n for n in names)
 
 
 def test_allowlist_is_exactly_what_was_signed_off():
     """Widening this list is a security review. Adding an entry fails here first."""
-    from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
+    from neuralforecast.common._base_model import _v1_extra_safe_globals
 
-    names = {f"{c.__module__}.{c.__qualname__}" for c in _V1_EXTRA_SAFE_GLOBALS}
+    names = {f"{c.__module__}.{c.__qualname__}" for c in _v1_extra_safe_globals()}
     assert names == {
         "numpy._core.multiarray.scalar",
         "numpy.dtype",
@@ -259,9 +259,9 @@ def test_allowlist_is_exactly_what_was_signed_off():
 
 def test_getattr_is_never_allowlisted():
     """A general attribute reader defeats any allowlist; those checkpoints migrate."""
-    from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
+    from neuralforecast.common._base_model import _v1_extra_safe_globals
 
-    assert getattr not in _V1_EXTRA_SAFE_GLOBALS
+    assert getattr not in _v1_extra_safe_globals()
 
 
 def test_quantile_loss_checkpoint_loads_restricted(tmp_path):
@@ -457,3 +457,151 @@ def test_model_describing_trainer_kwargs_still_round_trip(tmp_path):
     loaded = NLinear.load(path)
     assert loaded.trainer_kwargs["enable_checkpointing"] is True
     assert loaded.trainer_kwargs["accelerator"] == "cpu"
+
+
+# --------------------------------------------------------------------------
+# Load-time overrides, corrupt files, legacy reach (PR #1625 review)
+# --------------------------------------------------------------------------
+
+
+def test_map_location_is_honored_on_the_v2_path(v2_ckpt):
+    assert NLinear.load(v2_ckpt, map_location="cpu") is not None
+
+
+@pytest.mark.parametrize("key,value", [("loss", MAE()), ("optimizer", torch.optim.AdamW)])
+def test_load_overrides_replace_what_the_artifact_stored(tmp_path, key, value):
+    path = str(tmp_path / "m.safetensors")
+    _model().save(path)
+
+    loaded = NLinear.load(path, **{key: value})
+    actual = getattr(loaded, key)
+    assert actual is value or type(actual) is type(value)
+
+
+def test_an_override_that_changes_the_architecture_says_so(tmp_path):
+    path = str(tmp_path / "m.safetensors")
+    _model(loss=MAE()).save(path)
+    with pytest.raises(ValueError, match="do not fit the model built with"):
+        NLinear.load(path, loss=MQLoss(level=[80]))
+
+
+def test_unknown_load_kwargs_are_rejected(v2_ckpt):
+    """E4: they used to be accepted and silently ignored."""
+    with pytest.raises(TypeError, match="Unexpected keyword arguments"):
+        NLinear.load(v2_ckpt, nonsense=1)
+
+
+@pytest.mark.parametrize("payload", [b"", b"not a checkpoint", b"\x00" * 64])
+def test_a_corrupt_file_is_not_reported_as_legacy(tmp_path, payload):
+    """A truncated v2 file used to fall through and suggest allow_pickle=True."""
+    path = tmp_path / "bad.safetensors"
+    path.write_bytes(payload)
+    with pytest.raises(ValueError, match="is not a neuralforecast checkpoint"):
+        NLinear.load(str(path))
+
+
+def test_a_truncated_v2_file_is_not_reported_as_legacy(v2_ckpt, tmp_path):
+    data = open(v2_ckpt, "rb").read()
+    path = tmp_path / "trunc.safetensors"
+    path.write_bytes(data[: len(data) // 2])
+    with pytest.raises(ValueError, match="is not a neuralforecast checkpoint"):
+        NLinear.load(str(path))
+
+
+def test_legacy_errors_name_the_migrate_command(tmp_path):
+    from neuralforecast.losses.pytorch import DistributionLoss
+    from neuralforecast.models import DeepAR
+
+    model = DeepAR(h=2, input_size=4, max_steps=1, loss=DistributionLoss("Normal"))
+    path = _write_v1(model, tmp_path / "deepar.ckpt")
+    with pytest.raises(ValueError, match=r"python -m neuralforecast\.migrate"):
+        DeepAR.load(path, allow_pickle=False)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"optimizer": torch.optim.AdamW},
+        {"optimizer": torch.optim.Adam, "lr_scheduler": torch.optim.lr_scheduler.StepLR,
+         "lr_scheduler_kwargs": {"step_size": 1}},
+    ],
+    ids=["optimizer", "scheduler"],
+)
+def test_legacy_checkpoints_with_torch_classes_load_restricted(tmp_path, kwargs):
+    path = _write_v1(_model(**kwargs), tmp_path / "opt.ckpt")
+    assert NLinear.load(path, allow_pickle=False) is not None
+
+
+def test_logger_false_survives_a_round_trip(tmp_path):
+    """Lightning falls back to its default logger when the setting is lost."""
+    path = str(tmp_path / "m.safetensors")
+    _model(logger=False).save(path)
+    assert NLinear.load(path).trainer_kwargs["logger"] is False
+
+
+def test_unencodable_runtime_kwargs_are_dropped_with_a_warning(tmp_path):
+    import numpy as np
+
+    path = str(tmp_path / "m.safetensors")
+    model = _model(dataloader_kwargs={"drop_last": True, "worker_init_fn": np.random.seed})
+    with pytest.warns(UserWarning, match="worker_init_fn"):
+        model.save(path)
+
+    assert NLinear.load(path).dataloader_kwargs == {"drop_last": True}
+
+
+def test_an_unencodable_model_argument_still_fails_loudly(tmp_path):
+    """Dropping `loss` would reload as a different model."""
+    from neuralforecast._serialization import SerializationError
+
+    class Unregistered(torch.nn.Module):
+        outputsize_multiplier = 1
+        output_names = [""]
+        is_distribution_output = False
+
+        def domain_map(self, x):
+            return x
+
+    with pytest.raises(SerializationError, match="loss:"):
+        _model(loss=Unregistered()).save(str(tmp_path / "m.safetensors"))
+
+
+def test_a_plain_nn_module_loss_can_be_registered(tmp_path):
+    from neuralforecast import register_loss
+
+    class PlainLoss(torch.nn.Module):
+        outputsize_multiplier = 1
+        output_names = [""]
+        is_distribution_output = False
+
+        def __init__(self, scale: float = 1.0):
+            super().__init__()
+            self.scale = scale
+            self.horizon_weight = None
+
+        def domain_map(self, x):
+            return x
+
+        def forward(self, y, y_hat, mask=None):
+            return (self.scale * (y - y_hat)).abs().mean()
+
+    register_loss(PlainLoss)
+    path = str(tmp_path / "plain.safetensors")
+    _model(loss=PlainLoss(scale=2.0)).save(path)
+
+    loaded = NLinear.load(path)
+    assert isinstance(loaded.loss, PlainLoss)
+    assert loaded.loss.scale == 2.0
+
+
+def test_allowlist_survives_a_numpy_without_dtypes(monkeypatch):
+    """`np.dtypes` arrived in numpy 1.25; the published floor is 1.21.6."""
+    import types
+
+    import numpy as np
+
+    from neuralforecast.common import _base_model
+
+    stub = types.SimpleNamespace(dtype=np.dtype)
+    monkeypatch.setattr(_base_model, "np", stub)
+    assert _base_model._v1_extra_safe_globals()

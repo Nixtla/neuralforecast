@@ -246,3 +246,25 @@ def test_cli_reports_failure(tmp_path, capsys):
 def test_cli_refuses_remote_without_the_flag(capsys):
     assert main(["s3://bucket/models"]) == 1
     assert "Refusing to load from the remote path" in capsys.readouterr().err
+
+
+def test_a_single_checkpoint_can_be_migrated(legacy, tmp_path):
+    """`NeuralForecast.load` only takes directories, so a bare .ckpt had no route."""
+    from neuralforecast.models import NLinear
+
+    checkpoint = shutil.copy(f"{legacy}/NLinear_0.ckpt", tmp_path / "NLinear_0.ckpt")
+    destination = migrate(str(checkpoint), verbose=False)
+
+    assert destination.endswith("NLinear_0.safetensors")
+    assert NLinear.load(destination) is not None
+
+
+def test_a_checkpoint_whose_name_hides_the_model_needs_it_named(legacy, tmp_path):
+    from neuralforecast.models import NLinear
+
+    checkpoint = shutil.copy(f"{legacy}/NLinear_0.ckpt", tmp_path / "mystery.ckpt")
+    with pytest.raises(ValueError, match="Cannot tell which model"):
+        migrate(str(checkpoint), verbose=False)
+
+    destination = migrate(str(checkpoint), model="NLinear", verbose=False)
+    assert NLinear.load(destination) is not None
