@@ -340,3 +340,61 @@ def test_warnings_from_torch_load_are_not_suppressed(v1_ckpt, monkeypatch):
     monkeypatch.setattr(torch, "load", noisy)
     with pytest.warns(FutureWarning, match="from torch.load"):
         NLinear.load(v1_ckpt, allow_pickle=True)
+
+
+# --------------------------------------------------------------------------
+# Live loss state (PR #1625 review)
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("level", [[80], [80, 90]])
+def test_quantiles_updated_by_predict_survive_a_round_trip(tmp_path, level):
+    """`update_quantile` replaces loss.quantiles after __init__.
+
+    Saving only the constructor arguments made load fail with a size mismatch,
+    or silently restore the wrong output_names when the lengths agreed.
+    """
+    from neuralforecast.models import DeepAR
+
+    model = DeepAR(h=2, input_size=4, max_steps=1)
+    model.loss.update_quantile(q=[q / 100 for q in level])
+    path = str(tmp_path / "deepar.safetensors")
+    model.save(path)
+
+    loaded = DeepAR.load(path)
+    assert torch.equal(loaded.loss.quantiles, model.loss.quantiles)
+    assert loaded.loss.output_names == model.loss.output_names
+
+
+def test_aliased_valid_loss_stays_aliased(tmp_path):
+    """With valid_loss=None the two are the same object; that must survive."""
+    from neuralforecast.losses.pytorch import DistributionLoss
+    from neuralforecast.models import NHITS
+
+    model = NHITS(h=2, input_size=4, max_steps=1, loss=DistributionLoss("Normal"))
+    assert model.valid_loss is model.loss
+    model.loss.update_quantile(q=[0.8])
+
+    path = str(tmp_path / "nhits.safetensors")
+    model.save(path)
+    loaded = NHITS.load(path)
+    assert loaded.valid_loss is loaded.loss
+    assert torch.equal(loaded.loss.quantiles, model.loss.quantiles)
+
+
+def test_distinct_valid_loss_keeps_its_own_quantiles(tmp_path):
+    model = _model(loss=MQLoss(level=[80, 90]), valid_loss=MQLoss(level=[50]))
+    path = str(tmp_path / "vl.safetensors")
+    model.save(path)
+
+    loaded = NLinear.load(path)
+    assert loaded.loss.output_names == model.loss.output_names
+    assert loaded.valid_loss.output_names == model.valid_loss.output_names
+    assert not torch.equal(loaded.loss.quantiles, loaded.valid_loss.quantiles)
+
+
+def test_serialize_does_not_touch_disk(tmp_path):
+    """`save` is split so callers can encode before removing anything."""
+    blob = _model().serialize()
+    assert looks_like_safetensors(blob)
+    assert not list(tmp_path.iterdir())

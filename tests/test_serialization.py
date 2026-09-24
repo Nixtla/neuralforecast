@@ -234,9 +234,52 @@ def test_unencodable_value_names_the_key():
         encode_mapping({"hp": {"logger": object()}})
 
 
-def test_non_string_dict_key_is_refused():
-    with pytest.raises(SerializationError, match="string dict keys"):
-        encode_mapping({"hp": {1: "x"}})
+@pytest.mark.parametrize(
+    "vocab",
+    [{"city": {0: 0, 1: 1}}, {"city": {1.5: 0}}, {"city": {True: 0}}, {"city": {"a": 0}}],
+    ids=["int", "float", "bool", "str"],
+)
+def test_mappings_with_non_string_keys_roundtrip(vocab):
+    """`categorical_vocab_` is {col: {value: index}} and values are often ints."""
+    assert roundtrip(vocab) == vocab
+
+
+@pytest.mark.parametrize("tz", [None, "UTC", "America/New_York", "Asia/Tokyo"])
+def test_timezone_aware_datetimes_roundtrip(tz):
+    stamps = pd.to_datetime(["2020-01-01", "2020-06-01"])
+    if tz:
+        stamps = stamps.tz_localize(tz)
+    index = pd.DatetimeIndex(stamps, name="ds")
+    series = pd.Series(index, name="ds")
+    frame = pd.DataFrame(
+        {"unique_id": ["a", "b"], "ds": series, "NHITS": np.float32([1, 2])}
+    )
+
+    assert roundtrip(index).equals(index)
+    assert roundtrip(series).equals(series)
+    assert roundtrip(frame).equals(frame)
+
+
+def test_scaler_types_are_identified_exactly():
+    """robust and robust-iqr share a class and differ only by a constructor arg."""
+    from neuralforecast._serialization import _scaler_type_name
+    from neuralforecast.core import _type2scaler
+
+    for name, factory in _type2scaler.items():
+        scaler = factory()
+        scaler.stats_ = np.zeros((2, 2), dtype="float32")
+        assert _scaler_type_name(scaler) == name
+        assert roundtrip(scaler).__class__ is scaler.__class__
+
+
+def test_updated_quantiles_are_saved_not_just_init_args():
+    """`update_quantile` replaces quantiles after __init__; both must survive."""
+    loss = DistributionLoss(distribution="Normal")
+    loss.update_quantile(q=[0.8])
+
+    decoded = roundtrip(loss)
+    assert torch.equal(decoded.quantiles, loss.quantiles)
+    assert decoded.output_names == loss.output_names
 
 
 def test_tensor_pointer_to_a_missing_payload_is_refused():

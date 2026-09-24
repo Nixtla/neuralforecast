@@ -162,9 +162,18 @@ def test_explicit_destination(legacy, tmp_path):
     assert NeuralForecast.load(destination, allow_pickle=False) is not None
 
 
-def test_refuses_to_migrate_onto_itself(legacy):
-    with pytest.raises(ValueError, match="onto itself"):
-        migrate(legacy, dst=legacy, verbose=False)
+@pytest.mark.parametrize(
+    "alias", ["{src}", "{src}/", "./{name}", "{src}/../{name}", "{src}/inner"]
+)
+def test_refuses_a_destination_that_resolves_onto_the_source(legacy, alias, monkeypatch):
+    """A raw string compare missed `models` vs `./models` and ate the source."""
+    monkeypatch.chdir(os.path.dirname(legacy))
+    name = os.path.basename(legacy)
+    before = sorted(os.listdir(legacy))
+
+    with pytest.raises(ValueError, match="same location"):
+        migrate(legacy, dst=alias.format(src=legacy, name=name), verbose=False)
+    assert sorted(os.listdir(legacy)) == before
 
 
 def test_refuses_a_remote_source_without_opt_in():

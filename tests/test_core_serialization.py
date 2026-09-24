@@ -311,3 +311,49 @@ def test_restricted_sidecar_reader_returns_registered_classes():
         unpickler.find_class("coreforecast.scalers", "LocalStandardScaler")
         is LocalStandardScaler
     )
+
+
+# --------------------------------------------------------------------------
+# Save is atomic, and encodes before it deletes (PR #1625 review)
+# --------------------------------------------------------------------------
+
+
+def test_encoding_failure_leaves_the_previous_save_intact(saved, monkeypatch):
+    """`save` used to rm the directory before encoding the configuration."""
+    from neuralforecast import core
+
+    nf, path = saved
+    before = sorted(os.listdir(path))
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("encode failed")
+
+    monkeypatch.setattr(core, "encode_mapping", boom)
+    with pytest.raises(RuntimeError, match="encode failed"):
+        nf.save(path, overwrite=True)
+
+    assert sorted(os.listdir(path)) == before
+    assert NeuralForecast.load(path) is not None
+
+
+def test_timezone_aware_index_roundtrips(panel, tmp_path):
+    localized = panel.assign(ds=panel["ds"].dt.tz_localize("UTC"))
+    nf = _fit(localized)
+    path = str(tmp_path / "tz")
+    nf.save(path, overwrite=True)
+
+    loaded = NeuralForecast.load(path)
+    assert loaded.last_dates.equals(nf.last_dates)
+    assert nf.predict().equals(loaded.predict())
+
+
+def test_robust_iqr_scaler_is_not_saved_as_mad(panel, tmp_path):
+    """Both robust variants share a class, so the wrong one reloaded silently."""
+    nf = _fit(panel, local_scaler_type="robust-iqr")
+    path = str(tmp_path / "iqr")
+    nf.save(path, overwrite=True)
+
+    loaded = NeuralForecast.load(path)
+    assert loaded.local_scaler_type == "robust-iqr"
+    assert loaded.scalers_["y"]._scaler_type == nf.scalers_["y"]._scaler_type
+    assert nf.predict().equals(loaded.predict())

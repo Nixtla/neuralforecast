@@ -1,14 +1,11 @@
-"""Non-executable serialization primitives for the v2 artifact format.
+"""Non-executable serialization for the v2 artifact format.
 
-Tensors go to safetensors, everything else to JSON. The JSON carries tagged
-values for the handful of non-primitive things a checkpoint has to hold.
+Tensors go to safetensors, everything else to tagged JSON.
 
-Security boundary: every class named inside an artifact is resolved through a
-closed registry in this module. Nothing here ever calls `importlib`, `eval`, or
-`getattr` on a module path taken from an artifact, and nothing here may be
-changed to do so. A name that is not in a registry is a load error, never a
-dynamic-import fallback -- the registry is the only reason JSON is safer than
-pickle here, since JSON is just a transport.
+Security boundary: class names in an artifact resolve through the closed
+registries below -- never `importlib`, `eval` or `getattr` on a module path. An
+unregistered name is a load error, never a dynamic-import fallback. JSON is only
+a transport; the registry is what makes it safer than pickle.
 """
 
 import copy
@@ -28,8 +25,8 @@ TAG = "__nf__"
 HPARAM_TENSOR_PREFIX = "__hparams__"
 FORMAT_VERSION = "2"
 
-# safetensors files start with a little-endian uint64 header length followed by
-# that many bytes of JSON. There is no magic number, so this is the sniff.
+# safetensors has no magic number: a little-endian uint64 header length, then
+# that many bytes of JSON.
 _SAFETENSORS_HEADER_SIZE = 8
 _MAX_HEADER_BYTES = 100_000_000
 
@@ -94,10 +91,10 @@ def _datasets() -> Dict[str, type]:
 
 
 def register_loss(cls: type, name: Optional[str] = None) -> type:
-    """Allow a user-defined loss to be saved and loaded in the v2 format.
+    """Allow a user-defined loss to be saved and loaded.
 
-    Registration is an explicit in-process call made by the user. It is never
-    driven by data read from an artifact -- doing so would defeat the registry.
+    Registration is always an explicit in-process call, never driven by data
+    read from an artifact -- that would defeat the registry.
 
     Args:
         cls (type): The loss class, a subclass of a `neuralforecast` loss base.
@@ -157,10 +154,7 @@ _LOCAL_PROTOCOLS = frozenset({"file", "local", "memory"})
 def ensure_trusted_path(path, trust_remote: bool) -> None:
     """Refuse a non-local artifact path unless the caller opted in.
 
-    Fetching an artifact over `s3://`, `gcs://` or `http://` is the deployment
-    pattern this class of bug is exploited through: whoever can write that object
-    -- a leaked CI token, a broad bucket ACL, a staging-to-prod promotion -- picks
-    the bytes that get deserialized on the loading host.
+    Whoever can write a remote artifact picks the bytes deserialized here.
     """
     if trust_remote:
         return
@@ -212,10 +206,9 @@ def _name_of(cls: type, kind: str) -> str:
 
 
 class _SerializableLoss:
-    """Records the arguments a loss was constructed with, as `_nf_init_kwargs`.
+    """Records a loss's constructor arguments as `_nf_init_kwargs`.
 
-    `save_hyperparameters()` stores the loss *object*, not how it was built, so
-    without this there is nothing to write into a JSON artifact.
+    `save_hyperparameters()` stores the loss object, not how it was built.
     """
 
     _nf_init_kwargs: Dict[str, Any]
@@ -242,11 +235,10 @@ class _SerializableLoss:
             bound.apply_defaults()
             captured = dict(list(bound.arguments.items())[1:])
             if var_keyword is not None:
-                # `bind` nests **kwargs under the parameter's own name; flatten
-                # it or the round-tripped call gets `distribution_kwargs=...`.
+                # `bind` nests **kwargs under its own name; flatten or the
+                # round-tripped call gets `distribution_kwargs=...`.
                 captured.update(captured.pop(var_keyword, {}))
-            # Capture before the original runs: DistributionLoss.__init__ pops
-            # `num_pieces` out of distribution_kwargs, mutating the caller's dict.
+            # Copy before `orig` runs: DistributionLoss.__init__ pops num_pieces.
             captured = copy.deepcopy(captured)
             orig(self, *args, **kwargs)
             self._nf_init_kwargs = captured
@@ -286,12 +278,20 @@ def encode_value(
     if isinstance(value, (list, tuple)):
         return [encode_value(v, tensors, f"{path}[{i}]") for i, v in enumerate(value)]
     if isinstance(value, dict):
-        for key in value:
-            if not isinstance(key, str):
-                raise SerializationError(
-                    f"{path}: only string dict keys can be encoded, got {key!r}."
-                )
-        return {k: encode_value(v, tensors, f"{path}.{k}") for k, v in value.items()}
+        if all(isinstance(k, str) for k in value):
+            return {k: encode_value(v, tensors, f"{path}.{k}") for k, v in value.items()}
+        # JSON objects only have string keys, so non-string keys (categorical
+        # vocabularies hold ints, floats and bools) are stored as pairs.
+        return {
+            TAG: "mapping",
+            "items": [
+                [
+                    encode_value(k, tensors, f"{path}.<key>"),
+                    encode_value(v, tensors, f"{path}.{k}"),
+                ]
+                for k, v in value.items()
+            ],
+        }
     if isinstance(value, np.bool_):
         return bool(value)
     if isinstance(value, np.integer):
@@ -315,12 +315,16 @@ def encode_value(
 def _encode_tagged(value, tensors, path):
     if isinstance(value, _SerializableLoss):
         args = getattr(value, "_nf_init_kwargs", None)
-        state: Dict[str, Any] = {}
         if args is None:
-            # Unpickling restores an object without calling `__init__`, so a loss
-            # read from a legacy checkpoint has nothing recorded. Recover what the
-            # constructor would have been given from the object itself.
-            args, state = _recover_loss_args(value, path)
+            # Unpickling skips __init__, so a legacy loss recorded nothing.
+            args, _ = _recover_loss_args(value, path)
+        # `update_quantile` replaces quantiles and output_names after __init__,
+        # so the live state is saved too, not just the constructor arguments.
+        state = {
+            name: getattr(value, name)
+            for name in _LOSS_DERIVED_STATE
+            if hasattr(value, name)
+        }
         encoded = {
             TAG: "loss",
             "cls": _name_of(type(value), "loss"),
@@ -389,6 +393,11 @@ def _encode_array(value, tensors, path, kind):
 
 def _encode_str_array(value, path):
     values = value.tolist()
+    if value.dtype.kind == "O" and _looks_like_timestamps(values):
+        # A tz-aware `ds` arrives as an object array of pandas Timestamps.
+        import pandas as pd
+
+        return _as_pandas_index(pd.DatetimeIndex(value))
     if not all(v is None or isinstance(v, str) for v in values):
         raise SerializationError(
             f"{path}: object arrays can only be encoded when every element is a "
@@ -397,21 +406,18 @@ def _encode_str_array(value, path):
     return {TAG: "index", "kind": "numpy", "dtype": str(value.dtype), "values": values}
 
 
-# Attributes `__init__` derives rather than stores, which therefore have to be
-# re-applied when constructor arguments were recovered instead of recorded.
-_LOSS_DERIVED_STATE = ("output_names",)
+# Loss attributes that __init__ derives and `update_quantile` can later replace.
+_LOSS_DERIVED_STATE = ("output_names", "quantiles")
 
-# Attributes that must match after a recovered rebuild. A mismatch means the
-# recovery was lossy and the reconstructed loss would behave differently.
+# A mismatch here means the recovery was lossy.
 _LOSS_INVARIANTS = ("outputsize_multiplier", "is_distribution_output")
 
 
 def _recover_loss_args(loss, path):
-    """Rebuild a loss's constructor arguments from the object itself.
+    """Rebuild a legacy (unpickled) loss's constructor arguments from itself.
 
-    Only needed for losses restored from a legacy pickle. This is verified by
-    trial reconstruction rather than trusted: if the rebuilt loss would differ
-    from the original, saving fails instead of writing a subtly wrong artifact.
+    Verified by trial reconstruction: if the rebuild would differ, saving fails
+    rather than writing a subtly wrong artifact.
     """
     cls = type(loss)
     parameters = list(inspect.signature(cls.__init__).parameters.items())[1:]
@@ -421,8 +427,7 @@ def _recover_loss_args(loss, path):
             continue
         if hasattr(loss, name):
             attribute = getattr(loss, name)
-            # A Parameter is registered state that `__init__` built; hand it back
-            # as plain data. A plain tensor attribute is what the caller passed.
+            # Parameters are state __init__ built; hand them back as plain data.
             args[name] = (
                 attribute.detach().tolist()
                 if isinstance(attribute, torch.nn.Parameter)
@@ -504,27 +509,33 @@ def _is_scaler(value):
 
 
 def _scaler_type_name(value):
-    """`_type2scaler` is already a closed registry; find the key for this object.
+    """Find this object's key in `_type2scaler`, a closed registry.
 
-    Some entries share a class and differ only by a constructor argument
-    (robust/mad vs robust-iqr), so the probe is compared on those too.
+    Entries can share a class and differ only by a constructor argument
+    (robust/mad vs robust-iqr), so probes are compared on their whole
+    constructed state rather than a hand-listed set of attributes.
     """
     from neuralforecast.core import _type2scaler
 
+    def config(scaler):
+        return {k: v for k, v in vars(scaler).items() if k != "stats_"}
+
+    target = config(value)
     for name, factory in _type2scaler.items():
         probe = factory()
-        if type(probe) is not type(value):
-            continue
-        if all(
-            getattr(probe, attr, None) == getattr(value, attr, None)
-            for attr in ("scale", "method", "lower")
-        ):
+        if type(probe) is type(value) and config(probe) == target:
             return name
     return None
 
 
+def _looks_like_timestamps(values):
+    import pandas as pd
+
+    return bool(values) and all(isinstance(v, pd.Timestamp) for v in values)
+
+
 def _encode_scaler(value, tensors, path):
-    """coreforecast scalers hold their whole fitted state in `stats_`."""
+    """coreforecast scalers hold their fitted state in `stats_`."""
     name = _scaler_type_name(value)
     if name is None:
         raise SerializationError(
@@ -541,26 +552,57 @@ def _encode_scaler(value, tensors, path):
     }
 
 
-def _encode_datetime64(values, kind="numpy"):
+def _encode_datetime64(values, kind="numpy", tz=None):
+    """Encode datetimes as int64. Tz-aware values are stored in UTC plus a zone."""
+    values = np.asarray(values)
     unit = np.datetime_data(values.dtype)[0]
-    return {
+    encoded = {
         TAG: "datetime64",
         "kind": kind,
         "unit": unit,
         "values": values.astype("int64").tolist(),
     }
+    if tz is not None:
+        encoded["tz"] = tz
+    return encoded
+
+
+def _as_utc_datetimes(value):
+    """Split a datetime container into (naive UTC numpy array, zone or None).
+
+    A tz-aware pandas object returns object-dtype Timestamps from `to_numpy()`,
+    which numpy cannot read metadata from, so the zone is stripped first and
+    restored on decode.
+    """
+    tz = getattr(getattr(value, "dtype", None), "tz", None)
+    if tz is None:
+        return np.asarray(value), None
+    # `.dt` on a Series, direct on an Index; both need UTC then a naive cast.
+    accessor = value.dt if hasattr(value, "dt") else value
+    naive = accessor.tz_convert("UTC")
+    naive = naive.dt if hasattr(naive, "dt") else naive
+    return naive.tz_localize(None).to_numpy(), str(tz)
+
+
+def _is_datetime(value):
+    return getattr(getattr(value, "dtype", None), "kind", None) == "M"
 
 
 def _as_pandas_frame(value, tensors, path):
     import pandas as pd
 
     if isinstance(value, pd.Series):
+        if _is_datetime(value):
+            values, tz = _as_utc_datetimes(value)
+            data = _encode_datetime64(values, kind="pandas", tz=tz)
+        else:
+            data = encode_value(value.to_numpy(), tensors, f"{path}.values")
         return {
             TAG: "series",
             "kind": "pandas",
             "name": value.name,
             "dtype": str(value.dtype),
-            "data": encode_value(value.to_numpy(), tensors, f"{path}.values"),
+            "data": data,
         }
     if isinstance(value, pd.DataFrame):
         return {
@@ -593,8 +635,9 @@ def _as_pandas_index(value):
 
     if not isinstance(value, pd.Index):
         return None
-    if value.dtype.kind == "M":
-        encoded = _encode_datetime64(value.to_numpy(), kind="pandas")
+    if _is_datetime(value):
+        values, tz = _as_utc_datetimes(value)
+        encoded = _encode_datetime64(values, kind="pandas", tz=tz)
         encoded["name"] = value.name
         return encoded
     return {
@@ -618,7 +661,9 @@ def _as_polars_series(value, path):
             f"{', '.join(_POLARS_DTYPES)}."
         )
     if base in ("Datetime", "Date"):
-        return _encode_datetime64(value.to_numpy(), kind="polars")
+        tz = getattr(value.dtype, "time_zone", None)
+        values = value.dt.replace_time_zone(None).to_numpy() if tz else value.to_numpy()
+        return _encode_datetime64(values, kind="polars", tz=tz)
     return {
         TAG: "index",
         "kind": "polars",
@@ -639,9 +684,7 @@ def _polars_or_none():
 def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) -> Any:
     """Inverse of `encode_value`.
 
-    An unrecognised tag is an error, never passed through as a plain dict: a
-    decoder that silently accepts unknown tags is how a future format extension
-    turns into a bypass.
+    An unrecognised tag is an error, never passed through as a plain dict.
     """
     tensors = tensors if tensors is not None else {}
     if isinstance(value, list):
@@ -660,6 +703,9 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
                 raise SerializationError(
                     f"Refusing to restore unexpected loss attribute {name!r}."
                 )
+            if isinstance(attribute, torch.Tensor):
+                # Shapes must match before the state dict is applied.
+                attribute = torch.nn.Parameter(attribute, requires_grad=False)
             setattr(loss, name, attribute)
         return loss
     if kind == "torch_cls":
@@ -670,6 +716,11 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
         return _decode_datetime64(value)
     if kind == "index":
         return _decode_index(value)
+    if kind == "mapping":
+        return {
+            decode_value(k, tensors): decode_value(v, tensors)
+            for k, v in value["items"]
+        }
     if kind == "array":
         return _decode_array(value)
     if kind == "scaler":
@@ -728,6 +779,8 @@ def _decode_series(value, tensors):
     import pandas as pd
 
     data = decode_value(value["data"], tensors)
+    if isinstance(data, pd.DatetimeIndex):
+        return pd.Series(data, name=value.get("name"))
     return pd.Series(data, name=value.get("name"), dtype=value["dtype"])
 
 
@@ -745,15 +798,18 @@ def _decode_frame(value, tensors):
 
 def _decode_datetime64(value):
     array = np.asarray(value["values"], dtype="int64").astype(f"datetime64[{value['unit']}]")
+    tz = value.get("tz")
     if value["kind"] == "pandas":
         import pandas as pd
 
-        return pd.DatetimeIndex(array, name=value.get("name"))
+        index = pd.DatetimeIndex(array, name=value.get("name"))
+        return index.tz_localize("UTC").tz_convert(tz) if tz else index
     if value["kind"] == "polars":
         polars = _polars_or_none()
         if polars is None:
             raise SerializationError("Artifact holds polars data but polars is not installed.")
-        return polars.Series(value.get("name") or "", array)
+        series = polars.Series(value.get("name") or "", array)
+        return series.dt.replace_time_zone("UTC").dt.convert_time_zone(tz) if tz else series
     return array
 
 
@@ -804,8 +860,7 @@ def decode_mapping(
 
 
 def _remove_duplicate_names(state_dict):
-    # Private upstream API. tests/test_serialization.py::test_upstream_canary
-    # imports it directly so a breaking change fails in CI, not at a user's load.
+    # Private upstream API; test_serialization.py::test_upstream_canary guards it.
     from safetensors.torch import _remove_duplicate_names as upstream
 
     return upstream(state_dict)
@@ -816,9 +871,9 @@ def save_tensors(
 ) -> bytes:
     """Serialize a state dict to safetensors bytes, handling shared storage.
 
-    `safetensors.save` refuses tied tensors (TCN, FEDformer and TimeLLM all have
-    them), so duplicates are dropped and the tie recorded in the header. They are
-    re-created at load time by constructing the model before applying weights.
+    `safetensors.save` refuses tied tensors (TCN, FEDformer, TimeLLM), so
+    duplicates are dropped and the tie recorded in the header; constructing the
+    model before applying weights re-creates them.
     """
     shared = _remove_duplicate_names(state_dict)
     dropped = {name for names in shared.values() for name in names}
@@ -843,8 +898,7 @@ def load_tensors(data: bytes) -> Tuple[Dict[str, torch.Tensor], Dict[str, str]]:
 def looks_like_safetensors(data: bytes) -> bool:
     """Whether `data` starts with a plausible safetensors header.
 
-    This is how the reader decides which format it is looking at. The decision
-    is never delegated to a field *inside* the artifact.
+    How the reader picks a format; never delegated to a field inside the artifact.
     """
     if len(data) < _SAFETENSORS_HEADER_SIZE:
         return False
@@ -874,8 +928,7 @@ def load_state_dict_exact(
 ) -> None:
     """Apply `tensors` to `module`, allowing only the recorded ties to be missing.
 
-    A truncated or tampered payload must not load as a partially-random model,
-    so anything missing beyond the dropped duplicates is an error.
+    A truncated payload must not load as a partially-random model.
     """
     shared = json.loads(metadata.get("shared", "{}"))
     expected_missing = {name for names in shared.values() for name in names}
@@ -893,8 +946,8 @@ def load_state_dict_exact(
 # Datasets
 # ---------------------------------------------------------------------------
 
-# Constructor arguments per dataset class. Explicit rather than a `vars()` dump,
-# so a new attribute is a visible decision instead of a silent round-trip gap.
+# Constructor arguments per dataset class, explicit so a new attribute is a
+# visible decision rather than a silent round-trip gap.
 _DATASET_FIELDS = {
     "TimeSeriesDataset": (
         "temporal",

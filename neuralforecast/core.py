@@ -338,10 +338,9 @@ _V1_SIDECAR_DENIED = frozenset(
     }
 )
 
-# PENDING SECURITY SIGN-OFF: a legacy `configuration.pkl` that stores fitted
+# Withheld pending security review: a legacy `configuration.pkl` holding fitted
 # scalers, conformity scores or a dataset index also needs numpy and pandas
-# reconstruction helpers. Those have not been reviewed as non-exploitable, so
-# they are withheld and such files fail closed. See the migration plan.
+# reconstruction helpers. Such files fail closed until those are reviewed.
 _V1_SIDECAR_EXTRA: dict = {}
 
 
@@ -2838,7 +2837,6 @@ class NeuralForecast:
 
         return fcsts_df
 
-    # Save list of models with pytorch lightning save_checkpoint function
     def save(
         self,
         path: str,
@@ -2876,27 +2874,19 @@ class NeuralForecast:
             model_index = list(range(len(self.models)))
 
         fs, _, _ = fsspec.get_fs_token_paths(path)
-        if not fs.exists(path):
-            fs.makedirs(path)
-        else:
-            # Check if directory is empty to protect overwriting files
-            files = _fsspec_listdir(fs, path)
+        existing = _fsspec_listdir(fs, path) if fs.exists(path) else []
+        if existing and not overwrite:
+            raise Exception(
+                "Directory is not empty. Set `overwrite=True` to overwrite files."
+            )
 
-            # Checking if the list is empty or not
-            if files:
-                if not overwrite:
-                    raise Exception(
-                        "Directory is not empty. Set `overwrite=True` to overwrite files."
-                    )
-                else:
-                    fs.rm(path, recursive=True)
-                    fs.mkdir(path)
-
-        # Save models
+        # Everything is encoded before anything is written. Encoding can fail on
+        # an unsupported hyperparameter, and an existing artifact must survive
+        # that rather than be left half-deleted.
+        payloads = {}
         count_names = {"model": 0}
         alias_to_model = {}
         for i, model in enumerate(self.models):
-            # Skip model if not in list
             if i not in model_index:
                 continue
 
@@ -2911,9 +2901,9 @@ class NeuralForecast:
                 )
             alias_to_model[model_name] = model_class_name
             count_names[model_name] = count_names.get(model_name, -1) + 1
-            model.save(f"{path}/{model_name}_{count_names[model_name]}.safetensors")
+            filename = f"{model_name}_{count_names[model_name]}.safetensors"
+            payloads[filename] = model.serialize()
 
-        # Save dataset
         if save_dataset and hasattr(self, "dataset"):
             if isinstance(self.dataset, _FilesDataset):
                 raise ValueError(
@@ -2922,17 +2912,14 @@ class NeuralForecast:
                     "this model to use it for inference."
                 )
             dataset_meta, dataset_tensors = encode_dataset(self.dataset)
-            with fsspec.open(f"{path}/dataset.safetensors", "wb") as f:
-                f.write(save_tensors(dataset_tensors, {}))
-            with fsspec.open(f"{path}/dataset.json", "w") as f:
-                f.write(json.dumps(dataset_meta))
+            payloads["dataset.safetensors"] = save_tensors(dataset_tensors, {})
+            payloads["dataset.json"] = json.dumps(dataset_meta).encode()
         elif save_dataset:
             raise Exception(
                 "You need to have a stored dataset to save it, \
                              set `save_dataset=False` to skip saving dataset."
             )
 
-        # Save configuration and parameters
         config_dict = {
             "h": self.h,
             "freq": self.freq,
@@ -2952,20 +2939,24 @@ class NeuralForecast:
 
         if save_dataset:
             config_dict.update(
-                {
-                    "uids": self.uids,
-                    "last_dates": self.last_dates,
-                    "ds": self.ds,
-                }
+                {"uids": self.uids, "last_dates": self.last_dates, "ds": self.ds}
             )
 
-        # `alias_to_model` is folded in here: it existed only to tell `load` which
-        # class each checkpoint holds, and one fewer file is one fewer place to
-        # deserialize from. It was also the first thing `load` used to read.
+        # `alias_to_model` says which class each checkpoint holds; folding it in
+        # here removes the file that used to be the first thing `load` read.
         config_dict["alias_to_model"] = alias_to_model
         encoded, _ = encode_mapping(config_dict, inline=True)
-        with fsspec.open(f"{path}/configuration.json", "w") as f:
-            f.write(json.dumps({"nf_format": "2", "configuration": encoded}))
+        payloads["configuration.json"] = json.dumps(
+            {"nf_format": "2", "configuration": encoded}
+        ).encode()
+
+        if existing:
+            fs.rm(path, recursive=True)
+        if not fs.exists(path):
+            fs.makedirs(path)
+        for filename, blob in payloads.items():
+            with fsspec.open(f"{path}/{filename}", "wb") as f:
+                f.write(blob)
 
     @staticmethod
     def load(

@@ -10,6 +10,7 @@ tidy way to reintroduce the bug this format change exists to close.
 """
 
 import argparse
+import os
 import sys
 from typing import List, Optional
 
@@ -44,10 +45,11 @@ def migrate(
 
     src = src.rstrip("/")
     dst = (dst or f"{src}_v2").rstrip("/")
-    if dst == src:
+    if _same_location(src, dst):
         raise ValueError(
-            "Refusing to migrate a directory onto itself; the source is kept "
-            "intact so a failed migration cannot lose the original."
+            f"Refusing to migrate {src!r} onto {dst!r}: they resolve to the same "
+            f"location. The source is kept intact so a failed migration cannot "
+            f"lose the original."
         )
 
     ensure_trusted_path(src, trust_source)
@@ -79,6 +81,21 @@ def migrate(
         print(f"  files      {', '.join(sorted(_listdir(dst)))}")
         print("  verified   loads with allow_pickle=False")
     return dst
+
+
+def _same_location(src: str, dst: str) -> bool:
+    """Whether two paths resolve to the same place, or dst sits inside src.
+
+    A raw string compare misses `models` vs `./models`, which would let a
+    migration overwrite its own source.
+    """
+    if fsspec.utils.get_protocol(src) != fsspec.utils.get_protocol(dst):
+        return False
+    if fsspec.utils.get_protocol(src) in ("file", "local"):
+        src, dst = os.path.realpath(src), os.path.realpath(dst)
+    else:
+        src, dst = src.rstrip("/"), dst.rstrip("/")
+    return dst == src or dst.startswith(f"{src}{os.sep}")
 
 
 def _listdir(path: str) -> List[str]:

@@ -151,13 +151,10 @@ def _local_rendezvous_addr():
 
 # Models that may not be written to or read from an artifact at all.
 #
-# TimeLLM takes its base model as a plain string hyperparameter and hands it to
-# `AutoConfig/AutoModel/AutoTokenizer.from_pretrained` inside `__init__`, which
-# runs before weights are applied. A hand-written artifact could therefore make
-# a load fetch from an attacker-chosen repository or path while passing every
-# registry check, because the string is valid JSON and names no class. The
-# refusal is at both ends deliberately: an attacker writes the artifact by hand,
-# so refusing only `save` would close nothing.
+# TimeLLM passes its `llm` string hyperparameter to `from_pretrained` inside
+# `__init__`, before weights are applied, so an artifact could direct that fetch
+# while passing every registry check. Refused at both ends: an attacker writes
+# the artifact by hand, so refusing only `save` would close nothing.
 _UNSAVEABLE_MODELS = {
     "TimeLLM": (
         "TimeLLM cannot be saved or loaded. It resolves its `llm` argument "
@@ -174,28 +171,19 @@ def _refuse_unsaveable(model_class):
         raise ValueError(reason)
 
 
-# Globals that PyTorch's restricted unpickler is allowed to reconstruct when
-# reading a legacy v1 checkpoint. Treat additions here as a security review, not
-# a bug fix: the allowlist is content-dependent, and widening it far enough to
-# accept every checkpoint anyone reports eventually reproduces the vulnerability
-# this exists to close. In particular `torch.storage._load_from_bytes` must never
-# appear -- it is a call to `torch.load(weights_only=False)` on attacker bytes.
+# Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint.
+# Quantile losses need these: `level_to_outputs` stores `np.str_` in output_names.
 #
-# Reviewed and signed off for the restricted reader. Needed by quantile losses,
-# whose `level_to_outputs` stores `np.str_` in `output_names`.
+# Adding an entry is a security review, not a bug fix -- the allowlist is
+# content-dependent, and widening it once per user report eventually reproduces
+# the vulnerability. Never add `torch.storage._load_from_bytes` (a call to
+# `torch.load(weights_only=False)` on attacker bytes) or `getattr` (a general
+# attribute reader makes any allowlist meaningless).
 #
-# Adding to this tuple is a security review, not a bug fix. The allowlist is
-# content-dependent, so users will report checkpoints it refuses; widening it
-# once per report eventually reproduces the vulnerability it exists to close.
-# `torch.storage._load_from_bytes` must never appear -- see above. Neither may
-# `getattr`, which a `DistributionLoss` checkpoint asks for: a general attribute
-# reader is precisely the primitive that makes an allowlist meaningless.
-#
-# Deliberately NOT here, because it cannot work rather than because it was
-# refused: `lightning_fabric.utilities.data.AttributeDict`. Checkpoints written
-# before v3.1.6 store `hyper_parameters` as one, and torch's unpickler restricts
-# SETITEMS to dict, OrderedDict and Counter at the opcode level, so no allowlist
-# entry makes those readable. Those checkpoints need `migrate`.
+# `lightning_fabric.utilities.data.AttributeDict` is absent because it cannot
+# work, not because it was refused: torch restricts SETITEMS to dict/OrderedDict/
+# Counter at the opcode level. Checkpoints written before v3.1.6 store
+# hyper_parameters as one and need `migrate`.
 _V1_EXTRA_SAFE_GLOBALS: tuple = (
     np.core.multiarray.scalar,  # type: ignore[attr-defined]
     np.dtype,
@@ -207,9 +195,8 @@ _V1_EXTRA_SAFE_GLOBALS: tuple = (
 def _restricted_torch_load(data, path, kwargs):
     """Read a v1 checkpoint without letting it execute code.
 
-    Raises rather than falling back to an unrestricted read. The fallback is the
-    whole bug: an attacker who can make the restricted read fail would otherwise
-    get the unrestricted one for free.
+    Raises rather than falling back: an attacker who can force the restricted
+    read to fail would otherwise get the unrestricted one for free.
     """
     kwargs = dict(kwargs)
     kwargs["weights_only"] = True
@@ -240,9 +227,8 @@ def _restricted_load_error(path, error):
 def _check_model_class(model_class, cls, path):
     """Cross-check the class a v2 checkpoint says it holds.
 
-    This is a mismatch guard, not a security control -- the registry in
-    `_serialization` is what makes the metadata safe to act on. It stays lenient
-    for user subclasses, which v1 also loaded as their registered base.
+    A mismatch guard, not a security control -- the registry is what makes the
+    metadata safe. Lenient for user subclasses, which v1 loaded as their base.
     """
     if not model_class or model_class == cls.__name__:
         return
@@ -1012,27 +998,20 @@ class BaseModel(pl.LightningModule):
         self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
-    def save(self, path):
-        """Save the model in the v2 format: safetensors weights, JSON metadata.
+    def serialize(self) -> bytes:
+        """Encode the model as safetensors bytes with its hparams in the header.
 
-        Hyperparameters live in the safetensors `__metadata__` header rather than
-        a sibling file, so weights and the config that must match them cannot be
-        separated or mismatched by a partial copy.
-
-        Args:
-            path (str): Destination, local or any fsspec-supported URL.
+        Separate from `save` so a caller can encode everything before touching
+        disk: an encoding failure must not destroy an existing artifact.
         """
         import copy
 
         _refuse_unsaveable(type(self).__name__)
 
-        # Strip callbacks and logger from hparams before saving: both are runtime
-        # objects rather than model state, and callback objects are not
-        # YAML-serializable, which causes PyTorch Lightning to raise a ValueError
-        # during predict() on a loaded model. They can be re-attached after
-        # loading via `model.trainer_kwargs[...] = ...`.
-        # Note: save_hyperparameters() stores **trainer_kwargs contents flat, so
-        # these are top-level keys in hparams, not nested under trainer_kwargs.
+        # Callbacks and logger are runtime objects, not model state; callbacks
+        # are also not YAML-serializable, which breaks predict() after a load.
+        # Re-attach via `model.trainer_kwargs[...]`. save_hyperparameters()
+        # flattens **trainer_kwargs, so these are top-level hparams keys.
         hparams = copy.deepcopy(dict(self.hparams))
         for runtime_only in ("callbacks", "logger"):
             hparams.pop(runtime_only, None)
@@ -1044,31 +1023,30 @@ class BaseModel(pl.LightningModule):
             # dropped as a duplicate, which would leave its pointer dangling.
             payload[key] = tensor.clone()
 
-        blob = save_tensors(
+        return save_tensors(
             payload,
             {
                 "model_class": type(self).__name__,
                 "hyper_parameters": json.dumps(encoded),
             },
         )
+
+    def save(self, path):
+        """Save the model to `path`, local or any fsspec-supported URL."""
         with fsspec.open(path, "wb") as f:
-            f.write(blob)
+            f.write(self.serialize())
 
     @classmethod
     def load(cls, path, allow_pickle=False, trust_remote=False, **kwargs):
         """Load a model from a checkpoint.
 
-        v2 checkpoints (safetensors + JSON) are loaded without executing any code
-        contained in the file. Legacy v1 checkpoints are pickle-based:
+        v2 checkpoints execute no code from the file. Legacy v1 checkpoints are
+        pickle-based: ``allow_pickle=True`` reads them in full-pickle mode, which
+        **executes arbitrary code contained in the file**; ``allow_pickle=False``
+        uses PyTorch's restricted unpickler and never falls back.
 
-        - with ``allow_pickle=True`` they are read with `torch.load` in full-pickle
-          mode, which **executes arbitrary code contained in the file**;
-        - with ``allow_pickle=False`` they are read through PyTorch's restricted
-          unpickler, which refuses anything outside a small allowlist. There is no
-          fallback from the restricted read to the unrestricted one.
-
-        The format is decided by inspecting the file's own bytes. Nothing the
-        artifact declares about itself is allowed to select the reader.
+        The format is decided from the file's own bytes, never from what the
+        artifact declares about itself.
 
         Args:
             path (str): Path to the checkpoint, local or any fsspec-supported URL.
