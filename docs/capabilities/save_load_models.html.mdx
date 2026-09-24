@@ -211,7 +211,9 @@ python -m neuralforecast.migrate ./old_checkpoints/
 ```
 
 This writes `./old_checkpoints_v2/`, leaves the original untouched, and
-checks that the result loads with no pickle consent at all.
+checks that the result loads with no pickle consent at all. It also
+takes a single checkpoint:
+`python -m neuralforecast.migrate ./NHITS_0.ckpt`.
 
 Two cases to be aware of:
 
@@ -235,6 +237,65 @@ nf = NeuralForecast.load(path='s3://my-bucket/models/', trust_remote=True)
 
 Anyone who can write that location chooses what gets loaded on the
 machine doing the loading, so this is worth being deliberate about.
+
+### Custom losses, optimizers and schedulers
+
+Class names inside an artifact are resolved through a closed registry,
+so anything the library does not ship has to be registered before it can
+be saved:
+
+```python
+from neuralforecast import register_loss, register_optimizer, register_lr_scheduler
+
+register_loss(MyLoss)
+register_optimizer(MyOptimizer)
+register_lr_scheduler(MyScheduler)
+```
+
+Two things to know:
+
+-   **Registration has to run in the process that loads, too**, not only
+    the one that saves. The artifact stores the registered name; the
+    class itself comes from your code.
+-   Any `nn.Module` can be registered as a loss. One that does not
+    inherit a neuralforecast loss base has no recorded constructor
+    arguments, so they are recovered from the object and checked by
+    rebuilding it when you save. If the rebuild would differ, saving
+    fails rather than writing an artifact that loads as a different
+    loss.
+
+Alternatively, supply the class when loading instead of registering it:
+
+```python
+model = NHITS.load(path, loss=MyLoss(), optimizer=MyOptimizer)
+```
+
+`load` also accepts `map_location`, and rejects anything else rather
+than ignoring it.
+
+### What is not carried in an artifact
+
+Some settings describe the run rather than the model, and are dropped on
+save or on load with a warning naming them. Set them on the loaded
+object if you want them back.
+
+-   **Callbacks** are dropped on save, as in earlier versions. Early
+    stopping is rebuilt from `early_stop_patience_steps`, so that keeps
+    working. Re-attach others with
+    `model.trainer_kwargs['callbacks'] = [...]`.
+-   **A `logger` instance** is dropped; `logger=False` is kept, since it
+    is configuration rather than an object.
+-   **Trainer and DataLoader settings that belong to the machine** —
+    `default_root_dir`, `strategy`, `num_nodes`, `profiler`,
+    `num_workers`, `prefetch_factor`, `multiprocessing_context` — are
+    not restored from an artifact, because a file should not choose
+    where checkpoints are written or how many processes are spawned on
+    the host loading it.
+-   **Anything that needs pickle to serialize**, such as a
+    `worker_init_fn` in `dataloader_kwargs` or an `lr_lambda` in
+    `lr_scheduler_kwargs`, is dropped on save with a warning. A model
+    argument that cannot be encoded is an error instead, so a model
+    never silently reloads without its loss.
 
 ## 5. Load models
 
