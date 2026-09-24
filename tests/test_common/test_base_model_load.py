@@ -1,8 +1,6 @@
 """Security-relevant behaviour of `BaseModel.save` / `BaseModel.load`.
 
-These assert the guarantees, not the implementation: a v2 checkpoint never
-reaches pickle, a legacy checkpoint is unrestricted only on request, and the
-restricted reader never falls back to the unrestricted one.
+Asserts the guarantees, not the implementation.
 """
 
 import json
@@ -238,11 +236,7 @@ def test_restricted_read_error_names_the_refused_global(tmp_path):
 
 
 def test_load_from_bytes_is_not_on_the_allowlist():
-    """`torch.storage._load_from_bytes` calls `torch.load(weights_only=False)`.
-
-    Allowlisting it would hand an attacker an unrestricted load through the
-    allowlist. Deleting this assertion is a security decision.
-    """
+    """`_load_from_bytes` is an unrestricted load; deleting this is a decision."""
     from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
 
     names = {f"{c.__module__}.{c.__qualname__}" for c in _V1_EXTRA_SAFE_GLOBALS}
@@ -264,11 +258,7 @@ def test_allowlist_is_exactly_what_was_signed_off():
 
 
 def test_getattr_is_never_allowlisted():
-    """A DistributionLoss checkpoint asks for `getattr`; it must stay refused.
-
-    A general attribute reader is the primitive that makes an allowlist
-    meaningless, so those checkpoints migrate instead.
-    """
+    """A general attribute reader defeats any allowlist; those checkpoints migrate."""
     from neuralforecast.common._base_model import _V1_EXTRA_SAFE_GLOBALS
 
     assert getattr not in _V1_EXTRA_SAFE_GLOBALS
@@ -295,11 +285,7 @@ def test_legacy_default_is_now_restricted(v1_ckpt, monkeypatch):
 
 
 def test_timellm_cannot_be_saved_or_loaded(tmp_path):
-    """Its `llm` argument is resolved through `from_pretrained` during __init__.
-
-    Refused at both ends: an attacker writes the artifact by hand, so refusing
-    only `save` would close nothing.
-    """
+    """Refused at both ends: an attacker writes the artifact, not our `save`."""
     from neuralforecast.models import TimeLLM
 
     path = str(tmp_path / "m.safetensors")
@@ -349,11 +335,7 @@ def test_warnings_from_torch_load_are_not_suppressed(v1_ckpt, monkeypatch):
 
 @pytest.mark.parametrize("level", [[80], [80, 90]])
 def test_quantiles_updated_by_predict_survive_a_round_trip(tmp_path, level):
-    """`update_quantile` replaces loss.quantiles after __init__.
-
-    Saving only the constructor arguments made load fail with a size mismatch,
-    or silently restore the wrong output_names when the lengths agreed.
-    """
+    """Init args alone gave a size mismatch, or the wrong output_names."""
     from neuralforecast.models import DeepAR
 
     model = DeepAR(h=2, input_size=4, max_steps=1)

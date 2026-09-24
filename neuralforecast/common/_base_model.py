@@ -149,12 +149,10 @@ def _local_rendezvous_addr():
 
 
 
-# Models that may not be written to or read from an artifact at all.
-#
-# TimeLLM passes its `llm` string hyperparameter to `from_pretrained` inside
-# `__init__`, before weights are applied, so an artifact could direct that fetch
-# while passing every registry check. Refused at both ends: an attacker writes
-# the artifact by hand, so refusing only `save` would close nothing.
+# TimeLLM passes its `llm` string to `from_pretrained` inside `__init__`, so an
+# artifact could direct that fetch while passing every registry check. Refused at
+# both ends: an attacker writes the artifact by hand, so refusing `save` alone
+# would close nothing.
 _UNSAVEABLE_MODELS = {
     "TimeLLM": (
         "TimeLLM cannot be saved or loaded. It resolves its `llm` argument "
@@ -171,19 +169,15 @@ def _refuse_unsaveable(model_class):
         raise ValueError(reason)
 
 
-# Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint.
-# Quantile losses need these: `level_to_outputs` stores `np.str_` in output_names.
+# Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint;
+# quantile losses store `np.str_` in output_names.
 #
-# Adding an entry is a security review, not a bug fix -- the allowlist is
-# content-dependent, and widening it once per user report eventually reproduces
-# the vulnerability. Never add `torch.storage._load_from_bytes` (a call to
-# `torch.load(weights_only=False)` on attacker bytes) or `getattr` (a general
-# attribute reader makes any allowlist meaningless).
+# Adding an entry is a security review, not a bug fix. Never add
+# `torch.storage._load_from_bytes` (an unrestricted load on attacker bytes) or
+# `getattr` (a general attribute reader defeats any allowlist).
 #
-# `lightning_fabric.utilities.data.AttributeDict` is absent because it cannot
-# work, not because it was refused: torch restricts SETITEMS to dict/OrderedDict/
-# Counter at the opcode level. Checkpoints written before v3.1.6 store
-# hyper_parameters as one and need `migrate`.
+# `AttributeDict` is absent because it cannot work: torch restricts SETITEMS to
+# dict/OrderedDict/Counter. Checkpoints older than v3.1.6 need `migrate`.
 _V1_EXTRA_SAFE_GLOBALS: tuple = (
     np.core.multiarray.scalar,  # type: ignore[attr-defined]
     np.dtype,
@@ -195,8 +189,7 @@ _V1_EXTRA_SAFE_GLOBALS: tuple = (
 def _restricted_torch_load(data, path, kwargs):
     """Read a v1 checkpoint without letting it execute code.
 
-    Raises rather than falling back: an attacker who can force the restricted
-    read to fail would otherwise get the unrestricted one for free.
+    Raises rather than falling back; the fallback would be the whole bug.
     """
     kwargs = dict(kwargs)
     kwargs["weights_only"] = True
@@ -223,12 +216,10 @@ def _restricted_load_error(path, error):
     )
 
 
-
 def _check_model_class(model_class, cls, path):
-    """Cross-check the class a v2 checkpoint says it holds.
+    """Cross-check the class a v2 checkpoint claims.
 
-    A mismatch guard, not a security control -- the registry is what makes the
-    metadata safe. Lenient for user subclasses, which v1 loaded as their base.
+    A mismatch guard, not a security control. Lenient for user subclasses.
     """
     if not model_class or model_class == cls.__name__:
         return
@@ -999,19 +990,16 @@ class BaseModel(pl.LightningModule):
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def serialize(self) -> bytes:
-        """Encode the model as safetensors bytes with its hparams in the header.
+        """Encode the model as safetensors bytes, hparams in the header.
 
-        Separate from `save` so a caller can encode everything before touching
-        disk: an encoding failure must not destroy an existing artifact.
+        Separate from `save` so encoding failures cannot destroy an artifact.
         """
         import copy
 
         _refuse_unsaveable(type(self).__name__)
 
-        # Callbacks and logger are runtime objects, not model state; callbacks
-        # are also not YAML-serializable, which breaks predict() after a load.
-        # Re-attach via `model.trainer_kwargs[...]`. save_hyperparameters()
-        # flattens **trainer_kwargs, so these are top-level hparams keys.
+        # Runtime objects, not model state; callbacks also break predict() after
+        # a load. Re-attach via `model.trainer_kwargs[...]`.
         hparams = copy.deepcopy(dict(self.hparams))
         for runtime_only in ("callbacks", "logger"):
             hparams.pop(runtime_only, None)
@@ -1019,8 +1007,8 @@ class BaseModel(pl.LightningModule):
         encoded, hparam_tensors = encode_mapping(hparams)
         payload = dict(self.state_dict())
         for key, tensor in hparam_tensors.items():
-            # Clone so a hyperparameter tensor can never alias a weight and get
-            # dropped as a duplicate, which would leave its pointer dangling.
+            # Clone so a hparam tensor cannot alias a weight and be dropped as a
+            # duplicate, leaving its pointer dangling.
             payload[key] = tensor.clone()
 
         return save_tensors(
@@ -1040,13 +1028,10 @@ class BaseModel(pl.LightningModule):
     def load(cls, path, allow_pickle=False, trust_remote=False, **kwargs):
         """Load a model from a checkpoint.
 
-        v2 checkpoints execute no code from the file. Legacy v1 checkpoints are
-        pickle-based: ``allow_pickle=True`` reads them in full-pickle mode, which
-        **executes arbitrary code contained in the file**; ``allow_pickle=False``
-        uses PyTorch's restricted unpickler and never falls back.
-
-        The format is decided from the file's own bytes, never from what the
-        artifact declares about itself.
+        v2 checkpoints execute no code. Legacy v1 checkpoints are pickle-based:
+        ``allow_pickle=True`` **executes arbitrary code contained in the file**,
+        ``allow_pickle=False`` uses the restricted unpickler and never falls back.
+        The format comes from the file's bytes, never from what it declares.
 
         Args:
             path (str): Path to the checkpoint, local or any fsspec-supported URL.

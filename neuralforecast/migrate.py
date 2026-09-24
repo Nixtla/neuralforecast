@@ -2,11 +2,9 @@
 
     python -m neuralforecast.migrate <src> [--dst DIR]
 
-Reading the source **executes any code it contains**, because that is what the
-legacy format requires. Run this only against artifacts you trust, and only in
-an environment where that is acceptable. It refuses remote sources unless you
-say so explicitly: "migrate the artifact you do not trust" would otherwise be a
-tidy way to reintroduce the bug this format change exists to close.
+Reading the source **executes any code it contains**, so run it only against
+artifacts you trust. Remote sources need an explicit flag; migrating one you do
+not trust would reintroduce the bug this format change closes.
 """
 
 import argparse
@@ -84,10 +82,9 @@ def migrate(
 
 
 def _same_location(src: str, dst: str) -> bool:
-    """Whether two paths resolve to the same place, or dst sits inside src.
+    """Whether dst resolves onto src, or sits inside it.
 
-    A raw string compare misses `models` vs `./models`, which would let a
-    migration overwrite its own source.
+    A string compare misses `models` vs `./models` and eats the source.
     """
     if fsspec.utils.get_protocol(src) != fsspec.utils.get_protocol(dst):
         return False

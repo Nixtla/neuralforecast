@@ -1,8 +1,4 @@
-"""Directory-level save/load: the v2 layout, and the legacy read paths.
-
-`NeuralForecast.save` writes safetensors plus JSON; `load` picks its reader from
-which files are present, never from what a file claims about itself.
-"""
+"""Directory-level save/load: the v2 layout and the legacy read paths."""
 
 import json
 import os
@@ -265,11 +261,9 @@ def test_v1_dataset_pkl_is_refused_before_pickle_runs(tmp_path, monkeypatch):
 
 
 def test_restricted_sidecar_reader_rejects_the_dangerous_globals():
-    """`torch.storage._load_from_bytes` is `torch.load(weights_only=False)`.
+    """`_load_from_bytes` is an unrestricted load; allowlisting it undoes this.
 
-    Allowlisting it, or the pandas Cython unpickle helpers, would hand back
-    arbitrary code execution through the allowlist. Deleting these assertions is
-    a security decision, not a bug fix.
+    Deleting these assertions is a security decision, not a bug fix.
     """
     from neuralforecast.core import (
         _V1_SIDECAR_DENIED,

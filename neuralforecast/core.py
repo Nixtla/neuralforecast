@@ -301,17 +301,12 @@ MODEL_FILENAME_DICT = {
 
 
 class _RestrictedUnpickler(pickle.Unpickler):
-    """A `pickle.Unpickler` that only reconstructs an explicit set of classes.
+    """Reconstructs only an explicit set of classes.
 
-    This is a best-effort reader for the two legacy sidecars whose contents allow
-    it. It is NOT a general hardening of pickle, and it cannot be one: a legacy
-    `dataset.pkl` holds torch tensors, so restoring it requires
-    `torch.storage._load_from_bytes`, which is itself a call to
-    `torch.load(weights_only=False)` on bytes from the file. Allowlisting that
-    would hand back arbitrary code execution through the allowlist, which is why
-    `dataset.pkl` is refused outright instead.
-
-    Treat additions to the allowlist as security review, not bug fixes.
+    Best-effort for the two legacy sidecars whose contents allow it, not a
+    general hardening of pickle: `dataset.pkl` holds tensors, so restoring it
+    needs `torch.storage._load_from_bytes` -- itself an unrestricted load -- and
+    is refused outright instead. Allowlist additions are security review.
     """
 
     def find_class(self, module, name):
@@ -338,9 +333,8 @@ _V1_SIDECAR_DENIED = frozenset(
     }
 )
 
-# Withheld pending security review: a legacy `configuration.pkl` holding fitted
-# scalers, conformity scores or a dataset index also needs numpy and pandas
-# reconstruction helpers. Such files fail closed until those are reviewed.
+# Withheld pending security review: a `configuration.pkl` holding fitted
+# scalers, conformity scores or an index also needs numpy and pandas helpers.
 _V1_SIDECAR_EXTRA: dict = {}
 
 
@@ -2880,9 +2874,8 @@ class NeuralForecast:
                 "Directory is not empty. Set `overwrite=True` to overwrite files."
             )
 
-        # Everything is encoded before anything is written. Encoding can fail on
-        # an unsupported hyperparameter, and an existing artifact must survive
-        # that rather than be left half-deleted.
+        # Encode everything first: a failure must not leave an existing
+        # artifact half-deleted.
         payloads = {}
         count_names = {"model": 0}
         alias_to_model = {}
@@ -2942,8 +2935,8 @@ class NeuralForecast:
                 {"uids": self.uids, "last_dates": self.last_dates, "ds": self.ds}
             )
 
-        # `alias_to_model` says which class each checkpoint holds; folding it in
-        # here removes the file that used to be the first thing `load` read.
+        # Says which class each checkpoint holds; folding it in here removes the
+        # file that used to be the first thing `load` read.
         config_dict["alias_to_model"] = alias_to_model
         encoded, _ = encode_mapping(config_dict, inline=True)
         payloads["configuration.json"] = json.dumps(
@@ -3004,15 +2997,12 @@ class NeuralForecast:
             f.split("/")[-1] for f in _fsspec_listdir(fs, path) if fs.isfile(f)
         ]
 
-        # The reader decides the format, from which files are present. A v2
-        # directory is never downgraded to the v1 path because stray legacy files
-        # happen to sit next to it, and nothing a file *declares* about itself is
-        # allowed to make this choice.
+        # The reader picks the format from which files are present; a stray
+        # legacy file never downgrades a v2 directory.
         is_v2 = "configuration.json" in files
 
         if not is_v2 and not allow_pickle and "dataset.pkl" in files:
-            # Fail before loading anything: this directory cannot be read safely
-            # whatever happens next, and the caller should hear that first.
+            # Fail first: nothing here can be read safely.
             raise _v1_dataset_refusal(f"{path}/dataset.pkl")
 
         if verbose:

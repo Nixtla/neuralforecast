@@ -1,11 +1,9 @@
 """Non-executable serialization for the v2 artifact format.
 
-Tensors go to safetensors, everything else to tagged JSON.
-
-Security boundary: class names in an artifact resolve through the closed
-registries below -- never `importlib`, `eval` or `getattr` on a module path. An
-unregistered name is a load error, never a dynamic-import fallback. JSON is only
-a transport; the registry is what makes it safer than pickle.
+Tensors go to safetensors, everything else to tagged JSON. Class names resolve
+through the closed registries below -- never `importlib`, `eval` or `getattr` on
+a module path -- and an unregistered name is a load error, never a fallback.
+That registry, not the format, is what makes this safer than pickle.
 """
 
 import copy
@@ -35,9 +33,7 @@ class SerializationError(Exception):
     """Raised when a value cannot be encoded, or an artifact cannot be decoded."""
 
 
-# ---------------------------------------------------------------------------
-# Registries
-# ---------------------------------------------------------------------------
+# --- Registries ---
 
 _LOSSES: Dict[str, type] = {}
 _USER_LOSSES: Dict[str, type] = {}
@@ -152,10 +148,7 @@ _LOCAL_PROTOCOLS = frozenset({"file", "local", "memory"})
 
 
 def ensure_trusted_path(path, trust_remote: bool) -> None:
-    """Refuse a non-local artifact path unless the caller opted in.
-
-    Whoever can write a remote artifact picks the bytes deserialized here.
-    """
+    """Refuse a non-local path unless opted in: whoever can write it picks the bytes."""
     if trust_remote:
         return
     protocol = fsspec.utils.get_protocol(str(path))
@@ -200,16 +193,11 @@ def _name_of(cls: type, kind: str) -> str:
     )
 
 
-# ---------------------------------------------------------------------------
-# Loss constructor-argument capture
-# ---------------------------------------------------------------------------
+# --- Loss constructor-argument capture ---
 
 
 class _SerializableLoss:
-    """Records a loss's constructor arguments as `_nf_init_kwargs`.
-
-    `save_hyperparameters()` stores the loss object, not how it was built.
-    """
+    """Records a loss's init kwargs; `save_hyperparameters` stores only the object."""
 
     _nf_init_kwargs: Dict[str, Any]
 
@@ -235,8 +223,7 @@ class _SerializableLoss:
             bound.apply_defaults()
             captured = dict(list(bound.arguments.items())[1:])
             if var_keyword is not None:
-                # `bind` nests **kwargs under its own name; flatten or the
-                # round-tripped call gets `distribution_kwargs=...`.
+                # `bind` nests **kwargs under its own name; flatten it.
                 captured.update(captured.pop(var_keyword, {}))
             # Copy before `orig` runs: DistributionLoss.__init__ pops num_pieces.
             captured = copy.deepcopy(captured)
@@ -247,9 +234,7 @@ class _SerializableLoss:
         cls.__init__ = __init__
 
 
-# ---------------------------------------------------------------------------
-# Tagged JSON encoding
-# ---------------------------------------------------------------------------
+# --- Tagged JSON encoding ---
 
 _POLARS_DTYPES = ("String", "Int32", "Int64", "Float32", "Float64", "Datetime", "Date")
 
@@ -280,8 +265,7 @@ def encode_value(
     if isinstance(value, dict):
         if all(isinstance(k, str) for k in value):
             return {k: encode_value(v, tensors, f"{path}.{k}") for k, v in value.items()}
-        # JSON objects only have string keys, so non-string keys (categorical
-        # vocabularies hold ints, floats and bools) are stored as pairs.
+        # JSON keys are strings; categorical vocabularies hold ints and bools.
         return {
             TAG: "mapping",
             "items": [
@@ -318,8 +302,7 @@ def _encode_tagged(value, tensors, path):
         if args is None:
             # Unpickling skips __init__, so a legacy loss recorded nothing.
             args, _ = _recover_loss_args(value, path)
-        # `update_quantile` replaces quantiles and output_names after __init__,
-        # so the live state is saved too, not just the constructor arguments.
+        # `update_quantile` can replace these after __init__.
         state = {
             name: getattr(value, name)
             for name in _LOSS_DERIVED_STATE
@@ -414,11 +397,7 @@ _LOSS_INVARIANTS = ("outputsize_multiplier", "is_distribution_output")
 
 
 def _recover_loss_args(loss, path):
-    """Rebuild a legacy (unpickled) loss's constructor arguments from itself.
-
-    Verified by trial reconstruction: if the rebuild would differ, saving fails
-    rather than writing a subtly wrong artifact.
-    """
+    """Rebuild a legacy (unpickled) loss's init kwargs, verified by trial rebuild."""
     cls = type(loss)
     parameters = list(inspect.signature(cls.__init__).parameters.items())[1:]
     args: Dict[str, Any] = {}
@@ -509,11 +488,9 @@ def _is_scaler(value):
 
 
 def _scaler_type_name(value):
-    """Find this object's key in `_type2scaler`, a closed registry.
+    """Find this object's key in `_type2scaler`.
 
-    Entries can share a class and differ only by a constructor argument
-    (robust/mad vs robust-iqr), so probes are compared on their whole
-    constructed state rather than a hand-listed set of attributes.
+    robust/mad and robust-iqr share a class, so probes compare full state.
     """
     from neuralforecast.core import _type2scaler
 
@@ -568,16 +545,14 @@ def _encode_datetime64(values, kind="numpy", tz=None):
 
 
 def _as_utc_datetimes(value):
-    """Split a datetime container into (naive UTC numpy array, zone or None).
+    """Split a datetime container into (naive UTC array, zone or None).
 
-    A tz-aware pandas object returns object-dtype Timestamps from `to_numpy()`,
-    which numpy cannot read metadata from, so the zone is stripped first and
-    restored on decode.
+    `to_numpy()` on a tz-aware object gives Timestamps numpy cannot read.
     """
     tz = getattr(getattr(value, "dtype", None), "tz", None)
     if tz is None:
         return np.asarray(value), None
-    # `.dt` on a Series, direct on an Index; both need UTC then a naive cast.
+    # `.dt` on a Series, direct on an Index.
     accessor = value.dt if hasattr(value, "dt") else value
     naive = accessor.tz_convert("UTC")
     naive = naive.dt if hasattr(naive, "dt") else naive
@@ -682,10 +657,7 @@ def _polars_or_none():
 
 
 def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) -> Any:
-    """Inverse of `encode_value`.
-
-    An unrecognised tag is an error, never passed through as a plain dict.
-    """
+    """Inverse of `encode_value`; an unknown tag is an error, not a passthrough."""
     tensors = tensors if tensors is not None else {}
     if isinstance(value, list):
         return [decode_value(v, tensors) for v in value]
@@ -854,9 +826,7 @@ def decode_mapping(
     return {k: decode_value(v, tensors) for k, v in mapping.items()}
 
 
-# ---------------------------------------------------------------------------
-# Tensor payload
-# ---------------------------------------------------------------------------
+# --- Tensor payload ---
 
 
 def _remove_duplicate_names(state_dict):
@@ -869,11 +839,10 @@ def _remove_duplicate_names(state_dict):
 def save_tensors(
     state_dict: Dict[str, torch.Tensor], metadata: Dict[str, str]
 ) -> bytes:
-    """Serialize a state dict to safetensors bytes, handling shared storage.
+    """Serialize a state dict to safetensors bytes.
 
-    `safetensors.save` refuses tied tensors (TCN, FEDformer, TimeLLM), so
-    duplicates are dropped and the tie recorded in the header; constructing the
-    model before applying weights re-creates them.
+    `safetensors.save` refuses tied tensors, so duplicates are dropped and the
+    tie recorded; constructing the model before applying weights re-creates them.
     """
     shared = _remove_duplicate_names(state_dict)
     dropped = {name for names in shared.values() for name in names}
@@ -896,9 +865,9 @@ def load_tensors(data: bytes) -> Tuple[Dict[str, torch.Tensor], Dict[str, str]]:
 
 
 def looks_like_safetensors(data: bytes) -> bool:
-    """Whether `data` starts with a plausible safetensors header.
+    """Whether `data` starts with a safetensors header.
 
-    How the reader picks a format; never delegated to a field inside the artifact.
+    How the reader picks a format; never a field inside the artifact.
     """
     if len(data) < _SAFETENSORS_HEADER_SIZE:
         return False
@@ -926,7 +895,7 @@ def load_state_dict_exact(
     tensors: Dict[str, torch.Tensor],
     metadata: Dict[str, str],
 ) -> None:
-    """Apply `tensors` to `module`, allowing only the recorded ties to be missing.
+    """Apply `tensors`, allowing only recorded ties to be missing.
 
     A truncated payload must not load as a partially-random model.
     """
@@ -942,12 +911,9 @@ def load_state_dict_exact(
         )
 
 
-# ---------------------------------------------------------------------------
-# Datasets
-# ---------------------------------------------------------------------------
+# --- Datasets ---
 
-# Constructor arguments per dataset class, explicit so a new attribute is a
-# visible decision rather than a silent round-trip gap.
+# Explicit, so a new attribute is a visible decision, not a silent gap.
 _DATASET_FIELDS = {
     "TimeSeriesDataset": (
         "temporal",

@@ -1,7 +1,4 @@
-"""Unit tests for the v2 serialization primitives.
-
-Nothing in `neuralforecast` calls this module yet; these cover it on its own.
-"""
+"""Unit tests for the v2 serialization primitives."""
 
 import json
 
@@ -109,11 +106,7 @@ def test_loss_roundtrip():
 
 
 def test_distribution_loss_captures_num_pieces_before_it_is_popped():
-    """`DistributionLoss.__init__` pops `num_pieces` out of distribution_kwargs.
-
-    Capture happens before that, so the reconstructed loss must match the
-    original rather than silently falling back to the default of 5.
-    """
+    """__init__ pops num_pieces, so capture must happen before it runs."""
     loss = DistributionLoss(distribution="ISQF", num_pieces=7)
     assert loss._nf_init_kwargs["num_pieces"] == 7
 

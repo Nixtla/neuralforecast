@@ -90,12 +90,7 @@ def legacy_with_dataset(tmp_path):
 
 
 def _on_cpu(nf):
-    """Pin a forecaster loaded from a fixture to the CPU.
-
-    The fixtures were fitted before these tests pinned the accelerator, so their
-    stored trainer kwargs still auto-select one. macOS CI has almost no MPS
-    memory available by the time this file runs.
-    """
+    """Pin a fixture-loaded forecaster to the CPU; macOS CI has no MPS left."""
     for model in nf.models:
         model.trainer_kwargs["accelerator"] = "cpu"
         model.trainer_kwargs["devices"] = 1
