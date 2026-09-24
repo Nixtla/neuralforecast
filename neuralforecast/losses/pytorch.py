@@ -11,6 +11,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from neuralforecast._serialization import _SerializableLoss
 from torch.distributions import (
     AffineTransform,
     Bernoulli,
@@ -55,7 +57,11 @@ def _weighted_mean(losses, weights):
     return _divide_no_nan(torch.sum(losses * weights), torch.sum(weights))
 
 
-class BasePointLoss(torch.nn.Module):
+class _BaseLoss(_SerializableLoss, torch.nn.Module):
+    """Base for every neuralforecast loss: an nn.Module that records its init kwargs."""
+
+
+class BasePointLoss(_BaseLoss):
     """Base class for point loss functions.
 
     Args:
@@ -1887,7 +1893,7 @@ def isqf_scale_decouple(output, loc=None, scale=None):
     return (spline_knots, spline_heights, beta_l, beta_r, qk_y, qk_x_repeat, loc, scale)
 
 
-class DistributionLoss(torch.nn.Module):
+class DistributionLoss(_BaseLoss):
     """DistributionLoss
 
     This PyTorch module wraps the `torch.distribution` classes allowing it to
@@ -2158,7 +2164,7 @@ class DistributionLoss(torch.nn.Module):
         return weighted_average(loss_values, weights=loss_weights)
 
 
-class PMM(torch.nn.Module):
+class PMM(_BaseLoss):
     r"""Poisson Mixture Mesh
 
     This Poisson Mixture statistical model assumes independence across groups of
@@ -2385,7 +2391,7 @@ class PMM(torch.nn.Module):
         return weighted_average(loss_values, weights=mask)
 
 
-class GMM(torch.nn.Module):
+class GMM(_BaseLoss):
     r"""Gaussian Mixture Mesh
 
     This Gaussian Mixture statistical model assumes independence across groups of
@@ -2620,7 +2626,7 @@ class GMM(torch.nn.Module):
         return weighted_average(loss_values, weights=mask)
 
 
-class NBMM(torch.nn.Module):
+class NBMM(_BaseLoss):
     r"""Negative Binomial Mixture Mesh
 
     This N. Binomial Mixture statistical model assumes independence across groups of

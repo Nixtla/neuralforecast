@@ -701,6 +701,10 @@ class BaseAuto(pl.LightningModule):
     def get_test_size(self):
         return self.model.test_size
 
+    def serialize(self) -> bytes:
+        """Encode the inner fitted model. See `BaseModel.serialize`."""
+        return self.model.serialize()
+
     def save(self, path):
         """BaseAuto.save
 

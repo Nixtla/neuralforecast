@@ -2,7 +2,12 @@ import logging
 from importlib.metadata import version
 
 __version__ = version("neuralforecast")
-__all__ = ['NeuralForecast']
+__all__ = [
+    'NeuralForecast',
+    'register_loss',
+    'register_lr_scheduler',
+    'register_optimizer',
+]
 
 # Suppress PyTorch Lightning's "💡 Tip:" promos for LitLogger / cloud uploads,
 # emitted via rank_zero_info on the `pytorch_lightning.utilities.rank_zero`
@@ -17,3 +22,8 @@ logging.getLogger("pytorch_lightning.utilities.rank_zero").addFilter(
 
 from .common._base_model import DistributedConfig  # noqa: F401, E402
 from .core import NeuralForecast  # noqa: E402
+from neuralforecast._serialization import (  # noqa: E402
+    register_loss,
+    register_lr_scheduler,
+    register_optimizer,
+)

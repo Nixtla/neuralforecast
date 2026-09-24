@@ -1408,7 +1408,9 @@ def test_save_load(setup_airplane_data):
 
     for path in save_paths:
         fcst.save(path=path, model_index=None, overwrite=True, save_dataset=True)
-        fcst2 = NeuralForecast.load(path=path)
+        # These paths include an s3:// bucket the test itself just wrote to, so
+        # the remote-path gate is opted out of deliberately.
+        fcst2 = NeuralForecast.load(path=path, trust_remote=True)
         forecasts2 = fcst2.predict(futr_df=AirPassengersPanel_test, level=[50])
         pd.testing.assert_frame_equal(forecasts1, forecasts2[forecasts1.columns])
 
@@ -1501,8 +1503,8 @@ def test_save_runs_on_rank0_ddp(monkeypatch, tmp_path, setup_airplane_data):
         )
 
     assert save_path.exists()
-    assert (save_path / "alias_to_model.pkl").exists()
-    assert (save_path / "configuration.pkl").exists()
+    assert (save_path / "configuration.json").exists()
+    assert list(save_path.glob("*.safetensors"))
 
 # test `enable_checkpointing=True` should generate chkpt
 def test_enable_checkpointing(setup_airplane_data):
