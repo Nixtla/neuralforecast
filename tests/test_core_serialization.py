@@ -351,3 +351,20 @@ def test_robust_iqr_scaler_is_not_saved_as_mad(panel, tmp_path):
     assert loaded.local_scaler_type == "robust-iqr"
     assert loaded.scalers_["y"]._scaler_type == nf.scalers_["y"]._scaler_type
     assert nf.predict().equals(loaded.predict())
+
+
+def test_remote_parquet_paths_in_a_dataset_are_refused(tmp_path):
+    """`files_ds` is handed to pd.read_parquet, which resolves fsspec URLs."""
+    from neuralforecast._serialization import SerializationError, decode_dataset
+
+    meta = {
+        "dataset_class": "LocalFilesTimeSeriesDataset",
+        "fields": {"files_ds": ["s3://attacker/x.parquet"]},
+        "extra": {},
+    }
+    with pytest.raises(ValueError, match="Refusing to load from the remote path"):
+        decode_dataset(meta, {})
+
+    meta["extra"] = {"__getitem__": 1}
+    with pytest.raises(SerializationError, match="unexpected dataset attributes"):
+        decode_dataset(meta, {})

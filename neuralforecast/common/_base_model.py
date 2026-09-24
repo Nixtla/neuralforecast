@@ -186,6 +186,72 @@ _V1_EXTRA_SAFE_GLOBALS: tuple = (
 )
 
 
+# Trainer and DataLoader settings an artifact may restore. Everything omitted is
+# the loading host's concern, not the file's: `default_root_dir` chooses where
+# checkpoints are written (a remote path exfiltrates them), `strategy`,
+# `num_nodes` and `num_workers` spawn processes, `multiprocessing_context` picks
+# the fork method, `prefetch_factor` sizes queues. Adding a key here is a
+# security review. Dropped values can be restored on the loaded model.
+_RESTORABLE_TRAINER_KWARGS = frozenset(
+    {
+        "accelerator",
+        "accumulate_grad_batches",
+        "benchmark",
+        "check_val_every_n_epoch",
+        "deterministic",
+        "devices",
+        "enable_checkpointing",
+        "enable_model_summary",
+        "enable_progress_bar",
+        "gradient_clip_algorithm",
+        "gradient_clip_val",
+        "inference_mode",
+        "limit_predict_batches",
+        "limit_train_batches",
+        "limit_val_batches",
+        "log_every_n_steps",
+        "logger",
+        "max_epochs",
+        "max_steps",
+        "min_epochs",
+        "min_steps",
+        "num_sanity_val_steps",
+        "precision",
+        "reload_dataloaders_every_n_epochs",
+        "use_distributed_sampler",
+        "val_check_interval",
+    }
+)
+_RESTORABLE_DATALOADER_KWARGS = frozenset({"drop_last", "pin_memory", "shuffle"})
+
+
+def _drop_unrestorable_kwargs(cls, hparams):
+    """Strip runtime settings an artifact should not choose. Returns dropped keys."""
+    # Model arguments are spread across the init chain: a model declares some and
+    # forwards the rest to BaseModel, so `cls.__init__` alone is not enough.
+    model_params = {
+        name
+        for klass in cls.__mro__
+        if "__init__" in vars(klass)
+        for name in inspect.signature(klass.__init__).parameters
+    }
+    dropped = [
+        key
+        for key in hparams
+        if key not in model_params and key not in _RESTORABLE_TRAINER_KWARGS
+    ]
+    for key in dropped:
+        del hparams[key]
+
+    loader_kwargs = hparams.get("dataloader_kwargs")
+    if isinstance(loader_kwargs, dict):
+        for key in list(loader_kwargs):
+            if key not in _RESTORABLE_DATALOADER_KWARGS:
+                del loader_kwargs[key]
+                dropped.append(f"dataloader_kwargs.{key}")
+    return dropped
+
+
 def _restricted_torch_load(data, path, kwargs):
     """Read a v1 checkpoint without letting it execute code.
 
@@ -1070,6 +1136,15 @@ class BaseModel(pl.LightningModule):
         hparams = decode_mapping(
             json.loads(metadata["hyper_parameters"]), hparam_tensors
         )
+        dropped = _drop_unrestorable_kwargs(cls, hparams)
+        if dropped:
+            warnings.warn(
+                f"Ignoring runtime settings stored in {path}: "
+                f"{', '.join(sorted(dropped))}. Set them on the loaded model if "
+                f"you want them, e.g. `model.trainer_kwargs[...] = ...`.",
+                UserWarning,
+                stacklevel=4,
+            )
         with _disable_torch_init():
             model = cls(**hparams)
         load_state_dict_exact(model, tensors, metadata)

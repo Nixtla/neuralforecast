@@ -681,6 +681,11 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
             setattr(loss, name, attribute)
         return loss
     if kind == "torch_cls":
+        if value["kind"] not in ("optimizer", "lr_scheduler"):
+            raise SerializationError(
+                f"torch_cls may only name an optimizer or scheduler, not "
+                f"{value['kind']!r}."
+            )
         return _resolve(value["name"], value["kind"])
     if kind == "tensor":
         return _decode_tensor(value, tensors)
@@ -957,10 +962,26 @@ def encode_dataset(dataset) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
     return {"dataset_class": name, "fields": fields, "extra": extra}, tensors
 
 
-def decode_dataset(meta: Dict[str, Any], tensors: Dict[str, torch.Tensor]):
+def decode_dataset(
+    meta: Dict[str, Any],
+    tensors: Dict[str, torch.Tensor],
+    trust_remote: bool = False,
+):
     """Inverse of `encode_dataset`."""
     cls = _resolve(meta["dataset_class"], "dataset")
-    dataset = cls(**decode_mapping(meta["fields"], tensors))
-    for field, value in decode_mapping(meta.get("extra", {}), tensors).items():
+    extra = meta.get("extra", {})
+    unexpected = set(extra) - set(_DATASET_EXTRA)
+    if unexpected:
+        raise SerializationError(
+            f"Refusing to restore unexpected dataset attributes: "
+            f"{', '.join(sorted(unexpected))}."
+        )
+    fields = decode_mapping(meta["fields"], tensors)
+    # `files_ds` is read with `pd.read_parquet`, which resolves fsspec URLs, so
+    # an artifact could otherwise point a later predict() anywhere.
+    for parquet_path in fields.get("files_ds") or []:
+        ensure_trusted_path(parquet_path, trust_remote)
+    dataset = cls(**fields)
+    for field, value in decode_mapping(extra, tensors).items():
         setattr(dataset, field, value)
     return dataset

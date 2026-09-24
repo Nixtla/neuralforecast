@@ -50,9 +50,21 @@ def test_unregistered_class_is_refused_not_imported():
             decode_value(payload)
 
 
+@pytest.mark.parametrize("kind", ["loss", "dataset", "builtins"])
+def test_torch_cls_only_names_optimizers_and_schedulers(kind):
+    """The tag must not be a way to decode a loss or dataset class."""
+    with pytest.raises(SerializationError):
+        decode_value({TAG: "torch_cls", "kind": kind, "name": "MAE"})
+
+
 def test_unknown_registry_is_refused():
-    with pytest.raises(SerializationError, match="Unknown registry"):
+    """The kind guard fires first; `_resolve` still refuses an unknown registry."""
+    from neuralforecast._serialization import _resolve
+
+    with pytest.raises(SerializationError, match="only name an optimizer"):
         decode_value({TAG: "torch_cls", "kind": "builtins", "name": "eval"})
+    with pytest.raises(SerializationError, match="Unknown registry"):
+        _resolve("eval", "builtins")
 
 
 def test_unknown_tag_is_an_error_not_a_passthrough():

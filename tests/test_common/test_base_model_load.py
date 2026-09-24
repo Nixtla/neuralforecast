@@ -380,3 +380,80 @@ def test_serialize_does_not_touch_disk(tmp_path):
     blob = _model().serialize()
     assert looks_like_safetensors(blob)
     assert not list(tmp_path.iterdir())
+
+
+# --------------------------------------------------------------------------
+# Runtime settings an artifact must not choose (PR #1625 review)
+# --------------------------------------------------------------------------
+
+
+def _tamper(path, **hparams):
+    from neuralforecast import _serialization
+
+    with open(path, "rb") as f:
+        data = f.read()
+    metadata = _serialization.read_metadata(data)
+    stored = json.loads(metadata["hyper_parameters"])
+    stored.update(hparams)
+    tensors, _ = _serialization.load_tensors(data)
+    with open(path, "wb") as f:
+        f.write(
+            _serialization.save_tensors(
+                tensors, {**metadata, "hyper_parameters": json.dumps(stored)}
+            )
+        )
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("default_root_dir", "s3://attacker/exfil"),
+        ("strategy", "ddp"),
+        ("num_nodes", 8),
+        ("profiler", "advanced"),
+        ("detect_anomaly", True),
+    ],
+)
+def test_artifact_cannot_choose_trainer_runtime_settings(tmp_path, key, value):
+    """`default_root_dir` alone would send checkpoints to an attacker's bucket."""
+    path = str(tmp_path / "m.safetensors")
+    _model().save(path)
+    _tamper(path, **{key: value})
+
+    with pytest.warns(UserWarning, match="Ignoring runtime settings"):
+        loaded = NLinear.load(path)
+    assert loaded.trainer_kwargs.get(key) is None
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [("num_workers", 64), ("prefetch_factor", 9999), ("multiprocessing_context", "fork")],
+)
+def test_artifact_cannot_choose_dataloader_runtime_settings(tmp_path, key, value):
+    path = str(tmp_path / "m.safetensors")
+    _model(dataloader_kwargs={"drop_last": True}).save(path)
+    _tamper(path, dataloader_kwargs={"drop_last": True, key: value})
+
+    with pytest.warns(UserWarning, match="Ignoring runtime settings"):
+        loaded = NLinear.load(path)
+    assert loaded.dataloader_kwargs == {"drop_last": True}
+
+
+@pytest.mark.parametrize("model", [NLinear, TCN])
+def test_an_untampered_model_warns_about_nothing(tmp_path, model):
+    """Model hyperparameters span the whole init chain, not just cls.__init__."""
+    path = str(tmp_path / "m.safetensors")
+    model(h=2, input_size=4, max_steps=1).save(path)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        model.load(path)
+
+
+def test_model_describing_trainer_kwargs_still_round_trip(tmp_path):
+    path = str(tmp_path / "m.safetensors")
+    _model(enable_checkpointing=True, accelerator="cpu", devices=1).save(path)
+
+    loaded = NLinear.load(path)
+    assert loaded.trainer_kwargs["enable_checkpointing"] is True
+    assert loaded.trainer_kwargs["accelerator"] == "cpu"

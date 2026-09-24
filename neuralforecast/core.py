@@ -379,14 +379,14 @@ def _load_v2_configuration(path):
     return decode_mapping(document["configuration"])
 
 
-def _load_v2_dataset(path, files):
+def _load_v2_dataset(path, files, trust_remote):
     if "dataset.json" not in files:
         return None
     with fsspec.open(f"{path}/dataset.json", "r") as f:
         meta = json.load(f)
     with fsspec.open(f"{path}/dataset.safetensors", "rb") as f:
         tensors, _ = load_tensors(f.read())
-    return decode_dataset(meta, tensors)
+    return decode_dataset(meta, tensors, trust_remote=trust_remote)
 
 
 def _load_v1_alias_to_model(path, allow_pickle):
@@ -3042,7 +3042,7 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading dataset " + 10 * "-")
         if is_v2:
-            dataset = _load_v2_dataset(path, files)
+            dataset = _load_v2_dataset(path, files, trust_remote)
         else:
             dataset = _load_v1_dataset(path, files, allow_pickle)
         if verbose:
