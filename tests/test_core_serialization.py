@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 
 from neuralforecast import NeuralForecast
+from neuralforecast._serialization import TAG
 from neuralforecast.models import NLinear
 from neuralforecast.utils import AirPassengersPanel, PredictionIntervals
 
@@ -65,6 +66,7 @@ def test_v2_layout_has_no_pickles(saved):
     assert files == [
         "NLinear_0.safetensors",
         "configuration.json",
+        "configuration.safetensors",
         "dataset.json",
         "dataset.safetensors",
     ]
@@ -137,6 +139,7 @@ def test_v2_roundtrip_without_dataset(panel, tmp_path):
     path = str(tmp_path / "nods")
     nf.save(path, save_dataset=False, overwrite=True)
     assert sorted(os.listdir(path)) == ["NLinear_0.safetensors", "configuration.json"]
+
 
     loaded = NeuralForecast.load(path)
     assert nf.predict(df=panel).equals(loaded.predict(df=panel))
@@ -368,3 +371,45 @@ def test_remote_parquet_paths_in_a_dataset_are_refused(tmp_path):
     meta["extra"] = {"__getitem__": 1}
     with pytest.raises(SerializationError, match="unexpected dataset attributes"):
         decode_dataset(meta, {})
+
+
+# --------------------------------------------------------------------------
+# Arrays live in a sidecar, not inline JSON (PR #1625 review)
+# --------------------------------------------------------------------------
+
+
+def test_large_arrays_do_not_land_in_the_configuration_json(saved):
+    """`ds` has one row per training row; JSON stamps are ~2.7x the tensors."""
+    _, path = saved
+    with open(f"{path}/configuration.json") as f:
+        document = json.load(f)
+
+    stored = document["configuration"]
+    assert stored["ds"][TAG] == "datetime64"
+    assert "values" not in stored["ds"], "the int64s belong in the sidecar"
+    assert stored["ds"]["data"][TAG] == "tensor"
+    assert os.path.exists(f"{path}/configuration.safetensors")
+
+
+def test_configuration_json_stays_small(panel, tmp_path):
+    nf = _fit(panel, local_scaler_type="standard")
+    path = str(tmp_path / "small")
+    nf.save(path, overwrite=True)
+
+    with open(f"{path}/configuration.json") as f:
+        text = f.read()
+    assert len(text) < 8_000, "configuration.json should hold schema, not data"
+    assert nf.predict().equals(NeuralForecast.load(path).predict())
+
+
+def test_a_sidecar_free_configuration_still_loads(saved, tmp_path):
+    """Artifacts written before the sidecar inline their arrays."""
+    from neuralforecast._serialization import decode_mapping, encode_mapping
+
+    nf, _ = saved
+    config = {"ds": nf.ds, "last_dates": nf.last_dates, "uids": nf.uids}
+    inline, _ = encode_mapping(config, inline=True)
+
+    restored = decode_mapping(json.loads(json.dumps(inline)))
+    assert (restored["ds"] == nf.ds).all()
+    assert restored["last_dates"].equals(nf.last_dates)

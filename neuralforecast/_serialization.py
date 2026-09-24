@@ -334,9 +334,9 @@ def _encode_tagged(value, tensors, path):
         return _encode_array(value.detach().cpu(), tensors, path, "torch")
     if isinstance(value, np.ndarray):
         if value.dtype.kind == "M":
-            return _encode_datetime64(value)
+            return _encode_datetime64(value, tensors=tensors, path=path)
         if value.dtype.kind in "USO":
-            return _encode_str_array(value, path)
+            return _encode_str_array(value, path, tensors)
         return _encode_array(value, tensors, path, "numpy")
     if _is_scaler(value):
         return _encode_scaler(value, tensors, path)
@@ -350,10 +350,10 @@ def _encode_tagged(value, tensors, path):
     polars_frame = _as_polars_frame(value, tensors, path)
     if polars_frame is not None:
         return polars_frame
-    pandas_index = _as_pandas_index(value)
+    pandas_index = _as_pandas_index(value, tensors, path)
     if pandas_index is not None:
         return pandas_index
-    polars_series = _as_polars_series(value, path)
+    polars_series = _as_polars_series(value, path, tensors)
     if polars_series is not None:
         return polars_series
     return None
@@ -378,13 +378,13 @@ def _encode_array(value, tensors, path, kind):
     return {TAG: "tensor", "key": key, "kind": "numpy", "dtype": dtype}
 
 
-def _encode_str_array(value, path):
+def _encode_str_array(value, path, tensors=None):
     values = value.tolist()
     if value.dtype.kind == "O" and _looks_like_timestamps(values):
         # A tz-aware `ds` arrives as an object array of pandas Timestamps.
         import pandas as pd
 
-        return _as_pandas_index(pd.DatetimeIndex(value))
+        return _as_pandas_index(pd.DatetimeIndex(value), tensors, path)
     if not all(v is None or isinstance(v, str) for v in values):
         raise SerializationError(
             f"{path}: object arrays can only be encoded when every element is a "
@@ -540,16 +540,22 @@ def _encode_scaler(value, tensors, path):
     }
 
 
-def _encode_datetime64(values, kind="numpy", tz=None):
-    """Encode datetimes as int64. Tz-aware values are stored in UTC plus a zone."""
+def _encode_datetime64(values, kind="numpy", tz=None, tensors=None, path=None):
+    """Encode datetimes as int64. Tz-aware values are stored in UTC plus a zone.
+
+    With a `tensors` sidecar the int64s go there: `ds` holds one entry per
+    training row, and a JSON list of 19-digit nanosecond stamps is ~2.5x the
+    size of the array.
+    """
     values = np.asarray(values)
     unit = np.datetime_data(values.dtype)[0]
-    encoded = {
-        TAG: "datetime64",
-        "kind": kind,
-        "unit": unit,
-        "values": values.astype("int64").tolist(),
-    }
+    encoded = {TAG: "datetime64", "kind": kind, "unit": unit}
+    if tensors is None:
+        encoded["values"] = values.astype("int64").tolist()
+    else:
+        encoded["data"] = _encode_array(
+            values.astype("int64"), tensors, path, "numpy"
+        )
     if tz is not None:
         encoded["tz"] = tz
     return encoded
@@ -580,7 +586,9 @@ def _as_pandas_frame(value, tensors, path):
     if isinstance(value, pd.Series):
         if _is_datetime(value):
             values, tz = _as_utc_datetimes(value)
-            data = _encode_datetime64(values, kind="pandas", tz=tz)
+            data = _encode_datetime64(
+                values, kind="pandas", tz=tz, tensors=tensors, path=path
+            )
         else:
             data = encode_value(value.to_numpy(), tensors, f"{path}.values")
         return {
@@ -616,14 +624,16 @@ def _as_polars_frame(value, tensors, path):
     }
 
 
-def _as_pandas_index(value):
+def _as_pandas_index(value, tensors=None, path=None):
     import pandas as pd
 
     if not isinstance(value, pd.Index):
         return None
     if _is_datetime(value):
         values, tz = _as_utc_datetimes(value)
-        encoded = _encode_datetime64(values, kind="pandas", tz=tz)
+        encoded = _encode_datetime64(
+            values, kind="pandas", tz=tz, tensors=tensors, path=path
+        )
         encoded["name"] = value.name
         return encoded
     return {
@@ -635,7 +645,7 @@ def _as_pandas_index(value):
     }
 
 
-def _as_polars_series(value, path):
+def _as_polars_series(value, path, tensors=None):
     polars = _polars_or_none()
     if polars is None or not isinstance(value, polars.Series):
         return None
@@ -649,7 +659,9 @@ def _as_polars_series(value, path):
     if base in ("Datetime", "Date"):
         tz = getattr(value.dtype, "time_zone", None)
         values = value.dt.replace_time_zone(None).to_numpy() if tz else value.to_numpy()
-        return _encode_datetime64(values, kind="polars", tz=tz)
+        return _encode_datetime64(
+            values, kind="polars", tz=tz, tensors=tensors, path=path
+        )
     return {
         TAG: "index",
         "kind": "polars",
@@ -701,7 +713,7 @@ def decode_value(value: Any, tensors: Optional[Dict[str, torch.Tensor]] = None) 
     if kind == "tensor":
         return _decode_tensor(value, tensors)
     if kind == "datetime64":
-        return _decode_datetime64(value)
+        return _decode_datetime64(value, tensors)
     if kind == "index":
         return _decode_index(value)
     if kind == "mapping":
@@ -784,8 +796,13 @@ def _decode_frame(value, tensors):
     return polars.DataFrame({name: data for name, data in columns})
 
 
-def _decode_datetime64(value):
-    array = np.asarray(value["values"], dtype="int64").astype(f"datetime64[{value['unit']}]")
+def _decode_datetime64(value, tensors=None):
+    raw = (
+        np.asarray(value["values"], dtype="int64")
+        if "values" in value
+        else decode_value(value["data"], tensors)
+    )
+    array = np.asarray(raw, dtype="int64").astype(f"datetime64[{value['unit']}]")
     tz = value.get("tz")
     if value["kind"] == "pandas":
         import pandas as pd

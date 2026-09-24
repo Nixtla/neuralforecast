@@ -451,3 +451,21 @@ def test_droppable_keys_keep_the_entries_that_do_encode():
 def test_a_key_outside_droppable_still_raises():
     with pytest.raises(SerializationError):
         encode_mapping({"loss": object()}, droppable={"dataloader_kwargs"})
+
+
+@pytest.mark.parametrize("tz", [None, "America/New_York"])
+def test_datetimes_go_to_the_sidecar_when_one_is_offered(tz):
+    stamps = pd.to_datetime(["2020-01-01", "2020-06-01"])
+    if tz:
+        stamps = stamps.tz_localize(tz)
+    index = pd.DatetimeIndex(stamps, name="ds")
+
+    tensors = {}
+    encoded = encode_value(index, tensors, "ds")
+    assert "values" not in encoded and encoded["data"][TAG] == "tensor"
+    assert tensors, "the int64s should be in the tensor payload"
+    assert decode_value(encoded, tensors).equals(index)
+
+    inline = encode_value(index, None, "ds")
+    assert inline["values"] and "data" not in inline
+    assert decode_value(inline).equals(index)

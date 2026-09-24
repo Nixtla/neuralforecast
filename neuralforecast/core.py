@@ -375,10 +375,14 @@ def _warn_pickle(path):
     )
 
 
-def _load_v2_configuration(path):
+def _load_v2_configuration(path, files):
     with fsspec.open(f"{path}/configuration.json", "r") as f:
         document = json.load(f)
-    return decode_mapping(document["configuration"])
+    tensors = {}
+    if "configuration.safetensors" in files:
+        with fsspec.open(f"{path}/configuration.safetensors", "rb") as f:
+            tensors, _ = load_tensors(f.read())
+    return decode_mapping(document["configuration"], tensors)
 
 
 def _load_v2_dataset(path, files, trust_remote):
@@ -2940,10 +2944,15 @@ class NeuralForecast:
         # Says which class each checkpoint holds; folding it in here removes the
         # file that used to be the first thing `load` read.
         config_dict["alias_to_model"] = alias_to_model
-        encoded, _ = encode_mapping(config_dict, inline=True)
+        # Arrays go to a sidecar: `ds` has one entry per training row, and
+        # conformity scores one per window, so inlining them as JSON lists is
+        # both slower and far larger than the tensors.
+        encoded, config_tensors = encode_mapping(config_dict)
         payloads["configuration.json"] = json.dumps(
             {"nf_format": "2", "configuration": encoded}
         ).encode()
+        if config_tensors:
+            payloads["configuration.safetensors"] = save_tensors(config_tensors, {})
 
         if existing:
             fs.rm(path, recursive=True)
@@ -3010,10 +3019,14 @@ class NeuralForecast:
         if verbose:
             print(10 * "-" + " Loading models " + 10 * "-")
         if is_v2:
-            config_dict = _load_v2_configuration(path)
+            config_dict = _load_v2_configuration(path, files)
             alias_to_model = config_dict.pop("alias_to_model", {})
             model_files = sorted(f for f in files if f.endswith(".safetensors"))
-            model_files = [f for f in model_files if f != "dataset.safetensors"]
+            model_files = [
+                f
+                for f in model_files
+                if f not in ("dataset.safetensors", "configuration.safetensors")
+            ]
         else:
             alias_to_model = _load_v1_alias_to_model(path, allow_pickle)
             model_files = [f for f in files if f.endswith(".ckpt")]
