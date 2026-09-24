@@ -6,9 +6,12 @@ import pickle
 
 import numpy as np
 import pytest
+import torch
 
 from neuralforecast import NeuralForecast
-from neuralforecast._serialization import TAG
+from neuralforecast import register_loss, register_lr_scheduler, register_optimizer
+from neuralforecast._serialization import TAG, SerializationError
+from neuralforecast.losses.pytorch import MAE
 from neuralforecast.models import NLinear
 from neuralforecast.utils import AirPassengersPanel, PredictionIntervals
 
@@ -25,7 +28,19 @@ def panel():
     )
 
 
-def _fit(panel, **kwargs):
+def _fit(panel, loss=None, optimizer=None, optimizer_kwargs=None, lr_scheduler=None,
+         lr_scheduler_kwargs=None, **kwargs):
+    model_kwargs = {
+        key: value
+        for key, value in {
+            "loss": loss,
+            "optimizer": optimizer,
+            "optimizer_kwargs": optimizer_kwargs,
+            "lr_scheduler": lr_scheduler,
+            "lr_scheduler_kwargs": lr_scheduler_kwargs,
+        }.items()
+        if value is not None
+    }
     nf = NeuralForecast(
         models=[
             NLinear(
@@ -34,6 +49,7 @@ def _fit(panel, **kwargs):
                 max_steps=1,
                 enable_progress_bar=False,
                 logger=False,
+                **model_kwargs,
                 # macOS CI runs this file and its MPS pool is tiny; the suite's
                 # convention is to pin tests that build models to the CPU.
                 accelerator="cpu",
@@ -413,3 +429,72 @@ def test_a_sidecar_free_configuration_still_loads(saved, tmp_path):
     restored = decode_mapping(json.loads(json.dumps(inline)))
     assert (restored["ds"] == nf.ds).all()
     assert restored["last_dates"].equals(nf.last_dates)
+
+
+# --------------------------------------------------------------------------
+# Registering custom classes, end to end (PR #1625 review, J2)
+# --------------------------------------------------------------------------
+
+
+class DirectoryLevelLoss(MAE):
+    """Module level so the registry name resolves in a fresh process too.
+
+    Named distinctly from the loss in test_base_model_load.py: the registry is
+    process-global, so two same-named classes collide in a full-suite run.
+    """
+
+
+class CustomOptimizer(torch.optim.Adam):
+    pass
+
+
+class CustomScheduler(torch.optim.lr_scheduler.StepLR):
+    pass
+
+
+class UnregisteredLoss(MAE):
+    """Module level: a class defined inside a function is dropped from hparams
+    by `fit` on this and earlier versions, so it would never reach `save`."""
+
+
+def test_register_loss_round_trips_through_neuralforecast(panel, tmp_path):
+    register_loss(DirectoryLevelLoss)
+    nf = _fit(panel, loss=DirectoryLevelLoss())
+    path = str(tmp_path / "loss")
+    nf.save(path, overwrite=True)
+
+    loaded = NeuralForecast.load(path)
+    assert isinstance(loaded.models[0].loss, DirectoryLevelLoss)
+    assert nf.predict().equals(loaded.predict())
+
+
+def test_register_optimizer_round_trips_through_neuralforecast(panel, tmp_path):
+    register_optimizer(CustomOptimizer)
+    nf = _fit(panel, optimizer=CustomOptimizer, optimizer_kwargs={"lr": 1e-3})
+    path = str(tmp_path / "optimizer")
+    nf.save(path, overwrite=True)
+
+    loaded = NeuralForecast.load(path)
+    assert loaded.models[0].optimizer is CustomOptimizer
+    assert nf.predict().equals(loaded.predict())
+
+
+def test_register_lr_scheduler_round_trips_through_neuralforecast(panel, tmp_path):
+    register_lr_scheduler(CustomScheduler)
+    nf = _fit(
+        panel,
+        lr_scheduler=CustomScheduler,
+        lr_scheduler_kwargs={"step_size": 1},
+    )
+    path = str(tmp_path / "scheduler")
+    nf.save(path, overwrite=True)
+
+    loaded = NeuralForecast.load(path)
+    assert loaded.models[0].lr_scheduler is CustomScheduler
+    assert nf.predict().equals(loaded.predict())
+
+
+def test_an_unregistered_class_cannot_be_saved(panel, tmp_path):
+    nf = _fit(panel, loss=UnregisteredLoss())
+    with pytest.raises(SerializationError, match="register_loss"):
+        nf.save(str(tmp_path / "nope"), overwrite=True)

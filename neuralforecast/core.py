@@ -2944,9 +2944,8 @@ class NeuralForecast:
         # Says which class each checkpoint holds; folding it in here removes the
         # file that used to be the first thing `load` read.
         config_dict["alias_to_model"] = alias_to_model
-        # Arrays go to a sidecar: `ds` has one entry per training row, and
-        # conformity scores one per window, so inlining them as JSON lists is
-        # both slower and far larger than the tensors.
+        # Arrays go to a sidecar; `ds` has one entry per training row, and JSON
+        # lists of it are both slower and ~2.7x larger.
         encoded, config_tensors = encode_mapping(config_dict)
         payloads["configuration.json"] = json.dumps(
             {"nf_format": "2", "configuration": encoded}

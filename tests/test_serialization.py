@@ -1,5 +1,6 @@
 """Unit tests for the v2 serialization primitives."""
 
+import inspect
 import json
 
 import numpy as np
@@ -8,6 +9,7 @@ import pytest
 import torch
 
 from neuralforecast._serialization import (
+    registered_classes,
     TAG,
     SerializationError,
     decode_mapping,
@@ -469,3 +471,71 @@ def test_datetimes_go_to_the_sidecar_when_one_is_offered(tz):
     inline = encode_value(index, None, "ds")
     assert inline["values"] and "data" not in inline
     assert decode_value(inline).equals(index)
+
+
+# --------------------------------------------------------------------------
+# Every loss and every scaler (PR #1625 review, E22)
+# --------------------------------------------------------------------------
+
+REGISTERED_LOSSES = sorted(registered_classes("loss"), key=lambda c: c.__name__)
+REQUIRED_ARGS = {"distribution": "Normal", "q": 0.5, "seasonality": 12}
+
+
+def _build(cls):
+    signature = inspect.signature(cls.__init__)
+    return cls(
+        **{
+            name: REQUIRED_ARGS[name]
+            for name, parameter in signature.parameters.items()
+            if parameter.default is inspect.Parameter.empty and name in REQUIRED_ARGS
+        }
+    )
+
+
+@pytest.mark.parametrize("cls", REGISTERED_LOSSES, ids=lambda c: c.__name__)
+@pytest.mark.parametrize("legacy", [False, True], ids=["fresh", "legacy"])
+def test_every_registered_loss_round_trips(cls, legacy):
+    """`legacy` drops the recorded init kwargs, as unpickling an old loss does.
+
+    A fresh-only sweep passes while the recovery path is broken.
+    """
+    loss = _build(cls)
+    if legacy:
+        del loss._nf_init_kwargs
+
+    decoded = roundtrip(loss)
+    assert type(decoded) is cls
+    assert getattr(decoded, "output_names", None) == getattr(loss, "output_names", None)
+    assert getattr(decoded, "outputsize_multiplier", None) == getattr(
+        loss, "outputsize_multiplier", None
+    )
+
+
+@pytest.mark.parametrize(
+    "distribution",
+    ["Bernoulli", "Normal", "Poisson", "StudentT", "NegativeBinomial", "Tweedie", "ISQF"],
+)
+@pytest.mark.parametrize("legacy", [False, True], ids=["fresh", "legacy"])
+def test_every_distribution_round_trips(distribution, legacy):
+    kwargs = {"rho": 1.5} if distribution == "Tweedie" else {}
+    loss = DistributionLoss(distribution=distribution, **kwargs)
+    if legacy:
+        del loss._nf_init_kwargs
+
+    decoded = roundtrip(loss)
+    assert decoded.output_names == loss.output_names
+    assert decoded.outputsize_multiplier == loss.outputsize_multiplier
+
+
+@pytest.mark.parametrize("scaler_type", ["standard", "robust", "robust-iqr", "minmax", "boxcox"])
+def test_every_scaler_type_round_trips(scaler_type):
+    from neuralforecast._serialization import _scaler_type_name
+    from neuralforecast.core import _type2scaler
+
+    scaler = _type2scaler[scaler_type]()
+    scaler.stats_ = np.arange(4, dtype="float32").reshape(2, 2)
+
+    assert _scaler_type_name(scaler) == scaler_type
+    decoded = roundtrip(scaler)
+    assert _scaler_type_name(decoded) == scaler_type
+    np.testing.assert_array_equal(decoded.stats_, scaler.stats_)

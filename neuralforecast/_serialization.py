@@ -437,11 +437,7 @@ def _recover_loss_args(loss, path):
 
 
 def _recover_partial_kwargs(loss, parameters, recovered):
-    """Read back kwargs `__init__` kept only inside a `functools.partial`.
-
-    `DistributionLoss` pops `num_pieces` and `rho` out of distribution_kwargs and
-    binds them to `domain_map` or `scale_decouple`.
-    """
+    """Read back kwargs `__init__` kept only in a partial (num_pieces, rho)."""
     named = {name for name, _ in parameters}
     extra = {}
     for attr in ("domain_map", "scale_decouple"):
@@ -541,11 +537,9 @@ def _encode_scaler(value, tensors, path):
 
 
 def _encode_datetime64(values, kind="numpy", tz=None, tensors=None, path=None):
-    """Encode datetimes as int64. Tz-aware values are stored in UTC plus a zone.
+    """Encode datetimes as int64, UTC plus a zone when tz-aware.
 
-    With a `tensors` sidecar the int64s go there: `ds` holds one entry per
-    training row, and a JSON list of 19-digit nanosecond stamps is ~2.5x the
-    size of the array.
+    With a `tensors` sidecar the int64s go there; as JSON they are ~2.7x larger.
     """
     values = np.asarray(values)
     unit = np.datetime_data(values.dtype)[0]
@@ -847,11 +841,9 @@ def encode_mapping(
         mapping (dict): Values to encode.
         inline (bool): Write arrays into the JSON instead of a tensor sidecar.
             Used for `configuration.json`, which ships without one.
-        droppable: Keys whose values may be skipped when they need pickle,
-            reported instead of raising. Runtime plumbing such as
-            `worker_init_fn` lives in hparams and cannot be removed by the
-            caller, but a model argument must never be dropped silently, so the
-            caller decides which keys qualify.
+        droppable: Keys that may be skipped when they need pickle, and reported
+            instead of raising. The caller decides, because dropping a model
+            argument would reload as a different model.
     """
     tensors: Dict[str, torch.Tensor] = {}
     target = None if inline else tensors
@@ -864,8 +856,7 @@ def encode_mapping(
             if droppable is None or key not in droppable:
                 raise
             if isinstance(value, dict):
-                # Keep the entries that do encode: only the callables inside
-                # `dataloader_kwargs` and friends are a problem.
+                # Keep the entries that do encode; only the callables are a problem.
                 kept, inner = {}, []
                 for inner_key, inner_value in value.items():
                     try:
@@ -1036,8 +1027,7 @@ def decode_dataset(
             f"{', '.join(sorted(unexpected))}."
         )
     fields = decode_mapping(meta["fields"], tensors)
-    # `files_ds` is read with `pd.read_parquet`, which resolves fsspec URLs, so
-    # an artifact could otherwise point a later predict() anywhere.
+    # Read with `pd.read_parquet`, which resolves fsspec URLs.
     for parquet_path in fields.get("files_ds") or []:
         ensure_trusted_path(parquet_path, trust_remote)
     dataset = cls(**fields)

@@ -169,9 +169,7 @@ def _refuse_unsaveable(model_class):
         raise ValueError(reason)
 
 
-# Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint;
-# quantile losses store `np.str_` in output_names, and `optimizer=` /
-# `lr_scheduler=` hold plain torch classes.
+# Globals the restricted unpickler may reconstruct from a legacy v1 checkpoint.
 #
 # Adding an entry is a security review, not a bug fix. Never add
 # `torch.storage._load_from_bytes` (an unrestricted load on attacker bytes) or
@@ -180,9 +178,8 @@ def _refuse_unsaveable(model_class):
 # `AttributeDict` is absent because it cannot work: torch restricts SETITEMS to
 # dict/OrderedDict/Counter. Checkpoints older than v3.1.6 need `migrate`.
 #
-# Resolved lazily: `np.dtypes` arrived in numpy 1.25 while the floor is 1.21.6,
-# and `np.core` is deprecated in numpy 2. A missing entry narrows the allowlist
-# rather than breaking the import.
+# Resolved lazily so a numpy without `np.dtypes` (< 1.25) narrows the allowlist
+# instead of breaking the import.
 def _numpy_scalar():
     try:
         from numpy._core.multiarray import scalar
@@ -199,12 +196,10 @@ def _v1_extra_safe_globals():
     return tuple(entries)
 
 
-# Trainer and DataLoader settings an artifact may restore. Everything omitted is
-# the loading host's concern, not the file's: `default_root_dir` chooses where
-# checkpoints are written (a remote path exfiltrates them), `strategy`,
-# `num_nodes` and `num_workers` spawn processes, `multiprocessing_context` picks
-# the fork method, `prefetch_factor` sizes queues. Adding a key here is a
-# security review. Dropped values can be restored on the loaded model.
+# Trainer and DataLoader settings an artifact may restore. What is omitted is the
+# host's concern, not the file's: `default_root_dir` chooses where checkpoints
+# land, `strategy` and `num_workers` spawn processes. Adding a key is a security
+# review; dropped values can be set on the loaded model.
 _RESTORABLE_TRAINER_KWARGS = frozenset(
     {
         "accelerator",
@@ -237,8 +232,7 @@ _RESTORABLE_TRAINER_KWARGS = frozenset(
 )
 _RESTORABLE_DATALOADER_KWARGS = frozenset({"drop_last", "pin_memory", "shuffle"})
 
-# Hyperparameters a caller may re-supply at load time, for classes the registry
-# cannot name and for values dropped on save.
+# Hyperparameters a caller may re-supply at load time.
 _LOAD_OVERRIDES = ("loss", "valid_loss", "optimizer", "lr_scheduler")
 
 
@@ -1106,15 +1100,14 @@ class BaseModel(pl.LightningModule):
 
         # Runtime objects, not model state; callbacks also break predict() after
         # a load. Re-attach via `model.trainer_kwargs[...]`. A bool `logger` is
-        # configuration, not an object, so it stays.
+        # configuration, so it stays.
         hparams = copy.deepcopy(dict(self.hparams))
         hparams.pop("callbacks", None)
         if not isinstance(hparams.get("logger"), bool):
             hparams.pop("logger", None)
 
-        # Only runtime plumbing may be dropped. A model argument that cannot be
-        # encoded has to fail loudly: silently saving a model without its loss
-        # would reload as a different model.
+        # Only runtime plumbing may be dropped; losing a model argument would
+        # reload as a different model.
         encoded, hparam_tensors, unencodable = encode_mapping(
             hparams, droppable=_droppable_hparams(type(self), hparams)
         )
