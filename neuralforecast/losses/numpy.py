@@ -51,7 +51,10 @@ def mae(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: MAE.
@@ -91,7 +94,10 @@ def mse(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: MSE.
@@ -135,7 +141,10 @@ def rmse(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: RMSE.
@@ -167,7 +176,10 @@ def mape(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: MAPE.
@@ -208,7 +220,10 @@ def smape(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: SMAPE.
@@ -256,9 +271,12 @@ def mase(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        y_insample (np.ndarray): Actual insample Seasonal Naive predictions.
+        y_train (np.ndarray): Actual insample Seasonal Naive predictions.
         seasonality (int): Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: MASE.
@@ -302,8 +320,8 @@ def rmae(
         y_hat2 (np.ndarray): Predicted values of baseline model.
         weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
         axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
-        The default, axis=None, will average over all of the elements of
-        the input array.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: RMAE.
@@ -342,7 +360,10 @@ def quantile_loss(
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
         q (float, optional): The slope of the quantile loss, in the context of quantile regression, the q determines the conditional quantile level. Defaults to 0.5.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: Quantile loss.
@@ -400,7 +421,10 @@ def mqloss(
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
         quantiles (np.ndarray): Quantiles to estimate from the distribution of y.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (Optional[int], optional): Axis or axes along which to average a. Defaults to None.
+            The default, axis=None, will average over all of the elements of
+            the input array.
 
     Returns:
         float: MQLoss.
