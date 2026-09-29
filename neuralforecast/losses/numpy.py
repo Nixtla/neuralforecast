@@ -28,6 +28,21 @@ def _metric_protections(
     ), f"Wrong weight dimension weights.shape {weights.shape}, y.shape {y.shape}"
 
 
+def _weighted_nanmean(values: np.ndarray, weights: np.ndarray, axis: Optional[int]):
+    """Average along axis, skipping NaNs without collapsing the other axes."""
+    valid = ~np.isnan(values)
+    used_weights = np.where(valid, weights, 0.0)
+    filled = np.where(valid, values, 0.0)
+    summed = np.sum(filled * used_weights, axis=axis)
+    denom = np.sum(used_weights, axis=axis)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        averaged = summed / denom
+    averaged = np.where(np.asarray(denom) == 0, np.nan, np.asarray(averaged))
+    if np.ndim(averaged) == 0:
+        return averaged.dtype.type(averaged)
+    return averaged
+
+
 def mae(
     y: np.ndarray,
     y_hat: np.ndarray,
@@ -60,9 +75,7 @@ def mae(
 
     delta_y = np.abs(y - y_hat)
     if weights is not None:
-        mae = np.average(
-            delta_y[~np.isnan(delta_y)], weights=weights[~np.isnan(delta_y)], axis=axis
-        )
+        mae = _weighted_nanmean(delta_y, weights, axis)
     else:
         mae = np.nanmean(delta_y, axis=axis)
 
@@ -100,9 +113,7 @@ def mse(
 
     delta_y = np.square(y - y_hat)
     if weights is not None:
-        mse = np.average(
-            delta_y[~np.isnan(delta_y)], weights=weights[~np.isnan(delta_y)], axis=axis
-        )
+        mse = _weighted_nanmean(delta_y, weights, axis)
     else:
         mse = np.nanmean(delta_y, axis=axis)
 
@@ -356,9 +367,7 @@ def quantile_loss(
     loss = np.maximum(q * delta_y, (q - 1) * delta_y)
 
     if weights is not None:
-        quantile_loss = np.average(
-            loss[~np.isnan(loss)], weights=weights[~np.isnan(loss)], axis=axis
-        )
+        quantile_loss = _weighted_nanmean(loss, weights, axis)
     else:
         quantile_loss = np.nanmean(loss, axis=axis)
 
