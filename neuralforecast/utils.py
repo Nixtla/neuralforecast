@@ -512,6 +512,25 @@ class PredictionIntervals:
         )
 
 
+def _conformal_rank(n: int, coverage: float) -> int:
+    """Rank of the finite-sample conformal quantile among `n` conformity scores.
+
+    Split conformal prediction takes the `ceil((n + 1) * coverage)`-th smallest
+    score, which covers at least `coverage` of exchangeable errors; the plain
+    empirical quantile under-covers, badly so with few windows. When that rank
+    exceeds `n` the largest score is used, which covers `n / (n + 1)`.
+
+    Args:
+        n (int): Number of conformity scores (windows).
+        coverage (float): Target coverage of the central interval, in (0, 1].
+
+    Returns:
+        int: Rank between 1 and `n` of the score to use.
+    """
+    # rounding guards against `(n + 1) * coverage` landing just above an integer
+    return max(1, min(math.ceil(round((n + 1) * coverage, 8)), n))
+
+
 def add_conformal_distribution_intervals(
     model_fcsts: np.array,
     cs_df: DFType,
@@ -555,10 +574,23 @@ def add_conformal_distribution_intervals(
     # restrict scores to horizon
     scores = scores[:, :, :horizon]
     mean = model_fcsts.reshape(1, n_series, -1)
+    n = scores.shape[0]
     scores = np.vstack([mean - scores, mean + scores])
+    # with n windows the pooled array sorts as `mean - cs` (descending) followed by
+    # `mean + cs` (ascending), so these cuts land on `mean -/+ cs_(k)`, the k-th
+    # smallest score of `_conformal_rank`
+    pooled_cuts = []
+    for q in cuts:
+        if q == 0.5:
+            pooled_cuts.append(0.5)
+            continue
+        k = _conformal_rank(n, abs(2 * q - 1))
+        pooled_cuts.append(
+            (n + k - 1) / (2 * n - 1) if q > 0.5 else (n - k) / (2 * n - 1)
+        )
     scores_quantiles = np.quantile(
         scores,
-        cuts,
+        pooled_cuts,
         axis=0,
     )
     scores_quantiles = scores_quantiles.reshape(len(cuts), -1).T
@@ -617,9 +649,15 @@ def add_conformal_error_intervals(
     scores = scores.transpose(1, 0, 2)
     # restrict scores to horizon
     scores = scores[:, :, :horizon]
+    n = scores.shape[0]
+    # the bound for quantile q is the margin of the central interval with coverage
+    # |2q - 1|, i.e. at least the k-th smallest absolute error of `_conformal_rank`
+    margin_levels = [
+        _conformal_rank(n, abs(2 * q - 1)) / n if q != 0.5 else 0.0 for q in cuts
+    ]
     scores_quantiles = np.quantile(
         scores,
-        cuts,
+        margin_levels,
         axis=0,
     )
     scores_quantiles = scores_quantiles.reshape(len(cuts), -1)
@@ -634,7 +672,7 @@ def add_conformal_error_intervals(
     scores_quantiles_ls = []
     for i, q in enumerate(cuts):
         if q < 0.5:
-            scores_quantiles_ls.append(mean - scores_quantiles[::-1][i])
+            scores_quantiles_ls.append(mean - scores_quantiles[i])
         elif q > 0.5:
             scores_quantiles_ls.append(mean + scores_quantiles[i])
         else:
