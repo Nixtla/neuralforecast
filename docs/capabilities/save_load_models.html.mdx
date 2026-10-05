@@ -264,14 +264,19 @@ Two things to know:
     fails rather than writing an artifact that loads as a different
     loss.
 
-Alternatively, supply the class when loading instead of registering it:
+Registration is what makes a class saveable. `load` additionally accepts
+the same four arguments, to **replace** what an artifact stored — useful
+when the stored class is no longer importable, or when you want to swap
+it:
 
 ```python
 model = NHITS.load(path, loss=MyLoss(), optimizer=MyOptimizer)
 ```
 
-`load` also accepts `map_location`, and rejects anything else rather
-than ignoring it.
+That works for both formats, but it cannot rescue a model that failed to
+save: those errors appear before any file is written. `load` also
+accepts `map_location`, and rejects anything else rather than ignoring
+it.
 
 ### What is not carried in an artifact
 
