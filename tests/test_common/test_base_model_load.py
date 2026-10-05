@@ -479,21 +479,29 @@ def test_map_location_moves_the_model_on_the_v2_path(v2_ckpt, monkeypatch):
     assert moved and moved[-1] == "cpu"
 
 
-@pytest.mark.skipif(
-    not (torch.cuda.is_available() or torch.backends.mps.is_available()),
-    reason="needs a device other than the CPU to observe the move",
+# The one non-CPU device this machine has, if any. CI has neither: the macOS job
+# skips tests/test_common and the Linux and Windows runners have no GPU, so the
+# test above is what guards `map_location` there.
+_NON_CPU_DEVICE = (
+    "cuda"
+    if torch.cuda.is_available()
+    else "mps"
+    if torch.backends.mps.is_available()
+    else None
 )
+
+
+@pytest.mark.skipif(_NON_CPU_DEVICE is None, reason="no non-CPU device to move to")
 @pytest.mark.parametrize("version", ["v2", "v1"])
 def test_map_location_lands_the_parameters_on_the_device(tmp_path, version):
-    device = "cuda" if torch.cuda.is_available() else "mps"
     if version == "v2":
         path = str(tmp_path / "m.safetensors")
         _model().save(path)
-        loaded = NLinear.load(path, map_location=device)
+        loaded = NLinear.load(path, map_location=_NON_CPU_DEVICE)
     else:
         path = _write_v1(_model(), tmp_path / "m.ckpt")
-        loaded = NLinear.load(path, allow_pickle=True, map_location=device)
-    assert next(loaded.parameters()).device.type == device
+        loaded = NLinear.load(path, allow_pickle=True, map_location=_NON_CPU_DEVICE)
+    assert next(loaded.parameters()).device.type == _NON_CPU_DEVICE
 
 
 @pytest.mark.parametrize("allow_pickle", [True, False])
