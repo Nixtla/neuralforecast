@@ -464,8 +464,95 @@ def test_model_describing_trainer_kwargs_still_round_trip(tmp_path):
 # --------------------------------------------------------------------------
 
 
-def test_map_location_is_honored_on_the_v2_path(v2_ckpt):
-    assert NLinear.load(v2_ckpt, map_location="cpu") is not None
+def test_map_location_moves_the_model_on_the_v2_path(v2_ckpt, monkeypatch):
+    """`load_state_dict` copies into existing parameters, so moving the tensors
+    alone left the model on the CPU."""
+    moved = []
+    original = NLinear.to
+
+    def spy(self, *args, **kwargs):
+        moved.append(args[0] if args else kwargs.get("device"))
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(NLinear, "to", spy, raising=False)
+    NLinear.load(v2_ckpt, map_location="cpu")
+    assert moved and moved[-1] == "cpu"
+
+
+@pytest.mark.skipif(
+    not (torch.cuda.is_available() or torch.backends.mps.is_available()),
+    reason="needs a device other than the CPU to observe the move",
+)
+@pytest.mark.parametrize("version", ["v2", "v1"])
+def test_map_location_lands_the_parameters_on_the_device(tmp_path, version):
+    device = "cuda" if torch.cuda.is_available() else "mps"
+    if version == "v2":
+        path = str(tmp_path / "m.safetensors")
+        _model().save(path)
+        loaded = NLinear.load(path, map_location=device)
+    else:
+        path = _write_v1(_model(), tmp_path / "m.ckpt")
+        loaded = NLinear.load(path, allow_pickle=True, map_location=device)
+    assert next(loaded.parameters()).device.type == device
+
+
+@pytest.mark.parametrize("allow_pickle", [True, False])
+@pytest.mark.parametrize(
+    "key,value", [("default_root_dir", "s3://attacker/exfil"), ("strategy", "ddp")]
+)
+def test_a_legacy_checkpoint_cannot_choose_runtime_settings(
+    tmp_path, allow_pickle, key, value
+):
+    """The v2 allowlist did not cover the legacy reader."""
+    model = _model()
+    hparams = {k: v for k, v in dict(model.hparams).items() if k != "callbacks"}
+    hparams[key] = value
+    path = str(tmp_path / "legacy.ckpt")
+    torch.save(
+        {"hyper_parameters": hparams, "state_dict": model.state_dict()}, path
+    )
+
+    with pytest.warns(UserWarning, match="Ignoring runtime settings"):
+        loaded = NLinear.load(path, allow_pickle=allow_pickle)
+    assert loaded.trainer_kwargs.get(key) is None
+
+
+def test_overrides_apply_on_the_legacy_path(tmp_path):
+    """They used to reach `torch.load` and fail inside the unpickler."""
+    from neuralforecast.losses.pytorch import MSE
+
+    path = _write_v1(_model(loss=MAE()), tmp_path / "legacy.ckpt")
+    loaded = NLinear.load(path, allow_pickle=True, loss=MSE(), optimizer=torch.optim.AdamW)
+    assert isinstance(loaded.loss, MSE)
+    assert loaded.optimizer is torch.optim.AdamW
+
+
+def test_an_override_replaces_a_class_that_cannot_be_resolved(tmp_path):
+    """The case overrides exist for: decoding used to raise first."""
+    import json
+
+    from neuralforecast import _serialization
+    from neuralforecast.losses.pytorch import MSE
+
+    path = str(tmp_path / "m.safetensors")
+    _model(loss=MAE()).save(path)
+
+    with open(path, "rb") as f:
+        data = f.read()
+    metadata = _serialization.read_metadata(data)
+    stored = json.loads(metadata["hyper_parameters"])
+    stored["loss"] = {"__nf__": "loss", "cls": "GoneFromThisEnvironment", "args": {}}
+    tensors, _ = _serialization.load_tensors(data)
+    with open(path, "wb") as f:
+        f.write(
+            _serialization.save_tensors(
+                tensors, {**metadata, "hyper_parameters": json.dumps(stored)}
+            )
+        )
+
+    with pytest.raises(_serialization.SerializationError, match="not registered"):
+        NLinear.load(path)
+    assert isinstance(NLinear.load(path, loss=MSE()).loss, MSE)
 
 
 @pytest.mark.parametrize("key,value", [("loss", MAE()), ("optimizer", torch.optim.AdamW)])

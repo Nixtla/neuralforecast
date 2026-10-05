@@ -193,7 +193,7 @@ def _name_of(cls: type, kind: str) -> str:
     raise SerializationError(
         f"{cls.__name__} is not a registered {kind}, so it cannot be saved. "
         f"Register it with neuralforecast.register_{kind}({cls.__name__}) before "
-        f"saving, or supply it again at load time."
+        f"saving."
     )
 
 
@@ -421,8 +421,9 @@ def _recover_loss_args(loss, path):
         else:
             raise SerializationError(
                 f"{path}: cannot recover the `{name}` argument of "
-                f"{cls.__name__}, so it cannot be saved. Re-supply the loss at "
-                f"load time, e.g. `Model.load(path, loss=...)`."
+                f"{cls.__name__}, so it cannot be saved. Build an equivalent "
+                f"loss and set it on the model first, e.g. "
+                f"`model.loss = {cls.__name__}(...)`."
             )
 
     args.update(_recover_partial_kwargs(loss, parameters, args))
@@ -456,8 +457,8 @@ def _verify_recovered_loss(loss, cls, args, state, path):
     except Exception as e:
         raise SerializationError(
             f"{path}: could not rebuild {cls.__name__} from the arguments "
-            f"recovered from it ({e}). Re-supply the loss at load time, e.g. "
-            f"`Model.load(path, loss=...)`."
+            f"recovered from it ({e}). Build an equivalent loss and set it on "
+            f"the model first, e.g. `model.loss = {cls.__name__}(...)`."
         ) from e
     for name, expected in state.items():
         setattr(rebuilt, name, expected)
@@ -466,8 +467,8 @@ def _verify_recovered_loss(loss, cls, args, state, path):
             raise SerializationError(
                 f"{path}: rebuilding {cls.__name__} from its own attributes "
                 f"changes `{name}`, so saving it would produce a different loss. "
-                f"Re-supply the loss at load time, e.g. "
-                f"`Model.load(path, loss=...)`."
+                f"Build an equivalent loss and set it on the model first, e.g. "
+                f"`model.loss = {cls.__name__}(...)`."
             )
 
 

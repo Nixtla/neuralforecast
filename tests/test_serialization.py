@@ -539,3 +539,40 @@ def test_every_scaler_type_round_trips(scaler_type):
     decoded = roundtrip(scaler)
     assert _scaler_type_name(decoded) == scaler_type
     np.testing.assert_array_equal(decoded.stats_, scaler.stats_)
+
+
+@pytest.mark.parametrize(
+    "make_loss",
+    [
+        lambda: DistributionLoss(distribution="Normal"),
+        lambda: MQLoss(level=[80, 90]),
+    ],
+    ids=["DistributionLoss", "MQLoss"],
+)
+def test_save_time_errors_do_not_give_load_time_advice(make_loss, monkeypatch):
+    """These fire before any file exists, so `load(path, loss=...)` is useless."""
+    from neuralforecast import _serialization
+
+    loss = make_loss()
+    del loss._nf_init_kwargs
+    monkeypatch.setattr(_serialization, "_LOSS_DERIVED_STATE", ())
+    monkeypatch.setattr(
+        _serialization, "_LOSS_INVARIANTS", ("output_names", "outputsize_multiplier")
+    )
+
+    with pytest.raises(SerializationError) as excinfo:
+        encode_value(loss, {}, "loss")
+    message = str(excinfo.value)
+    assert "load(" not in message
+    assert "set it on the model" in message
+
+
+def test_unregistered_class_error_points_only_at_registration():
+    class Custom(MAE):
+        pass
+
+    with pytest.raises(SerializationError) as excinfo:
+        encode_value(Custom(), {}, "loss")
+    message = str(excinfo.value)
+    assert "register_loss" in message
+    assert "at load time" not in message

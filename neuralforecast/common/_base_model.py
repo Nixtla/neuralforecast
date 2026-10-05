@@ -261,6 +261,14 @@ def _droppable_hparams(cls, hparams):
     }
 
 
+def _ignoring_runtime_settings(path, dropped):
+    return (
+        f"Ignoring runtime settings stored in {path}: "
+        f"{', '.join(sorted(dropped))}. Set them on the loaded model if you want "
+        f"them, e.g. `model.trainer_kwargs[...] = ...`."
+    )
+
+
 def _drop_unrestorable_kwargs(cls, hparams):
     """Strip runtime settings an artifact should not choose. Returns dropped keys."""
     model_params = _model_parameters(cls)
@@ -1114,8 +1122,8 @@ class BaseModel(pl.LightningModule):
         if unencodable:
             warnings.warn(
                 f"Dropping hyperparameters that cannot be saved without pickle: "
-                f"{', '.join(sorted(unencodable))}. Re-supply them when loading, "
-                f"e.g. `{type(self).__name__}.load(path, ...)`.",
+                f"{', '.join(sorted(unencodable))}. Set them on the loaded model "
+                f"if you need them, e.g. `model.dataloader_kwargs[...] = ...`.",
                 UserWarning,
                 stacklevel=3,
             )
@@ -1166,22 +1174,22 @@ class BaseModel(pl.LightningModule):
         with fsspec.open(path, "rb") as f:
             data = f.read()
 
+        overrides = {k: kwargs.pop(k) for k in _LOAD_OVERRIDES if k in kwargs}
         if looks_like_safetensors(data):
-            return cls._load_v2(data, path, kwargs)
+            return cls._load_v2(data, path, overrides, kwargs)
         if not _looks_like_pickle(data):
             raise ValueError(
                 f"{path} is not a neuralforecast checkpoint: it is neither "
                 f"safetensors nor a legacy pickle. The file is corrupt or "
                 f"truncated; re-copy it from the source."
             )
-        return cls._load_v1(data, path, allow_pickle, kwargs)
+        return cls._load_v1(data, path, allow_pickle, overrides, kwargs)
 
     @classmethod
-    def _load_v2(cls, data, path, kwargs):
+    def _load_v2(cls, data, path, overrides, kwargs):
         tensors, metadata = load_tensors(data)
         kwargs = dict(kwargs)
         map_location = kwargs.pop("map_location", None)
-        overrides = {k: kwargs.pop(k) for k in _LOAD_OVERRIDES if k in kwargs}
         if kwargs:
             raise TypeError(
                 f"Unexpected keyword arguments for a v2 checkpoint: "
@@ -1197,23 +1205,18 @@ class BaseModel(pl.LightningModule):
             for key in list(tensors)
             if key.startswith(f"{HPARAM_TENSOR_PREFIX}.")
         }
-        hparams = decode_mapping(
-            json.loads(metadata["hyper_parameters"]), hparam_tensors
-        )
+        stored = json.loads(metadata["hyper_parameters"])
+        # Decoding an overridden key would raise before the override could land,
+        # which is exactly the case overrides exist for.
+        for key in overrides:
+            stored.pop(key, None)
+        hparams = decode_mapping(stored, hparam_tensors)
         dropped = _drop_unrestorable_kwargs(cls, hparams)
         if dropped:
-            warnings.warn(
-                f"Ignoring runtime settings stored in {path}: "
-                f"{', '.join(sorted(dropped))}. Set them on the loaded model if "
-                f"you want them, e.g. `model.trainer_kwargs[...] = ...`.",
-                UserWarning,
-                stacklevel=4,
-            )
+            warnings.warn(_ignoring_runtime_settings(path, dropped), UserWarning, 4)
         hparams.update(overrides)
         with _disable_torch_init():
             model = cls(**hparams)
-        if map_location is not None:
-            tensors = {k: v.to(map_location) for k, v in tensors.items()}
         try:
             load_state_dict_exact(model, tensors, metadata)
         except RuntimeError as e:
@@ -1225,10 +1228,12 @@ class BaseModel(pl.LightningModule):
                 f"the model was trained with; a loss with a different number of "
                 f"outputs changes the architecture. ({e})"
             ) from e
-        return model
+        # `load_state_dict` copies into the parameters the model was built with,
+        # so moving the tensors would leave the model itself on the CPU.
+        return model.to(map_location) if map_location is not None else model
 
     @classmethod
-    def _load_v1(cls, data, path, allow_pickle, kwargs):
+    def _load_v1(cls, data, path, allow_pickle, overrides, kwargs):
         restricted = not allow_pickle or kwargs.get("weights_only") is True
         if restricted:
             content = _restricted_torch_load(data, path, kwargs)
@@ -1244,8 +1249,14 @@ class BaseModel(pl.LightningModule):
             )
             content = torch.load(io.BytesIO(data), **kwargs)
 
+        hparams = dict(content["hyper_parameters"])
+        dropped = _drop_unrestorable_kwargs(cls, hparams)
+        if dropped:
+            warnings.warn(_ignoring_runtime_settings(path, dropped), UserWarning, 3)
+        hparams.update(overrides)
+
         with _disable_torch_init():
-            model = cls(**content["hyper_parameters"])
+            model = cls(**hparams)
         if "assign" in inspect.signature(model.load_state_dict).parameters:
             model.load_state_dict(content["state_dict"], strict=True, assign=True)
         else:  # pytorch<2.1
