@@ -48,10 +48,46 @@ def test_backward_comptability(model, kwargs, save_model=False):
         os.makedirs(save_path, exist_ok=True)
         nf.save(path=save_path, model_index=None, overwrite=True, save_dataset=False)
     else:
-        # backwarc compatibility test
-        fcst = NeuralForecast.load(path=save_path)
+        # backwarc compatibility test.
+        # These fixtures are trusted, local, in-repo test data, and they predate
+        # the safetensors format, so reading them requires explicit consent.
+        fcst = NeuralForecast.load(path=save_path, allow_pickle=True)
         # standard forecast
         fcst.predict(df=train_df, futr_df=test_df)
         # prediction with longer horizon
         fcst.predict(df=train_df, futr_df=test_df, h=horizon)
         fcst.cross_validation(df=train_df, n_windows=2)
+
+
+@pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="Same MPS memory limit as the test above.",
+)
+@pytest.mark.parametrize(
+    "model,kwargs",
+    [
+        (
+            DeepAR,
+            {"h": 5, "input_size": 12, "max_steps": 2, "futr_exog_list": ["trend"]},
+        ),
+        (NLinear, {"h": 5, "input_size": 12, "max_steps": 2}),
+        (TSMixer, {"h": 5, "input_size": 12, "n_series": 2, "max_steps": 2}),
+    ],
+)
+def test_v2_backward_compatibility(model, kwargs):
+    """The v2 fixtures load with no pickle consent at all.
+
+    Generated from the v1 fixtures with `python -m neuralforecast.migrate`. The
+    v1 set is kept alongside rather than replaced: its whole purpose is to prove
+    the legacy path still works.
+    """
+    save_path = "./tests/backward_comp/data/{}_v2".format(model.__name__)
+    horizon = 12
+    panel = AirPassengersPanel.copy()
+    train_df = panel[panel.ds < panel["ds"].values[-horizon]]
+    test_df = panel[panel.ds >= panel["ds"].values[-horizon]]
+
+    fcst = NeuralForecast.load(path=save_path)
+    fcst.predict(df=train_df, futr_df=test_df)
+    fcst.predict(df=train_df, futr_df=test_df, h=horizon)
+    fcst.cross_validation(df=train_df, n_windows=2)
