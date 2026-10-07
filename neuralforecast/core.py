@@ -1430,90 +1430,91 @@ class NeuralForecast:
         # but must restore afterwards so that predict() without df still works.
         _saved_scalers = self.scalers_
         _saved_static_scalers = self.static_scalers_
-        if df is not None:
-            validate_freq(df[self.time_col], self.freq)
-            dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df,
-                static_df=static_df,
+        try:
+            if df is not None:
+                validate_freq(df[self.time_col], self.freq)
+                dataset, uids, last_dates, _ = self._prepare_fit(
+                    df=df,
+                    static_df=static_df,
+                    id_col=self.id_col,
+                    time_col=self.time_col,
+                    target_col=self.target_col,
+                )
+            else:
+                dataset = self.dataset
+                uids = self.uids
+                last_dates = self.last_dates
+                if verbose:
+                    print("Using stored dataset.")
+
+            # Placeholder dataframe for predictions with unique_id and ds
+            fcsts_df = ufp.make_future_dataframe(
+                uids=uids,
+                last_times=last_dates,
+                freq=self.freq,
+                h=h,
+                id_col=self.id_col,
+                time_col=self.time_col,
+            )
+
+            # Update and define new forecasting dataset
+            if futr_df is None:
+                futr_df = fcsts_df
+            else:
+                futr_orig_rows = futr_df.shape[0]
+                futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
+                if futr_df.shape[0] < fcsts_df.shape[0]:
+                    if df is None:
+                        if h != self.h:
+                            expected_cmd = f"make_future_dataframe(h={h})"
+                            missing_cmd = f"get_missing_future(futr_df, h={h})"
+                        else:
+                            expected_cmd = "make_future_dataframe()"
+                            missing_cmd = "get_missing_future(futr_df)"
+                    else:
+                        if h != self.h:
+                            expected_cmd = f"make_future_dataframe(df, h={h})"
+                            missing_cmd = f"get_missing_future(futr_df, df, h={h})"
+                        else:
+                            expected_cmd = "make_future_dataframe(df)"
+                            missing_cmd = "get_missing_future(futr_df, df)"
+                    raise ValueError(
+                        "There are missing combinations of ids and times in `futr_df`.\n"
+                        f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                        f"the `{missing_cmd}` method to get the missing combinations."
+                    )
+                if futr_orig_rows > futr_df.shape[0]:
+                    dropped_rows = futr_orig_rows - futr_df.shape[0]
+                    warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
+                if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
+                    raise ValueError("Found null values in `futr_df`")
+            futr_df = self._encode_categoricals(futr_df)
+            futr_dataset = dataset.align(
+                futr_df,
                 id_col=self.id_col,
                 time_col=self.time_col,
                 target_col=self.target_col,
             )
-        else:
-            dataset = self.dataset
-            uids = self.uids
-            last_dates = self.last_dates
-            if verbose:
-                print("Using stored dataset.")
+            self._scalers_transform(futr_dataset)
+            dataset = dataset.append(futr_dataset)
 
-        # Placeholder dataframe for predictions with unique_id and ds
-        fcsts_df = ufp.make_future_dataframe(
-            uids=uids,
-            last_times=last_dates,
-            freq=self.freq,
-            h=h,
-            id_col=self.id_col,
-            time_col=self.time_col,
-        )
+            fcsts, cols = self._generate_forecasts(
+                dataset=dataset,
+                uids=uids,
+                quantiles_=quantiles_,
+                level_=level_,
+                has_level=has_level,
+                h=h,
+                **data_kwargs,
+            )
 
-        # Update and define new forecasting dataset
-        if futr_df is None:
-            futr_df = fcsts_df
-        else:
-            futr_orig_rows = futr_df.shape[0]
-            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
-            if futr_df.shape[0] < fcsts_df.shape[0]:
-                if df is None:
-                    if h != self.h:
-                        expected_cmd = f"make_future_dataframe(h={h})"
-                        missing_cmd = f"get_missing_future(futr_df, h={h})"
-                    else:
-                        expected_cmd = "make_future_dataframe()"
-                        missing_cmd = "get_missing_future(futr_df)"
-                else:
-                    if h != self.h:
-                        expected_cmd = f"make_future_dataframe(df, h={h})"
-                        missing_cmd = f"get_missing_future(futr_df, df, h={h})"
-                    else:
-                        expected_cmd = "make_future_dataframe(df)"
-                        missing_cmd = "get_missing_future(futr_df, df)"
-                raise ValueError(
-                    "There are missing combinations of ids and times in `futr_df`.\n"
-                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
-                    f"the `{missing_cmd}` method to get the missing combinations."
-                )
-            if futr_orig_rows > futr_df.shape[0]:
-                dropped_rows = futr_orig_rows - futr_df.shape[0]
-                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
-            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
-                raise ValueError("Found null values in `futr_df`")
-        futr_df = self._encode_categoricals(futr_df)
-        futr_dataset = dataset.align(
-            futr_df,
-            id_col=self.id_col,
-            time_col=self.time_col,
-            target_col=self.target_col,
-        )
-        self._scalers_transform(futr_dataset)
-        dataset = dataset.append(futr_dataset)
-
-        fcsts, cols = self._generate_forecasts(
-            dataset=dataset,
-            uids=uids,
-            quantiles_=quantiles_,
-            level_=level_,
-            has_level=has_level,
-            h=h,
-            **data_kwargs,
-        )
-
-        if self.scalers_:
-            indptr = np.append(0, np.full(len(uids), h).cumsum())
-            fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
-
-        # Restore original scalers so subsequent predict() without df uses training stats.
-        self.scalers_ = _saved_scalers
-        self.static_scalers_ = _saved_static_scalers
+            if self.scalers_:
+                indptr = np.append(0, np.full(len(uids), h).cumsum())
+                fcsts = self._scalers_target_inverse_transform(fcsts, indptr)
+        finally:
+            # Restore original scalers so subsequent predict() without df uses training stats.
+            self.scalers_ = _saved_scalers
+            self.static_scalers_ = _saved_static_scalers
 
         # Declare predictions pd.DataFrame
         if isinstance(fcsts_df, pl_DataFrame):
@@ -1816,174 +1817,175 @@ class NeuralForecast:
         # but must restore afterwards so that predict() without df still works.
         _saved_scalers = self.scalers_
         _saved_static_scalers = self.static_scalers_
-        if df is not None:
-            validate_freq(df[self.time_col], self.freq)
-            dataset, uids, last_dates, _ = self._prepare_fit(
-                df=df,
-                static_df=static_df,
+        try:
+            if df is not None:
+                validate_freq(df[self.time_col], self.freq)
+                dataset, uids, last_dates, _ = self._prepare_fit(
+                    df=df,
+                    static_df=static_df,
+                    id_col=self.id_col,
+                    time_col=self.time_col,
+                    target_col=self.target_col,
+                )
+            else:
+                dataset = self.dataset
+                uids = self.uids
+                last_dates = self.last_dates
+                if verbose:
+                    print("Using stored dataset.")
+                
+            # Build future exogenous dataset
+            needed_futr_exog = self._get_needed_futr_exog()
+            if needed_futr_exog:
+                if futr_df is None:
+                    raise ValueError(
+                        f"Models require future exogenous features: {needed_futr_exog}. "
+                        "Please provide them through the `futr_df` argument."
+                    )
+                missing = needed_futr_exog - set(futr_df.columns)
+                if missing:
+                    raise ValueError(
+                        f"The following features are missing from `futr_df`: {missing}"
+                    )
+
+            fcsts_df = ufp.make_future_dataframe(
+                uids=uids,
+                last_times=last_dates,
+                freq=self.freq,
+                h=h,
+                id_col=self.id_col,
+                time_col=self.time_col,
+            )
+
+            # Update and define new forecasting dataset (mirrors predict()'s validation)
+            if futr_df is None:
+                futr_df = fcsts_df
+            else:
+                futr_orig_rows = futr_df.shape[0]
+                futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
+                if futr_df.shape[0] < fcsts_df.shape[0]:
+                    if df is None:
+                        expected_cmd = "make_future_dataframe()"
+                        missing_cmd = "get_missing_future(futr_df)"
+                    else:
+                        expected_cmd = "make_future_dataframe(df)"
+                        missing_cmd = "get_missing_future(futr_df, df)"
+                    raise ValueError(
+                        "There are missing combinations of ids and times in `futr_df`.\n"
+                        f"You can run the `{expected_cmd}` method to get the expected combinations or "
+                        f"the `{missing_cmd}` method to get the missing combinations."
+                    )
+                if futr_orig_rows > futr_df.shape[0]:
+                    dropped_rows = futr_orig_rows - futr_df.shape[0]
+                    warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
+                if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
+                    raise ValueError("Found null values in `futr_df`")
+
+            # Encode categoricals with the vocabulary fitted on the training data
+            # (the df-provided path already encodes via _prepare_fit).
+            futr_df = self._encode_categoricals(futr_df)
+            futr_dataset = dataset.align(
+                futr_df,
                 id_col=self.id_col,
                 time_col=self.time_col,
                 target_col=self.target_col,
             )
-        else:
-            dataset = self.dataset
-            uids = self.uids
-            last_dates = self.last_dates
-            if verbose:
-                print("Using stored dataset.")
-                
-        # Build future exogenous dataset
-        needed_futr_exog = self._get_needed_futr_exog()
-        if needed_futr_exog:
-            if futr_df is None:
-                raise ValueError(
-                    f"Models require future exogenous features: {needed_futr_exog}. "
-                    "Please provide them through the `futr_df` argument."
+            self._scalers_transform(futr_dataset)
+            full_dataset = dataset.append(futr_dataset)
+
+            n_series = len(uids)
+
+            # Collect model samples: each is (n_series, n_paths, H)
+            model_names = []
+            model_samples = []
+            count_names = {"model": 0}
+            for model in self.models:
+                model_name = repr(model)
+                count_names[model_name] = count_names.get(model_name, -1) + 1
+                if count_names[model_name] > 0:
+                    model_name += str(count_names[model_name])
+
+                old_test_size = model.get_test_size()
+                model.set_test_size(h)
+
+                if verbose:
+                    print(f"Simulate: sampling {n_paths} paths for {model_name}...")
+
+                is_point_loss = (
+                    not model.loss.is_distribution_output
+                    and not isinstance(model.loss, (IQLoss, HuberIQLoss))
+                    and model.loss.outputsize_multiplier == 1
                 )
-            missing = needed_futr_exog - set(futr_df.columns)
-            if missing:
-                raise ValueError(
-                    f"The following features are missing from `futr_df`: {missing}"
-                )
 
-        fcsts_df = ufp.make_future_dataframe(
-            uids=uids,
-            last_times=last_dates,
-            freq=self.freq,
-            h=h,
-            id_col=self.id_col,
-            time_col=self.time_col,
-        )
-
-        # Update and define new forecasting dataset (mirrors predict()'s validation)
-        if futr_df is None:
-            futr_df = fcsts_df
-        else:
-            futr_orig_rows = futr_df.shape[0]
-            futr_df = ufp.join(futr_df, fcsts_df, on=[self.id_col, self.time_col])
-            if futr_df.shape[0] < fcsts_df.shape[0]:
-                if df is None:
-                    expected_cmd = "make_future_dataframe()"
-                    missing_cmd = "get_missing_future(futr_df)"
-                else:
-                    expected_cmd = "make_future_dataframe(df)"
-                    missing_cmd = "get_missing_future(futr_df, df)"
-                raise ValueError(
-                    "There are missing combinations of ids and times in `futr_df`.\n"
-                    f"You can run the `{expected_cmd}` method to get the expected combinations or "
-                    f"the `{missing_cmd}` method to get the missing combinations."
-                )
-            if futr_orig_rows > futr_df.shape[0]:
-                dropped_rows = futr_orig_rows - futr_df.shape[0]
-                warnings.warn(f"Dropped {dropped_rows:,} unused rows from `futr_df`.")
-            if any(ufp.is_none(futr_df[col]).any() for col in needed_futr_exog):
-                raise ValueError("Found null values in `futr_df`")
-
-        # Encode categoricals with the vocabulary fitted on the training data
-        # (the df-provided path already encodes via _prepare_fit).
-        futr_df = self._encode_categoricals(futr_df)
-        futr_dataset = dataset.align(
-            futr_df,
-            id_col=self.id_col,
-            time_col=self.time_col,
-            target_col=self.target_col,
-        )
-        self._scalers_transform(futr_dataset)
-        full_dataset = dataset.append(futr_dataset)
-
-        n_series = len(uids)
-
-        # Collect model samples: each is (n_series, n_paths, H)
-        model_names = []
-        model_samples = []
-        count_names = {"model": 0}
-        for model in self.models:
-            model_name = repr(model)
-            count_names[model_name] = count_names.get(model_name, -1) + 1
-            if count_names[model_name] > 0:
-                model_name += str(count_names[model_name])
-
-            old_test_size = model.get_test_size()
-            model.set_test_size(h)
-
-            if verbose:
-                print(f"Simulate: sampling {n_paths} paths for {model_name}...")
-
-            is_point_loss = (
-                not model.loss.is_distribution_output
-                and not isinstance(model.loss, (IQLoss, HuberIQLoss))
-                and model.loss.outputsize_multiplier == 1
-            )
-
-            try:
-                if is_point_loss:
-                    # Point-loss model: use conformal prediction intervals
-                    # to build quantile grid, then sample via copula
-                    if self.prediction_intervals is None:
-                        raise ValueError(
-                            f"Model '{model_name}' uses point loss "
-                            f"{type(model.loss).__name__}. "
-                            "Set `prediction_intervals` during fit() to "
-                            "enable simulation for point-loss models."
+                try:
+                    if is_point_loss:
+                        # Point-loss model: use conformal prediction intervals
+                        # to build quantile grid, then sample via copula
+                        if self.prediction_intervals is None:
+                            raise ValueError(
+                                f"Model '{model_name}' uses point loss "
+                                f"{type(model.loss).__name__}. "
+                                "Set `prediction_intervals` during fit() to "
+                                "enable simulation for point-loss models."
+                            )
+                        samples = self._simulate_conformal(
+                            model=model,
+                            dataset=full_dataset,
+                            n_series=n_series,
+                            h=h,
+                            n_paths=n_paths,
+                            seed=seed,
+                            method=method,
+                            quantiles=quantiles,
+                            **data_kwargs,
                         )
-                    samples = self._simulate_conformal(
-                        model=model,
-                        dataset=full_dataset,
-                        n_series=n_series,
-                        h=h,
-                        n_paths=n_paths,
-                        seed=seed,
-                        method=method,
-                        quantiles=quantiles,
-                        **data_kwargs,
-                    )
-                else:
-                    samples = model.simulate(
-                        dataset=full_dataset,
-                        n_paths=n_paths,
-                        random_seed=seed,
-                        quantiles=quantiles,
-                        method=method,
-                        **data_kwargs,
-                    )
-            finally:
-                model.set_test_size(old_test_size)
+                    else:
+                        samples = model.simulate(
+                            dataset=full_dataset,
+                            n_paths=n_paths,
+                            random_seed=seed,
+                            quantiles=quantiles,
+                            method=method,
+                            **data_kwargs,
+                        )
+                finally:
+                    model.set_test_size(old_test_size)
 
-            # samples is numpy (n_series, n_paths, H)
-            # Apply NF-level scaler inverse transform
-            if self.scalers_:
-                indptr = np.append(0, np.full(n_series, h).cumsum())
-                # Reshape (n_series, n_paths, H) → (n_series*H, n_paths) for
-                # a single call instead of looping over n_paths
-                flat = samples.transpose(0, 2, 1).reshape(-1, n_paths)
-                flat = self._scalers_target_inverse_transform(flat, indptr)
-                samples = flat.reshape(n_series, h, n_paths).transpose(0, 2, 1)
+                # samples is numpy (n_series, n_paths, H)
+                # Apply NF-level scaler inverse transform
+                if self.scalers_:
+                    indptr = np.append(0, np.full(n_series, h).cumsum())
+                    # Reshape (n_series, n_paths, H) → (n_series*H, n_paths) for
+                    # a single call instead of looping over n_paths
+                    flat = samples.transpose(0, 2, 1).reshape(-1, n_paths)
+                    flat = self._scalers_target_inverse_transform(flat, indptr)
+                    samples = flat.reshape(n_series, h, n_paths).transpose(0, 2, 1)
 
-            model_names.append(model_name)
-            model_samples.append(samples)
+                model_names.append(model_name)
+                model_samples.append(samples)
 
-        # Build long-format DataFrame: tile fcsts_df (unique_id, ds) n_paths times
-        use_polars = isinstance(fcsts_df, pl_DataFrame)
-        if use_polars:
-            base_df = fcsts_df.to_pandas()
-        else:
-            base_df = fcsts_df
+            # Build long-format DataFrame: tile fcsts_df (unique_id, ds) n_paths times
+            use_polars = isinstance(fcsts_df, pl_DataFrame)
+            if use_polars:
+                base_df = fcsts_df.to_pandas()
+            else:
+                base_df = fcsts_df
 
-        n_rows = len(base_df)
-        tiled = base_df.iloc[np.tile(np.arange(n_rows), n_paths)].reset_index(
-            drop=True
-        )
-        tiled["sample_id"] = np.repeat(np.arange(n_paths), n_rows)
+            n_rows = len(base_df)
+            tiled = base_df.iloc[np.tile(np.arange(n_rows), n_paths)].reset_index(
+                drop=True
+            )
+            tiled["sample_id"] = np.repeat(np.arange(n_paths), n_rows)
 
-        # Flatten each model's samples to match tiled row order:
-        # tiled: sample_id=0 (all series × H), sample_id=1 (all series × H), ...
-        for name, samples in zip(model_names, model_samples):
-            # samples: (n_series, n_paths, H) → (n_paths, n_series, H) → flat
-            tiled[name] = samples.transpose(1, 0, 2).reshape(-1)
-
-        # Restore original scalers so subsequent calls without df use training stats.
-        self.scalers_ = _saved_scalers
-        self.static_scalers_ = _saved_static_scalers
+            # Flatten each model's samples to match tiled row order:
+            # tiled: sample_id=0 (all series × H), sample_id=1 (all series × H), ...
+            for name, samples in zip(model_names, model_samples):
+                # samples: (n_series, n_paths, H) → (n_paths, n_series, H) → flat
+                tiled[name] = samples.transpose(1, 0, 2).reshape(-1)
+        finally:
+            # Restore original scalers so subsequent calls without df use training stats.
+            self.scalers_ = _saved_scalers
+            self.static_scalers_ = _saved_static_scalers
 
         if use_polars:
             import polars as pl_mod

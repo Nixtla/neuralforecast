@@ -659,6 +659,40 @@ def test_cross_validation_use_fitted_restores_state_on_exception():
     assert nf.dataset is fitted_dataset
 
 
+@pytest.mark.parametrize("method", ["predict", "simulate"])
+def test_predict_with_df_restores_scalers_on_exception(method):
+    """If predict/simulate on a new df raises, the fitted scalers must be restored."""
+    h = 5
+    series = generate_series(2, min_length=60, max_length=60, equal_ends=True)
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                loss=MQLoss(level=[80]),
+                max_steps=2,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(series)
+    fitted_scalers = nf.scalers_
+    fitted_static_scalers = nf.static_scalers_
+
+    def _boom(*args, **kwargs):
+        raise RuntimeError("simulated failure")
+
+    nf.models[0].predict = _boom
+    new_df = series.assign(y=series["y"] * 100 + 1_000)
+    with pytest.raises(RuntimeError, match="simulated failure"):
+        getattr(nf, method)(df=new_df)
+
+    assert nf.scalers_ is fitted_scalers
+    assert nf.static_scalers_ is fitted_static_scalers
+
+
 def test_cross_validation_use_fitted_validation_errors():
     """`use_fitted=True` rejects incompatible argument combinations."""
     h = 5
