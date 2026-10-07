@@ -159,6 +159,35 @@ def test_static_categorical_runs():
     assert np.isfinite(preds["MLP"].to_numpy()).all()
 
 
+def test_polars_string_categoricals_run():
+    # The missing-value check must not call `is_nan` on polars string columns.
+    pl = pytest.importorskip("polars")
+    df = pl.from_pandas(_panel())
+    static_df = pl.DataFrame(
+        {"unique_id": [f"s{u}" for u in range(4)], "cluster": ["A", "B", "A", "C"]}
+    )
+    model = _model(
+        MLP,
+        hist_exog_list=["city"],
+        futr_exog_list=["dow"],
+        stat_exog_list=["cluster"],
+        cat_exog_list=["city", "dow", "cluster"],
+        categorical_cardinalities={"city": 4, "dow": 7, "cluster": 3},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    nf.fit(df, static_df=static_df)
+    preds = nf.predict(futr_df=pl.from_pandas(_futr_df()))
+    assert preds.shape[0] == 4 * 6
+    assert np.isfinite(preds["MLP"].to_numpy()).all()
+
+    # nulls in a string column are still reported
+    df_null = df.with_columns(
+        pl.when(pl.col("ds") == 3).then(None).otherwise(pl.col("city")).alias("city")
+    )
+    with pytest.raises(ValueError, match=r"Found missing values in \['city'\]"):
+        nf.fit(df_null, static_df=static_df)
+
+
 def test_effective_exog_sizes():
     df = _panel()
     model = _model(

@@ -723,15 +723,22 @@ class NeuralForecast:
             if (sw_vals.to_numpy() < 0).any():
                 raise ValueError("sample_weight column must be non-negative.")
 
+        def has_missing(s):
+            # polars only supports `is_nan` on float columns, while string
+            # columns (e.g. categorical features) can only hold nulls
+            if isinstance(s, pl_Series) and not s.dtype.is_float():
+                return s.is_null().any()
+            return ufp.is_nan_or_none(s).any()
+
         for col in temporal_cols:
             if col == "sample_weight":
                 continue
-            if ufp.is_nan_or_none(df_to_check[col]).any():
+            if has_missing(df_to_check[col]):
                 cols_with_nans.append(col)
 
         if static_df is not None:
             for col in [x for x in static_df.columns if x != id_col]:
-                if ufp.is_nan_or_none(static_df[col]).any():
+                if has_missing(static_df[col]):
                     cols_with_nans.append(col)
 
         if cols_with_nans:
