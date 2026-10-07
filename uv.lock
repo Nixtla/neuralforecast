@@ -2235,7 +2235,7 @@ wheels = [
 
 [[package]]
 name = "neuralforecast"
-version = "3.2.2"
+version = "3.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreforecast" },
@@ -2246,6 +2246,7 @@ dependencies = [
     { name = "pandas" },
     { name = "pytorch-lightning" },
     { name = "ray", extra = ["train", "tune"] },
+    { name = "safetensors" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "torch" },
@@ -2299,6 +2300,7 @@ requires-dist = [
     { name = "pyspark", marker = "extra == 'spark'", specifier = ">=3.5" },
     { name = "pytorch-lightning", specifier = ">=2.6.6" },
     { name = "ray", extras = ["train", "tune"], specifier = ">=2.2.0" },
+    { name = "safetensors", specifier = ">=0.8.0" },
     { name = "scipy" },
     { name = "torch", specifier = ">=2.9.1" },
     { name = "tornado", specifier = ">=6.5.5" },
