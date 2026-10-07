@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 import git
 import numpy as np
@@ -659,10 +660,7 @@ def test_cross_validation_use_fitted_restores_state_on_exception():
     assert nf.dataset is fitted_dataset
 
 
-@pytest.mark.parametrize("method", ["predict", "simulate"])
-def test_predict_with_df_restores_scalers_on_exception(method):
-    """If predict/simulate on a new df raises, the fitted scalers must be restored."""
-    h = 5
+def _fit_nf_with_local_scaler(h):
     series = generate_series(2, min_length=60, max_length=60, equal_ends=True)
     nf = NeuralForecast(
         models=[
@@ -678,19 +676,34 @@ def test_predict_with_df_restores_scalers_on_exception(method):
         local_scaler_type="standard",
     )
     nf.fit(series)
-    fitted_scalers = nf.scalers_
-    fitted_static_scalers = nf.static_scalers_
+    return nf, series
 
-    def _boom(*args, **kwargs):
-        raise RuntimeError("simulated failure")
 
-    nf.models[0].predict = _boom
+@pytest.mark.parametrize("method", ["predict", "simulate"])
+def test_invalid_futr_df_with_new_df_keeps_training_scalers(method):
+    nf, series = _fit_nf_with_local_scaler(h=5)
+    expected = nf.predict()
+
     new_df = series.assign(y=series["y"] * 100 + 1_000)
-    with pytest.raises(RuntimeError, match="simulated failure"):
-        getattr(nf, method)(df=new_df)
+    bad_futr_df = nf.make_future_dataframe(new_df).iloc[:-1]
+    with pytest.raises(ValueError, match="missing combinations"):
+        getattr(nf, method)(df=new_df, futr_df=bad_futr_df)
 
-    assert nf.scalers_ is fitted_scalers
-    assert nf.static_scalers_ is fitted_static_scalers
+    pd.testing.assert_frame_equal(nf.predict(), expected)
+
+
+@pytest.mark.parametrize("method", ["predict", "simulate"])
+def test_failure_after_refitting_scalers_restores_training_scalers(method):
+    nf, series = _fit_nf_with_local_scaler(h=5)
+    expected = nf.predict()
+
+    new_df = series.assign(y=series["y"] * 100 + 1_000)
+    # fails after the scalers were refitted on new_df
+    with patch.object(nf, "_scalers_transform", side_effect=RuntimeError("boom")):
+        with pytest.raises(RuntimeError, match="boom"):
+            getattr(nf, method)(df=new_df)
+
+    pd.testing.assert_frame_equal(nf.predict(), expected)
 
 
 def test_cross_validation_use_fitted_validation_errors():
