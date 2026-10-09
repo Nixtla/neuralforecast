@@ -706,6 +706,27 @@ def test_failure_after_refitting_scalers_restores_training_scalers(method):
     pd.testing.assert_frame_equal(nf.predict(), expected)
 
 
+@pytest.mark.parametrize("engine", ["pandas", "polars"])
+def test_make_future_dataframe_with_unsorted_df(engine):
+    series = generate_series(3, min_length=20, max_length=30)
+    if engine == "polars":
+        series = polars.from_pandas(series)
+    nf = NeuralForecast(
+        models=[MLP(input_size=4, h=2, max_steps=1, enable_progress_bar=False)],
+        freq="1d" if engine == "polars" else "D",
+    )
+    nf.fit(series)
+    expected = nf.make_future_dataframe()
+
+    # the last series first, and each series in reverse time order
+    if engine == "polars":
+        result = nf.make_future_dataframe(series.reverse())
+        polars.testing.assert_frame_equal(result, expected)
+    else:
+        result = nf.make_future_dataframe(series.iloc[::-1])
+        pd.testing.assert_frame_equal(result, expected)
+
+
 def test_cross_validation_use_fitted_validation_errors():
     """`use_fitted=True` rejects incompatible argument combinations."""
     h = 5

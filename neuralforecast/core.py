@@ -1109,12 +1109,11 @@ class NeuralForecast:
         if not self._fitted:
             raise Exception("You must fit the model first.")
         if df is not None:
-            df = ufp.sort(df, by=[self.id_col, self.time_col])
-            last_times_by_id = ufp.group_by_agg(
-                df,
+            # only the last time of each series is needed, so sort the
+            # aggregated frame (one row per series) instead of the whole df
+            last_times_by_id = ufp.sort(
+                ufp.group_by_agg(df, by=self.id_col, aggs={self.time_col: "max"}),
                 by=self.id_col,
-                aggs={self.time_col: "max"},
-                maintain_order=True,
             )
             uids = last_times_by_id[self.id_col]
             last_times = last_times_by_id[self.time_col]
