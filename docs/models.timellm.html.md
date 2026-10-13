@@ -24,7 +24,7 @@ Models”](https://arxiv.org/abs/2310.01728)
 
 ## 1. Time-LLM
 
-::: neuralforecast.models.timellm.Time-LLM
+::: neuralforecast.models.timellm.TimeLLM
     options:
       members:
         - fit
