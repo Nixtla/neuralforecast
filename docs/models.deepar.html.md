@@ -122,9 +122,3 @@ plt.legend()
 plt.grid()
 plt.plot()
 ```
-
-## 2. Auxiliary functions
-
-::: neuralforecast.models.deepar.Decoder
-    options:
-      members: []

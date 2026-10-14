@@ -51,7 +51,7 @@ https://arxiv.org/abs/1803.01271.](https://arxiv.org/abs/1803.01271)
 
 ### TemporalConvolutionEncoder
 
-::: neuralforecast.common._modules.TemporalConlutionEncoder
+::: neuralforecast.common._modules.TemporalConvolutionEncoder
     options:
       members: []
       heading_level: 3
