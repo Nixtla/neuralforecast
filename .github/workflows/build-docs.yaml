@@ -30,6 +30,7 @@ jobs:
 
       - name: Mint a docs read token
         id: docs_token
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.NIXTLA_DOCS_REPO_ACCESS_APP_ID }}
