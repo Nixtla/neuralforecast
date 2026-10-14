@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
+from unittest.mock import patch
 
 import git
 import numpy as np
@@ -657,6 +658,73 @@ def test_cross_validation_use_fitted_restores_state_on_exception():
     assert list(nf.uids) == fitted_uids
     assert nf.scalers_ is fitted_scalers
     assert nf.dataset is fitted_dataset
+
+
+def _fit_nf_with_local_scaler(h):
+    series = generate_series(2, min_length=60, max_length=60, equal_ends=True)
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                input_size=2 * h,
+                h=h,
+                loss=MQLoss(level=[80]),
+                max_steps=2,
+                enable_progress_bar=False,
+            )
+        ],
+        freq="D",
+        local_scaler_type="standard",
+    )
+    nf.fit(series)
+    return nf, series
+
+
+@pytest.mark.parametrize("method", ["predict", "simulate"])
+def test_invalid_futr_df_with_new_df_keeps_training_scalers(method):
+    nf, series = _fit_nf_with_local_scaler(h=5)
+    expected = nf.predict()
+
+    new_df = series.assign(y=series["y"] * 100 + 1_000)
+    bad_futr_df = nf.make_future_dataframe(new_df).iloc[:-1]
+    with pytest.raises(ValueError, match="missing combinations"):
+        getattr(nf, method)(df=new_df, futr_df=bad_futr_df)
+
+    pd.testing.assert_frame_equal(nf.predict(), expected)
+
+
+@pytest.mark.parametrize("method", ["predict", "simulate"])
+def test_failure_after_refitting_scalers_restores_training_scalers(method):
+    nf, series = _fit_nf_with_local_scaler(h=5)
+    expected = nf.predict()
+
+    new_df = series.assign(y=series["y"] * 100 + 1_000)
+    # fails after the scalers were refitted on new_df
+    with patch.object(nf, "_scalers_transform", side_effect=RuntimeError("boom")):
+        with pytest.raises(RuntimeError, match="boom"):
+            getattr(nf, method)(df=new_df)
+
+    pd.testing.assert_frame_equal(nf.predict(), expected)
+
+
+@pytest.mark.parametrize("engine", ["pandas", "polars"])
+def test_make_future_dataframe_with_unsorted_df(engine):
+    series = generate_series(3, min_length=20, max_length=30)
+    if engine == "polars":
+        series = polars.from_pandas(series)
+    nf = NeuralForecast(
+        models=[MLP(input_size=4, h=2, max_steps=1, enable_progress_bar=False)],
+        freq="1d" if engine == "polars" else "D",
+    )
+    nf.fit(series)
+    expected = nf.make_future_dataframe()
+
+    # the last series first, and each series in reverse time order
+    if engine == "polars":
+        result = nf.make_future_dataframe(series.reverse())
+        polars.testing.assert_frame_equal(result, expected)
+    else:
+        result = nf.make_future_dataframe(series.iloc[::-1])
+        pd.testing.assert_frame_equal(result, expected)
 
 
 def test_cross_validation_use_fitted_validation_errors():
