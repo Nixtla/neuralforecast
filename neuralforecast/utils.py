@@ -512,23 +512,56 @@ class PredictionIntervals:
         )
 
 
-def _conformal_rank(n: int, coverage: float) -> int:
-    """Rank of the finite-sample conformal quantile among `n` conformity scores.
+def _conformal_rank(n: int, q: float, upper: bool) -> int:
+    """1-based rank of the finite-sample conformal quantile among `n` scores.
 
-    Split conformal prediction takes the `ceil((n + 1) * coverage)`-th smallest
-    score, which covers at least `coverage` of exchangeable errors; the plain
-    empirical quantile under-covers, badly so with few windows. When that rank
-    exceeds `n` the largest score is used, which covers `n / (n + 1)`.
+    Split conformal prediction takes the `ceil((n + 1) * q)`-th smallest score
+    for an upper bound and the `floor((n + 1) * q)`-th for a lower bound, so
+    each bound covers at least its nominal probability when the scores are
+    exchangeable. The tail is explicit rather than inferred from `q`: an
+    absolute-error margin is an upper bound even when `q < 0.5`. The rank is
+    clipped to `[1, n]`: beyond that only an infinite bound would reach the
+    nominal level.
 
     Args:
         n (int): Number of conformity scores (windows).
-        coverage (float): Target coverage of the central interval, in (0, 1].
+        q (float): Quantile level, in (0, 1).
+        upper (bool): Whether the bound is an upper bound.
 
     Returns:
         int: Rank between 1 and `n` of the score to use.
     """
-    # rounding guards against `(n + 1) * coverage` landing just above an integer
-    return max(1, min(math.ceil(round((n + 1) * coverage, 8)), n))
+    # rounding guards against `(n + 1) * q` landing just off an integer
+    pos = round((n + 1) * q, 8)
+    k = math.ceil(pos) if upper else math.floor(pos)
+    return min(max(k, 1), n)
+
+
+def _conformal_quantile(scores: np.ndarray, q, upper, axis: int = 0) -> np.ndarray:
+    """Finite-sample conformal quantile(s) of `scores` along `axis`.
+
+    Returns the exact order statistic of `_conformal_rank` rather than an
+    interpolated quantile: linear interpolation lands between two scores and
+    under-covers the lower tail.
+
+    Args:
+        scores (np.ndarray): Conformity scores.
+        q (float or list of float): Quantile level(s).
+        upper (bool or list of bool): Whether each level is an upper bound.
+        axis (int): Axis holding the scores. Defaults to 0.
+
+    Returns:
+        np.ndarray: Like `np.quantile`, a list of levels adds a leading axis.
+    """
+    scores = np.asarray(scores)
+    n = scores.shape[axis]
+    if n == 0:
+        raise ValueError("Cannot compute a conformal quantile of zero scores")
+    qs = np.atleast_1d(q)
+    uppers = np.broadcast_to(np.asarray(upper, dtype=bool), qs.shape)
+    ranks = [_conformal_rank(n, float(qi), bool(ui)) - 1 for qi, ui in zip(qs, uppers)]
+    out = np.moveaxis(np.take(np.sort(scores, axis=axis), ranks, axis=axis), axis, 0)
+    return out[0] if np.ndim(q) == 0 else out
 
 
 def add_conformal_distribution_intervals(
@@ -574,24 +607,16 @@ def add_conformal_distribution_intervals(
     # restrict scores to horizon
     scores = scores[:, :, :horizon]
     mean = model_fcsts.reshape(1, n_series, -1)
-    n = scores.shape[0]
     scores = np.vstack([mean - scores, mean + scores])
-    # with n windows the pooled array sorts as `mean - cs` (descending) followed by
-    # `mean + cs` (ascending), so these cuts land on `mean -/+ cs_(k)`, the k-th
-    # smallest score of `_conformal_rank`
-    pooled_cuts = []
-    for q in cuts:
-        if q == 0.5:
-            pooled_cuts.append(0.5)
-            continue
-        k = _conformal_rank(n, abs(2 * q - 1))
-        pooled_cuts.append(
-            (n + k - 1) / (2 * n - 1) if q > 0.5 else (n - k) / (2 * n - 1)
-        )
-    scores_quantiles = np.quantile(
-        scores,
-        pooled_cuts,
-        axis=0,
+    # the pooled scores are symmetric around `mean`: cuts below 0.5 are lower
+    # bounds, cuts above 0.5 upper bounds, and the median is `mean` itself
+    scores_quantiles = np.stack(
+        [
+            _conformal_quantile(scores, q, upper=q > 0.5, axis=0)
+            if q != 0.5
+            else mean[0]
+            for q in cuts
+        ]
     )
     scores_quantiles = scores_quantiles.reshape(len(cuts), -1).T
     if quantiles is None and level is not None:
@@ -649,16 +674,15 @@ def add_conformal_error_intervals(
     scores = scores.transpose(1, 0, 2)
     # restrict scores to horizon
     scores = scores[:, :, :horizon]
-    n = scores.shape[0]
-    # the bound for quantile q is the margin of the central interval with coverage
-    # |2q - 1|, i.e. at least the k-th smallest absolute error of `_conformal_rank`
-    margin_levels = [
-        _conformal_rank(n, abs(2 * q - 1)) / n if q != 0.5 else 0.0 for q in cuts
-    ]
-    scores_quantiles = np.quantile(
-        scores,
-        margin_levels,
-        axis=0,
+    # the bound for quantile q is the margin of the central interval with
+    # coverage |2q - 1|; an absolute-error margin is always an upper bound
+    scores_quantiles = np.stack(
+        [
+            _conformal_quantile(scores, abs(2 * q - 1), upper=True, axis=0)
+            if q != 0.5
+            else np.zeros(scores.shape[1:])
+            for q in cuts
+        ]
     )
     scores_quantiles = scores_quantiles.reshape(len(cuts), -1)
 
