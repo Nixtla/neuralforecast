@@ -162,6 +162,53 @@ Type | Description
 
 ### TemporalConvolutionEncoder
 
+### `TemporalConvolutionEncoder`
+
+```python
+TemporalConvolutionEncoder(
+    in_channels, out_channels, kernel_size, dilations, activation="ReLU"
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Temporal Convolution Encoder for sequence modeling.
+
+Applies a deep stack of exponentially dilated causal convolutions to capture
+long-range temporal dependencies. The encoder receives input in [N, T, C_in]
+format, permutes it to [N, C_in, T] for convolution operations, and applies
+multiple causal convolutional layers with exponentially increasing dilations.
+This architecture enables efficient modeling of exponentially large receptive
+fields, creating weighted averages over long-term historical patterns.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_channels` | <code>[int](#int)</code> | Number of input channels (features) in the time series. | *required*
+`out_channels` | <code>[int](#int)</code> | Number of output channels after convolution operations. All layers in the stack output this dimensionality. | *required*
+`kernel_size` | <code>[int](#int)</code> | Size of the convolving kernel for each causal convolution layer. Determines the local temporal window. | *required*
+`dilations` | <code>list of int</code> | List of dilation factors for each convolution layer. Controls the temporal spacing between kernel points. For example, [1, 2, 4, 8] creates 4 layers with exponentially increasing receptive fields. | *required*
+`activation` | <code>[str](#str)</code> | Activation function name. Must be one of the supported activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU'). | <code>'ReLU'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Encoded output tensor of shape [N, T, C_out] after applying all causal convolution layers and permuting back to time-first format.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Input is automatically permuted from [N, T, C_in] to [N, C_in, T] before
+  convolution and permuted back to [N, T, C_out] after processing.
+- Each layer uses CausalConv1d with padding to ensure causality (no future
+  information leakage).
+- Exponentially increasing dilations allow the receptive field to grow
+  exponentially with network depth, enabling efficient long-range modeling.
+- Used as an encoder component in TCN (Temporal Convolutional Network) models.
+
+</details>
 
 
 ## 3. Transformers
