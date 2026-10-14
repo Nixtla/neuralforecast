@@ -1,0 +1,1 @@
+{"nf_format": "2", "configuration": {"h": 5, "freq": "ME", "_fitted": true, "local_scaler_type": null, "local_static_scaler_type": null, "scalers_": {}, "static_scalers_": {}, "categorical_vocab_": {}, "id_col": "unique_id", "time_col": "ds", "target_col": "y", "prediction_intervals": null, "_cs_df": null, "alias_to_model": {"DeepAR": "deepar"}}}

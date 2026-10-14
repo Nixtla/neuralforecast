@@ -98,6 +98,36 @@ The [documentation page](https://nixtlaverse.nixtla.io/neuralforecast/docs/getti
 
 👩‍🔬 [Add Your Own Model](https://nixtlaverse.nixtla.io/neuralforecast/docs/tutorials/adding_models.html): Learn how to add a new model to the library.
 
+## Saving and loading models
+
+From 3.3.0 a saved directory holds [safetensors](https://github.com/huggingface/safetensors)
+weights and JSON metadata, and is loaded without executing any code it contains. Earlier versions
+used pickle, which runs arbitrary code from the artifact on load, so the legacy format is now
+opt-in:
+
+```python
+nf.save('./checkpoints/')                      # writes the new format
+nf2 = NeuralForecast.load('./checkpoints/')    # no pickle, no code execution
+```
+
+What changed, if you have artifacts or code from an earlier version:
+
+* **Older directories need consent or conversion.** Pass `allow_pickle=True` to read one in place,
+  which executes code contained in it, or convert it once with
+  `python -m neuralforecast.migrate ./old_checkpoints/`. A directory saved with
+  `save_dataset=True` must be converted — its dataset has no safe reader.
+* **Remote paths are opt-in.** `NeuralForecast.load('s3://bucket/models/', trust_remote=True)`,
+  because whoever can write that location chooses what runs on the loading machine.
+* **Custom losses, optimizers and schedulers must be registered** with `register_loss`,
+  `register_optimizer` or `register_lr_scheduler`, in the process that loads as well as the one
+  that saves.
+* **`TimeLLM` can no longer be saved or loaded.** It resolves its `llm` argument through
+  `from_pretrained` while being constructed, so an artifact could direct that fetch. Train and
+  predict with it in the same process.
+
+The [save and load guide](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/save_load_models.html)
+covers this in full.
+
 ## Models
 
 See the entire [collection here](https://nixtlaverse.nixtla.io/neuralforecast/docs/capabilities/overview.html).

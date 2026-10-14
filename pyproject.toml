@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralforecast"
-version = "3.2.2"
+version = "3.3.0"
 description = "Time series forecasting suite using deep learning models"
 authors = [
     {name = "Nixtla", email = "business@nixtla.io"}
@@ -32,6 +32,7 @@ dependencies = [
     "torch>=2.9.1",
     "tornado>=6.5.5",
     "pytorch-lightning>=2.6.6",
+    "safetensors>=0.8.0",
     "ray[train,tune]>=2.2.0",
     "optuna",
     "utilsforecast>=0.2.3",

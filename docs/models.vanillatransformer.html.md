@@ -42,7 +42,7 @@ Architecture.*
 
 ## Vanilla Transformer
 
-::: neuralforecast.models.vanillatransformer.Vanilla Transformer
+::: neuralforecast.models.vanillatransformer.VanillaTransformer
     options:
       members:
         - fit
