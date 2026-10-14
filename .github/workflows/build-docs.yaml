@@ -20,6 +20,7 @@ on:
 jobs:
   # Runs for everyone (forks included): builds the docs and fails if Mintlify can't build them.
   validate-docs:
+    name: build-docs  # required status check on main; keep in sync with branch protection
     runs-on: ubuntu-latest
     permissions:
       contents: read
