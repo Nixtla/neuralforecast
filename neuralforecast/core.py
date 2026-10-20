@@ -2729,7 +2729,7 @@ class NeuralForecast:
                 (series_length - test_size - self.h), step_size
             )
 
-            if test_size > 0 or forefront_offset > 0:
+            if test_size > 0:
                 # Create single-series dataset
                 series_dataset = TimeSeriesDataset(
                     temporal=self.dataset.temporal[
@@ -2743,11 +2743,11 @@ class NeuralForecast:
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
                 )
-                # Trim the series
+                # Keep earlier observations as context for the first forecast window.
                 trimmed_series = TimeSeriesDataset.trim_dataset(
                     dataset=series_dataset,
                     right_trim=test_size,
-                    left_trim=forefront_offset,
+                    left_trim=0,
                 )
 
                 new_idxs = np.arange(
@@ -2768,12 +2768,15 @@ class NeuralForecast:
                     indptr=np.array([0, series_length]),
                     y_idx=self.dataset.y_idx,
                 )
-                times = self.ds[self.dataset.indptr[i] : self.dataset.indptr[i + 1]]
+                times = self.ds[
+                    self.dataset.indptr[i] + forefront_offset : self.dataset.indptr[i + 1]
+                ]
 
+            forecast_size = len(times)
             series_fcsts_df = _insample_times(
                 times=times,
                 uids=self.uids[i : i + 1],
-                indptr=trimmed_series.indptr,
+                indptr=np.array([0, forecast_size]),
                 h=self.h,
                 freq=self.freq,
                 step_size=step_size,
@@ -2782,7 +2785,7 @@ class NeuralForecast:
             )
 
             fcsts_dfs.append(series_fcsts_df)
-            trimmed_datasets.append(trimmed_series)
+            trimmed_datasets.append((trimmed_series, forecast_size))
 
         # Combine all series forecasts DataFrames
         fcsts_df = ufp.vertical_concat(fcsts_dfs)
@@ -2790,9 +2793,9 @@ class NeuralForecast:
         h_backup = self.h
         fcst_list = []
         # Generate predictions for each dataset
-        for i, trimmed_dataset in enumerate(trimmed_datasets):
-            # Set test size to current series length
-            self.h = trimmed_dataset.max_size
+        for i, (trimmed_dataset, forecast_size) in enumerate(trimmed_datasets):
+            # The forecast span excludes the earlier context kept in the dataset.
+            self.h = forecast_size
             fcsts, cols = self._generate_forecasts(
                 dataset=trimmed_dataset,
                 uids=self.uids[i : i + 1],
