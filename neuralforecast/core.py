@@ -2720,7 +2720,7 @@ class NeuralForecast:
 
         # Process each series separately
         fcsts_dfs = []
-        trimmed_datasets = []
+        series_spans = []
 
         for i in range(self.dataset.n_groups):
             # Calculate series-specific length and offset
@@ -2728,50 +2728,9 @@ class NeuralForecast:
             _, forefront_offset = np.divmod(
                 (series_length - test_size - self.h), step_size
             )
-
-            if test_size > 0:
-                # Create single-series dataset
-                series_dataset = TimeSeriesDataset(
-                    temporal=self.dataset.temporal[
-                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
-                    ],
-                    temporal_cols=self.dataset.temporal_cols,
-                    static=None
-                    if self.dataset.static is None
-                    else self.dataset.static[i : i + 1],
-                    static_cols=self.dataset.static_cols,
-                    indptr=np.array([0, series_length]),
-                    y_idx=self.dataset.y_idx,
-                )
-                # Keep earlier observations as context for the first forecast window.
-                trimmed_series = TimeSeriesDataset.trim_dataset(
-                    dataset=series_dataset,
-                    right_trim=test_size,
-                    left_trim=0,
-                )
-
-                new_idxs = np.arange(
-                    self.dataset.indptr[i] + forefront_offset,
-                    self.dataset.indptr[i + 1] - test_size,
-                )
-                times = self.ds[new_idxs]
-            else:
-                trimmed_series = TimeSeriesDataset(
-                    temporal=self.dataset.temporal[
-                        self.dataset.indptr[i] : self.dataset.indptr[i + 1]
-                    ],
-                    temporal_cols=self.dataset.temporal_cols,
-                    static=None
-                    if self.dataset.static is None
-                    else self.dataset.static[i : i + 1],
-                    static_cols=self.dataset.static_cols,
-                    indptr=np.array([0, series_length]),
-                    y_idx=self.dataset.y_idx,
-                )
-                times = self.ds[
-                    self.dataset.indptr[i] + forefront_offset : self.dataset.indptr[i + 1]
-                ]
-
+            start = self.dataset.indptr[i]
+            stop = self.dataset.indptr[i + 1] - test_size
+            times = self.ds[start + forefront_offset : stop]
             forecast_size = len(times)
             series_fcsts_df = _insample_times(
                 times=times,
@@ -2785,7 +2744,7 @@ class NeuralForecast:
             )
 
             fcsts_dfs.append(series_fcsts_df)
-            trimmed_datasets.append((trimmed_series, forecast_size))
+            series_spans.append((start, stop, forecast_size))
 
         # Combine all series forecasts DataFrames
         fcsts_df = ufp.vertical_concat(fcsts_dfs)
@@ -2793,7 +2752,18 @@ class NeuralForecast:
         h_backup = self.h
         fcst_list = []
         # Generate predictions for each dataset
-        for i, (trimmed_dataset, forecast_size) in enumerate(trimmed_datasets):
+        for i, (start, stop, forecast_size) in enumerate(series_spans):
+            # Copy one series at a time, retaining context before the first origin.
+            trimmed_dataset = TimeSeriesDataset(
+                temporal=self.dataset.temporal[start:stop],
+                temporal_cols=self.dataset.temporal_cols,
+                static=None
+                if self.dataset.static is None
+                else self.dataset.static[i : i + 1],
+                static_cols=self.dataset.static_cols,
+                indptr=np.array([0, stop - start]),
+                y_idx=self.dataset.y_idx,
+            )
             # The forecast span excludes the earlier context kept in the dataset.
             self.h = forecast_size
             fcsts, cols = self._generate_forecasts(
@@ -2806,6 +2776,7 @@ class NeuralForecast:
                 h=None,
             )
             fcst_list.append(fcsts)
+            del trimmed_dataset
 
         fcsts = np.vstack(fcst_list)
         self.h = h_backup
