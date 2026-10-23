@@ -556,13 +556,22 @@ def excess_volatility(
     $\hat{\mathbf{y}}_{b,t+1,h}$ issued one FCD later land on the same target date,
     the second being a revision of the first:
 
-    $$ \mathrm{sEV}\left(\mathbf{y}_{[b][t][h]},\; \hat{\mathbf{y}}_{[b][t][h]} \right) = \frac{\sum_{b,t,h}\mathrm{EV}(y_{b,t,h},\;\mathbf{\hat{y}}_{b,t,h+1},\;\mathbf{\hat{y}}_{b,t+1,h})}{\sum_{b,t,h}|y_{b,t,h}|} $$
+    ```math
+    \mathrm{sEV}\left(\mathbf{y}_{[b][t][h]},\; \hat{\mathbf{y}}_{[b][t][h]} \right) = \frac{\sum_{b,t,h}\mathrm{EV}(y_{b,t,h},\;\mathbf{\hat{y}}_{b,t,h+1},\;\mathbf{\hat{y}}_{b,t+1,h})}{\sum_{b,t,h}|y_{b,t,h}|}
+    ```
 
-    $$ \mathrm{EV}(y,\;\mathbf{\hat{y}}_1,\; \mathbf{\hat{y}}_2) = \mathrm{QL}(\mathbf{\hat{y}}_2,\mathbf{\hat{y}}_1) - (\mathrm{QL}(y,\mathbf{\hat{y}}_1)-\mathrm{QL}(y,\mathbf{\hat{y}}_2)) $$
+
+    ```math
+    \mathrm{EV}(y,\;\mathbf{\hat{y}}_1,\; \mathbf{\hat{y}}_2) = \mathrm{QL}(\mathbf{\hat{y}}_2,\mathbf{\hat{y}}_1) - (\mathrm{QL}(y,\mathbf{\hat{y}}_1)-\mathrm{QL}(y,\mathbf{\hat{y}}_2))
+    ```
+
 
     where $\mathrm{QL}$ is the quantile loss at level $q \in \mathcal{Q}$:
 
-    $$ \mathrm{QL}_q(y, \hat{y}^{(q)}) = q(y-\hat{y}^{(q)})_+ + (1-q)(\hat{y}^{(q)}-y)_+ $$
+    ```math
+    \mathrm{QL}_q(y, \hat{y}^{(q)}) = q(y-\hat{y}^{(q)})_+ + (1-q)(\hat{y}^{(q)}-y)_+
+    ```
+
 
     The first EV term is the *revision cost*, how far the older forecast sits from the
     newer one; the bracketed term is the *accuracy improvement* the revision produced.
@@ -688,7 +697,7 @@ def forecast_percentage_change(
     mask: Optional[np.ndarray] = None,
     eps: float = 1e-6,
 ) -> float:
-    r"""Scaled Forecast Percentage Change (sFPC)
+    r"""Symmetric Forecast Percentage Change (sFPC)
 
     Measures the relative change in predicted quantiles across consecutive forecast
     creation dates (FCDs), giving a quantitative view of the forecast revision rate.
@@ -699,7 +708,10 @@ def forecast_percentage_change(
     $\hat{Y}^{(q)}_{b,t,h+1}$ and $\hat{Y}^{(q)}_{b,t+1,h}$ land on the same target
     date, the second being a revision of the first:
 
-    $$ \mathrm{sFPC}_{q}\left(\hat{\mathbf{Y}}^{(q)}_{{[b][t][h]}} \right) = \frac{200}{B \times T \times H} \sum_{b,t,h} \frac{|\hat{Y}^{(q)}_{b,t+1,h}-\hat{Y}^{(q)}_{b,t,h+1}|}{|\hat{Y}^{(q)}_{b,t+1,h}| + |\hat{Y}^{(q)}_{b,t,h+1}|} $$
+    ```math
+    \mathrm{sFPC}_{q}\left(\hat{\mathbf{Y}}^{(q)}_{{[b][t][h]}} \right) = \frac{200}{B \times T \times H} \sum_{b,t,h} \frac{|\hat{Y}^{(q)}_{b,t+1,h}-\hat{Y}^{(q)}_{b,t,h+1}|}{|\hat{Y}^{(q)}_{b,t+1,h}| + |\hat{Y}^{(q)}_{b,t,h+1}|}
+    ```
+
 
     Inspired by sMAPE, the denominator is symmetric in the two forecasts. This keeps
     the metric well behaved when predicted values are small and avoids the
@@ -716,7 +728,9 @@ def forecast_percentage_change(
     Args:
         y_hat (np.ndarray): Point predictions of shape `[B, T, H, C]`, for `B` series,
             `T` forecast windows, horizon `H` and `C` target channels. To score a
-            quantile forecast, pass the median slice.
+            quantile forecast, pass a single quantile slice; the paper reports the
+            median, since outer quantiles are expected to shift inward as
+            uncertainty shrinks across FCDs.
         stride (int): Step size between consecutive forecast windows. Must be smaller
             than `H`, otherwise a target date has at most one forecast and volatility
             is undefined. Defaults to 1.
@@ -791,6 +805,7 @@ class ForecastWindows(NamedTuple):
 
 
 _LO_HI_RE = re.compile(r"^-(lo|hi)-(\d+(?:\.\d+)?)$")
+_QL_RE = re.compile(r"^_ql(\d+(?:\.\d+)?)$")
 
 
 def _parse_quantile_columns(
@@ -799,7 +814,8 @@ def _parse_quantile_columns(
     """Recover quantile levels from a model's cross validation output columns.
 
     `NeuralForecast` names probabilistic outputs `{model}-median`, `{model}-lo-{level}`
-    and `{model}-hi-{level}`; this inverts that naming.
+    and `{model}-hi-{level}` when run with `level=` or a multi-quantile loss, and
+    `{model}_ql{quantile}` when run with `quantiles=`; this inverts that naming.
 
     Args:
         columns (list of str): Columns of the cross validation DataFrame.
@@ -818,6 +834,10 @@ def _parse_quantile_columns(
         suffix = col[len(model) :]
         if suffix == "-median":
             found.append((0.5, col))
+            continue
+        match = _QL_RE.match(suffix)
+        if match is not None:
+            found.append((float(match.group(1)), col))
             continue
         match = _LO_HI_RE.match(suffix)
         if match is None:

@@ -279,6 +279,21 @@ def test_converter_recovers_dense_windows(frame, step_size):
     )
 
 
+def test_converter_parses_quantile_columns():
+    # cross_validation(quantiles=...) names its outputs {model}_ql{q}
+    df = _cv_frame().rename(
+        columns={
+            "NHITS-lo-80": "NHITS_ql0.1",
+            "NHITS-median": "NHITS_ql0.5",
+            "NHITS-hi-80": "NHITS_ql0.9",
+        }
+    )
+    windows = cross_validation_to_windows(df, model="NHITS")
+    expected = cross_validation_to_windows(_cv_frame(), model="NHITS")
+    assert windows.quantiles == [0.1, 0.5, 0.9]
+    np.testing.assert_allclose(windows.y_hat, expected.y_hat)
+
+
 def test_converter_is_insensitive_to_row_order():
     df = _cv_frame()
     shuffled = df.sample(frac=1, random_state=0).reset_index(drop=True)
