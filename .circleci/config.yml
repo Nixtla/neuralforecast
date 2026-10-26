@@ -3,7 +3,7 @@ jobs:
   pytest:
     resource_class: xlarge
     docker:
-      - image: python:3.10-slim
+      - image: python:3.11-slim
     steps:
       - checkout
       - run:
@@ -33,7 +33,7 @@ jobs:
   test-model-performance:
     resource_class: xlarge
     docker:
-      - image: python:3.10-slim
+      - image: python:3.11-slim
     steps:
       - checkout
       - run:
@@ -67,7 +67,7 @@ jobs:
   test-model-performance2:
     resource_class: xlarge
     docker:
-      - image: python:3.10-slim
+      - image: python:3.11-slim
     steps:
       - checkout
       - run:
@@ -101,7 +101,7 @@ jobs:
   test-multivariate-model-performance:
     resource_class: xlarge
     docker:
-      - image: python:3.10-slim
+      - image: python:3.11-slim
     steps:
       - checkout
       - run:
