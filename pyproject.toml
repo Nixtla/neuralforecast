@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=83.0.0", "wheel"]
+requires = ["setuptools>=84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -43,7 +43,7 @@ spark = ["fugue", "pyspark>=3.5", "pyarrow>=23.0.1"]
 [dependency-groups]
 aws = ["fsspec[s3]"]
 dev = [
-    "black>=26.3.1",
+    "black>=26.10.1",
     "captum",
     "gitpython",
     "hyperopt",
