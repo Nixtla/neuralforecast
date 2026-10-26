@@ -25,6 +25,7 @@ classifiers = [
 ]
 dependencies = [
     "coreforecast>=0.0.6",
+    "coreforecast>=0.0.17; python_version >= '3.14'",
     "fsspec",
     "numpy>=1.21.6",
     "pandas>=1.3.5",
@@ -34,6 +35,7 @@ dependencies = [
     "pytorch-lightning>=2.6.6",
     "safetensors>=0.8.0",
     "ray[train,tune]>=2.2.0",
+    "ray[train,tune]>=2.58.0; python_version >= '3.13' and sys_platform == 'win32'",
     "optuna",
     "utilsforecast>=0.2.3",
 ]
