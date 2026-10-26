@@ -2776,7 +2776,6 @@ class NeuralForecast:
                 h=None,
             )
             fcst_list.append(fcsts)
-            del trimmed_dataset
 
         fcsts = np.vstack(fcst_list)
         self.h = h_backup
