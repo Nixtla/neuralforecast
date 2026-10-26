@@ -24,19 +24,16 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "coreforecast>=0.0.6",
-    "coreforecast>=0.0.17; python_version >= '3.14'",
+    "coreforecast>=0.0.17",
     "fsspec",
-    "numpy>=1.21.6",
-    "pandas>=1.3.5",
-    "pandas>=2.3.3; python_version >= '3.14'",
+    "numpy>=1.23.2",
+    "pandas>=2.3.3",
     "scipy",
     "torch>=2.9.1",
     "tornado>=6.5.5",
     "pytorch-lightning>=2.6.6",
     "safetensors>=0.8.0",
-    "ray[train,tune]>=2.2.0",
-    "ray[train,tune]>=2.58.0; python_version >= '3.13' and sys_platform == 'win32'",
+    "ray[train,tune]>=2.58.0",
     "optuna",
     "utilsforecast>=0.2.3",
 ]
