@@ -1145,14 +1145,12 @@ def tweedie_scale_decouple(output, loc=None, scale=None):
 
     Stabilizes model's output optimization, by learning the mean as a
     residual around the anchoring `loc`, `scale`, like the Poisson rate.
-    The softplus keeps it positive and, unlike an exponential, grows
-    linearly with the output.
     Also adds Tweedie domain protection to the distribution parameters.
     """
-    mu, rho = output
+    raw, rho = output
     if (loc is not None) and (scale is not None):
-        mu = mu * scale + loc
-    log_mu = torch.log(F.softplus(mu) + 1e-8)
+        raw = raw * scale + loc
+    log_mu = torch.log(F.softplus(raw) + 1e-8)
     return (log_mu, rho)
 
 
