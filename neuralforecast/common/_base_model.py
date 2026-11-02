@@ -1833,7 +1833,7 @@ class BaseModel(pl.LightningModule):
         # Reset state and horizon
         self.maintain_state = False
         self.rnn_state = None
-        self.h = self.horizon_backup
+        self.h = self.predict_horizon
 
         # Squeeze for univariate case
         if not self.MULTIVARIATE:
@@ -2695,7 +2695,7 @@ class BaseModel(pl.LightningModule):
             pred_trainer_kwargs["inference_mode"] = False
             self.explainer_config = explainer_config
             trainer = pl.Trainer(**pred_trainer_kwargs)
-            out = trainer.predict(self, datamodule=datamodule)
+            out = self._predict_with_trainer(trainer, datamodule)
             fcsts = []
             insample_explanations = []
             futr_exog_explanations = []
@@ -2754,7 +2754,7 @@ class BaseModel(pl.LightningModule):
                 self._pred_trainer = pl.Trainer(**pred_trainer_kwargs)
                 self._pred_trainer_kwargs = pred_trainer_kwargs
             trainer = self._pred_trainer
-            fcsts = trainer.predict(self, datamodule=datamodule)
+            fcsts = self._predict_with_trainer(trainer, datamodule)
             fcsts = torch.vstack(fcsts)
             self.explanations = None
             if h is not None:
@@ -2768,12 +2768,19 @@ class BaseModel(pl.LightningModule):
         fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
 
-        # Reset n_predicts
-        self.n_predicts = 1
-        self.h = self.horizon_backup
-        self.predict_horizon = self.horizon_backup
-
         return fcsts
+
+    def _predict_with_trainer(self, trainer, datamodule):
+        try:
+            return trainer.predict(self, datamodule=datamodule)
+        finally:
+            self.n_predicts = 1
+            self.h = self.horizon_backup
+            self.predict_horizon = self.horizon_backup
+            if self.RECURRENT:
+                self.input_size = self.input_size_backup
+                self.maintain_state = False
+                self.rnn_state = None
 
     def simulate(
         self,
