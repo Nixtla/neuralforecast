@@ -46,6 +46,7 @@ def test_identity_scaler_forecasts_are_not_constant():
         scaler_type="identity",
         max_steps=20,
         random_seed=0,
+        accelerator="cpu",
         enable_progress_bar=False,
         enable_model_summary=False,
     )
