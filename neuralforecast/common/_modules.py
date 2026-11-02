@@ -700,13 +700,25 @@ class FullAttention(nn.Module):
             v = values.permute(0, 2, 1, 3)
 
             scale = self.scale or 1.0 / math.sqrt(E)
+            sdpa_mask = None
+            if self.mask_flag and L == S:
+                if attn_mask is None:
+                    attn_mask = TriangularCausalMask(B, L, device=queries.device)
+                # Two separate mistakes lived here. TriangularCausalMask is built for
+                # masked_fill_ in the explicit path below, where True means "drop this
+                # position", while SDPA's boolean mask uses True for "keep" — so the mask
+                # arrived inverted, and every position attended only to the future. And the
+                # [:, 0] slice turned it into [B, L, S], whose leading batch axis collides
+                # with SDPA's head axis; it has to stay [B, 1, L, S] to broadcast over heads.
+                # Nothing was passed at all when attn_mask was None, which is how the
+                # VanillaTransformer decoder ended up non-causal on the efficient path.
+                sdpa_mask = ~attn_mask.mask
+
             attn_output = F.scaled_dot_product_attention(
                 q,
                 k,
                 v,
-                attn_mask=(
-                    attn_mask.mask[:, 0] if (self.mask_flag and attn_mask) else None
-                ),
+                attn_mask=sdpa_mask,
                 dropout_p=self.dropout.p if self.training else 0.0,
                 scale=scale,
             )
