@@ -2429,6 +2429,34 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
 
+@pytest.mark.parametrize(
+    "level,expected",
+    [
+        ([80, 90], ["lo-90", "lo-80", "hi-80", "hi-90"]),
+        ([97.5], ["lo-97.5", "hi-97.5"]),
+        ([80.5, 80.2], ["lo-80.5", "lo-80.2", "hi-80.2", "hi-80.5"]),
+        ([99.9], ["lo-99.9", "hi-99.9"]),
+    ],
+)
+def test_predict_level_column_names(setup_airplane_data, level, expected):
+    """Column names keep the requested level, including non-integer levels."""
+    AirPassengersPanel_train, _ = setup_airplane_data
+    model = NHITS(
+        h=12,
+        input_size=24,
+        max_steps=1,
+        loss=DistributionLoss("Normal"),
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(AirPassengersPanel_train[["unique_id", "ds", "y"]])
+
+    preds = nf.predict(level=level)
+
+    assert preds.columns.tolist() == ["unique_id", "ds", "NHITS"] + [
+        f"NHITS-{name}" for name in expected
+    ]
+
+
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])
 @pytest.mark.parametrize("horizons", [list(range(12)), [0, 5]])
