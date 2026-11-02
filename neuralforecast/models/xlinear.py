@@ -332,7 +332,10 @@ class XLinear(BaseModel):
             dec_out = dec_out * stdev[:, 0:1, :]
             dec_out = dec_out + means[:, 0:1, :]
 
-        # Reshape to expected output: [B, h, N * output_multiplier]
+        # Group outputs by series: [B, h, N, output_multiplier].
+        dec_out = dec_out.reshape(
+            batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+        ).transpose(2, 3)
         dec_out = dec_out.reshape(batch_size, self.h, -1)
 
         return dec_out

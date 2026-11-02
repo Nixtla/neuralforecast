@@ -415,5 +415,9 @@ class TimeXer(BaseModel):
             x_mark_enc = stat_exog_expanded.repeat(B, L, 1)
 
         y_pred = self.forecast(insample_y, x_mark_enc)
+        # Keep each series' outputs together for the loss domain_map.
+        y_pred = y_pred.reshape(
+            B, self.h, self.loss.outputsize_multiplier, self.n_series
+        ).transpose(2, 3)
         y_pred = y_pred.reshape(B, self.h, -1)
         return y_pred

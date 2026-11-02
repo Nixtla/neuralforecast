@@ -440,6 +440,10 @@ class RMoK(BaseModel):
             .permute(0, 2, 1)
         )
         y_pred = self.rev(y_pred, "denorm")
+        # Keep each series' outputs together for the loss domain_map.
+        y_pred = y_pred.reshape(
+            B, self.h, self.loss.outputsize_multiplier, self.n_series
+        ).transpose(2, 3)
         y_pred = y_pred.reshape(B, self.h, -1)
 
         return y_pred

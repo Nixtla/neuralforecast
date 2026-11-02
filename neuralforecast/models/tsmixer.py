@@ -261,8 +261,10 @@ class TSMixer(BaseModel):
         if self.revin:
             x = self.norm(x, "denorm")
 
+        # Keep each series' outputs together for the loss domain_map.
         x = x.reshape(
-            batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
-        )
+            batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+        ).transpose(2, 3)
+        x = x.reshape(batch_size, self.h, -1)
 
         return x

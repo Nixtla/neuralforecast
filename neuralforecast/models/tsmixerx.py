@@ -471,11 +471,15 @@ class TSMixerx(BaseModel):
         # Reverse Instance Normalization on output
         if self.revin:
             forecast = forecast.reshape(
-                batch_size, self.h * self.loss.outputsize_multiplier, -1
-            )  #   [B, h, N * n_outputs] -> [B, h * n_outputs, N]
+                batch_size, self.h, self.n_series, self.loss.outputsize_multiplier
+            ).transpose(2, 3)
+            forecast = forecast.reshape(
+                batch_size, self.h * self.loss.outputsize_multiplier, self.n_series
+            )
             forecast = self.norm(forecast, "denorm")
             forecast = forecast.reshape(
-                batch_size, self.h, -1
-            )  #   [B, h * n_outputs, N] -> [B, h, n_outputs * N]
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
+            forecast = forecast.reshape(batch_size, self.h, -1)
 
         return forecast
