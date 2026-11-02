@@ -486,7 +486,8 @@ class MASE(BasePointLoss):
             ),
             axis=1,
         )
-        losses = _divide_no_nan(delta_y, scale[:, None, None])
+        # [B] or [B, N] -> [B, 1, N], so that each series uses its own scale
+        losses = _divide_no_nan(delta_y, scale.view(scale.shape[0], 1, -1))
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
