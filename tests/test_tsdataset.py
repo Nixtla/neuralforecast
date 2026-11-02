@@ -197,3 +197,42 @@ def test_polars_integration(temporal_df):
     pd.testing.assert_index_equal(dates, pd.Index(dates_pl, name='ds'))
     np.testing.assert_array_equal(ds, ds_pl)
     np.testing.assert_array_equal(dataset.indptr, dataset_pl.indptr)
+
+def test_eq_same_values(setup_data):
+    temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
+    dataset, *_ = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
+    replica, *_ = TimeSeriesDataset.from_df(df=sorted_temporal_df)
+
+    assert dataset == dataset
+    assert dataset == replica
+
+
+def test_eq_differing_values(setup_data):
+    temporal_df, *_ = setup_data
+    dataset, *_ = TimeSeriesDataset.from_df(df=temporal_df)
+
+    modified_df = temporal_df.copy()
+    modified_df.loc[modified_df.index[0], "y"] += 1.0
+    modified, *_ = TimeSeriesDataset.from_df(df=modified_df)
+
+    assert dataset != modified
+
+
+def test_eq_static_features(setup_data):
+    temporal_df, *_ = setup_data
+    _, static_df = generate_series(
+        n_series=1000, n_static_features=2, n_temporal_features=0, equal_ends=False
+    )
+    with_static, *_ = TimeSeriesDataset.from_df(df=temporal_df, static_df=static_df)
+    replica, *_ = TimeSeriesDataset.from_df(df=temporal_df, static_df=static_df)
+    without_static, *_ = TimeSeriesDataset.from_df(df=temporal_df)
+
+    assert with_static == replica
+    assert with_static != without_static
+
+
+def test_eq_non_dataset_returns_false(setup_data):
+    temporal_df, *_ = setup_data
+    dataset, *_ = TimeSeriesDataset.from_df(df=temporal_df)
+
+    assert (dataset == "not-a-dataset") is False

@@ -218,11 +218,32 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         return f"TimeSeriesDataset(n_data={self.temporal.shape[0]:,}, n_groups={self.n_groups:,})"
 
     def __eq__(self, other):
-        if not hasattr(other, "data") or not hasattr(other, "indptr"):
+        if not isinstance(other, TimeSeriesDataset):
+            return NotImplemented
+        if not np.array_equal(self.indptr, other.indptr):
             return False
-        return np.allclose(self.data, other.data) and np.array_equal(
-            self.indptr, other.indptr
-        )
+        if not self.temporal_cols.equals(other.temporal_cols):
+            return False
+        if self.temporal.shape != other.temporal.shape or not torch.isclose(
+            self.temporal, other.temporal, equal_nan=True
+        ).all():
+            return False
+        if (self.static is None) != (other.static is None):
+            return False
+        if self.static is not None:
+            if self.static.shape != other.static.shape or not torch.isclose(
+                self.static, other.static, equal_nan=True
+            ).all():
+                return False
+            self_static_cols = (
+                list(self.static_cols) if self.static_cols is not None else []
+            )
+            other_static_cols = (
+                list(other.static_cols) if other.static_cols is not None else []
+            )
+            if self_static_cols != other_static_cols:
+                return False
+        return True
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
