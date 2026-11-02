@@ -353,14 +353,22 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
 
     @staticmethod
     def from_df(df, static_df=None, id_col="unique_id", time_col="ds", target_col="y"):
-        # TODO: protect on equality of static_df + df indexes
+        ids, times, data, indptr, sort_idxs = ufp.process_df(
+            df, id_col, time_col, target_col
+        )
+        # Static features are looked up by series position, so static_df must hold
+        # exactly the series in df.
+        if static_df is not None:
+            static_df = ufp.filter_with_mask(
+                static_df, ufp.is_in(static_df[id_col], ids.to_list())
+            )
+            if static_df.shape[0] != len(ids):
+                raise ValueError(
+                    "`static_df` must have exactly one row for each series in `df`."
+                )
         # Define indices if not given and then extract static features
         static, static_cols = TimeSeriesDataset._extract_static_features(
             static_df, id_col
-        )
-
-        ids, times, data, indptr, sort_idxs = ufp.process_df(
-            df, id_col, time_col, target_col
         )
         # processor sets y as the first column
         temporal_cols = pd.Index(
