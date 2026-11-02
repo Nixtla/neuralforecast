@@ -270,6 +270,41 @@ class TestSimulation:
         model_cols = _get_model_cols(result)
         assert len(model_cols) >= 1
 
+    @pytest.mark.parametrize("method", ["gaussian_copula", "schaake_shuffle"])
+    def test_mqloss_level_keeps_lower_quantiles(self, method):
+        """MQLoss(level=...) lists the median first, the samples must still span all levels."""
+        from neuralforecast import NeuralForecast
+        from neuralforecast.losses.pytorch import MQLoss
+        from neuralforecast.models import NHITS
+        from neuralforecast.utils import AirPassengersDF
+
+        nf = NeuralForecast(
+            models=[
+                NHITS(
+                    h=12,
+                    input_size=24,
+                    max_steps=1,
+                    loss=MQLoss(level=[80, 90]),
+                    accelerator="cpu",
+                    devices=1,
+                )
+            ],
+            freq="MS",
+        )
+        nf.fit(df=AirPassengersDF)
+        model = nf.models[0]
+        levels = model.loss.quantiles.detach().numpy()
+        # A calibrated stub: the q-quantile forecast is always 100 * q.
+        model.predict = lambda dataset, quantiles, random_seed, **kwargs: np.tile(
+            100 * levels, (12, 1)
+        )
+
+        samples = nf.simulate(n_paths=2000, seed=0, method=method)[repr(model)]
+
+        assert samples.min() == pytest.approx(5.0, abs=1.0)
+        assert samples.max() == pytest.approx(95.0, abs=1.0)
+        assert np.median(samples) == pytest.approx(50.0, abs=5.0)
+
     def test_gmm_smoke(self, fitted_nf_gmm):
         result = fitted_nf_gmm.simulate(n_paths=10, seed=0)
         assert isinstance(result, pd.DataFrame)
