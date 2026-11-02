@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common._base_model import DISTRIBUTION_LOSSES, MULTIQUANTILE_LOSSES
@@ -290,3 +291,41 @@ class TestDummyRecurrent:
                 ]
             ),
         )
+
+
+class _QuantileScaledRecurrent(DummyRecurrent):
+    """Repeats the last value, multiplied by the 1-based index of each output."""
+
+    def forward(self, windows_batch):
+        y_pred = super().forward(windows_batch)
+        scale = torch.arange(1, y_pred.shape[-1] + 1, dtype=y_pred.dtype)
+        return y_pred * scale.to(y_pred.device)
+
+
+@pytest.mark.parametrize("loss", [MQLoss(level=[80]), HuberMQLoss(level=[80])])
+def test_recurrent_predict_keeps_every_quantile(longer_horizon_test, loss):
+    nf = NeuralForecast(
+        models=[
+            _QuantileScaledRecurrent(
+                h=longer_horizon_test.h,
+                input_size=longer_horizon_test.input_size,
+                loss=loss,
+            )
+        ],
+        freq="ME",
+    )
+    nf.fit(df=longer_horizon_test.train_df)
+
+    forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
+
+    # The outputs are ordered [median, lo-80, hi-80], so at the first horizon step
+    # each column is the last observed value times 1, 2 and 3.
+    first_step = forecasts.groupby(TimeSeriesDatasetEnum.UniqueId).head(1)
+    np.testing.assert_allclose(
+        first_step["_QuantileScaledRecurrent-lo-80"],
+        2 * first_step["_QuantileScaledRecurrent-median"],
+    )
+    np.testing.assert_allclose(
+        first_step["_QuantileScaledRecurrent-hi-80"],
+        3 * first_step["_QuantileScaledRecurrent-median"],
+    )
