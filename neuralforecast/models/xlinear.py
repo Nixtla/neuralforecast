@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 
 from ..common._base_model import BaseModel
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class GatingBlock(nn.Module):
@@ -332,10 +332,11 @@ class XLinear(BaseModel):
             dec_out = dec_out * stdev[:, 0:1, :]
             dec_out = dec_out + means[:, 0:1, :]
 
-        # Group outputs by series: [B, h, N, output_multiplier].
-        dec_out = dec_out.reshape(
-            batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
-        ).transpose(2, 3)
+        # DistributionLoss keeps parameter-major blocks; other losses group by series.
+        if not isinstance(self.loss, DistributionLoss):
+            dec_out = dec_out.reshape(
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
         dec_out = dec_out.reshape(batch_size, self.h, -1)
 
         return dec_out

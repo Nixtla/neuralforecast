@@ -19,7 +19,7 @@ from neuralforecast.common._modules import (
 )
 
 from ..common._base_model import BaseModel
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class iTransformer(BaseModel):
@@ -273,10 +273,11 @@ class iTransformer(BaseModel):
         futr_exog = windows_batch.get("futr_exog", None)
 
         y_pred = self.forecast(insample_y, futr_exog=futr_exog)
-        # Keep each series' outputs together for the loss domain_map.
-        y_pred = y_pred.reshape(
-            insample_y.shape[0], self.h, self.loss.outputsize_multiplier, self.n_series
-        ).transpose(2, 3)
+        # DistributionLoss keeps parameter-major blocks; other losses group by series.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                insample_y.shape[0], self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
         y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
 
         return y_pred

@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from ..common._base_model import BaseModel
 from ..common._modules import TransEncoder, TransEncoderLayer
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class DataEmbedding_inverted(nn.Module):
@@ -270,10 +270,11 @@ class SOFTS(BaseModel):
         insample_y = windows_batch["insample_y"]
 
         y_pred = self.forecast(insample_y)
-        # Keep each series' outputs together for the loss domain_map.
-        y_pred = y_pred.reshape(
-            insample_y.shape[0], self.h, self.loss.outputsize_multiplier, self.n_series
-        ).transpose(2, 3)
+        # DistributionLoss keeps parameter-major blocks; other losses group by series.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                insample_y.shape[0], self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
         y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
 
         return y_pred

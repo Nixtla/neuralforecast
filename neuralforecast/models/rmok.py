@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 from ..common._base_model import BaseModel
 from ..common._modules import RevINMultivariate
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class WaveKANLayer(nn.Module):
@@ -440,10 +440,11 @@ class RMoK(BaseModel):
             .permute(0, 2, 1)
         )
         y_pred = self.rev(y_pred, "denorm")
-        # Keep each series' outputs together for the loss domain_map.
-        y_pred = y_pred.reshape(
-            B, self.h, self.loss.outputsize_multiplier, self.n_series
-        ).transpose(2, 3)
+        # DistributionLoss keeps parameter-major blocks; other losses group by series.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                B, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
         y_pred = y_pred.reshape(B, self.h, -1)
 
         return y_pred

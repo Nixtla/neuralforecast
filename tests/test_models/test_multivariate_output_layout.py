@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from neuralforecast.losses.pytorch import GMM, MAE, MQLoss
+from neuralforecast.losses.pytorch import DistributionLoss, GMM, MAE, MQLoss
 from neuralforecast.models import (
     RMoK,
     SOFTS,
@@ -27,7 +27,16 @@ MODEL_CONFIGS = [
 
 
 @pytest.mark.parametrize("model_cls,config,head_name", MODEL_CONFIGS)
-@pytest.mark.parametrize("loss_cls", [MAE, MQLoss, GMM])
+@pytest.mark.parametrize(
+    "loss_cls",
+    [
+        MAE,
+        MQLoss,
+        GMM,
+        pytest.param(lambda: DistributionLoss(distribution="Normal"), id="Normal"),
+        pytest.param(lambda: DistributionLoss(distribution="StudentT"), id="StudentT"),
+    ],
+)
 @pytest.mark.parametrize("normalize", [True, False])
 def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, normalize):
     # Different batch statistics and N != Q expose swaps hidden by one series,
@@ -103,7 +112,12 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
             for n in range(n_series):
                 for k in range(q):
                     if model_cls is TSMixerx:
-                        value = raw[b, t, n * q + k]
+                        index = (
+                            k * n_series + n
+                            if isinstance(loss, DistributionLoss)
+                            else n * q + k
+                        )
+                        value = raw[b, t, index]
                     elif model_cls is RMoK:
                         value = raw[b, t * q + k, n]
                     else:
@@ -116,7 +130,11 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
                         value = value * std[b, n] + mean[b, n]
                     expected[b, t, n, k] = value
 
-    torch.testing.assert_close(actual.reshape_as(expected), expected)
+    if isinstance(loss, DistributionLoss):
+        actual = torch.stack(loss.domain_map(actual), dim=-1)
+    else:
+        actual = actual.reshape_as(expected)
+    torch.testing.assert_close(actual, expected)
     weights = torch.arange(expected.numel(), dtype=torch.float32).reshape_as(expected)
     actual_grad = torch.autograd.grad(
         (actual.reshape_as(expected) * weights).sum(), raw
