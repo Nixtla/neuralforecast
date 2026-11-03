@@ -240,7 +240,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         ):
             return False
         if self.static is not None and not (
-            pd.Index(self.static_cols).equals(pd.Index(other.static_cols))
+            pd.Index([] if self.static_cols is None else self.static_cols).equals(
+                pd.Index([] if other.static_cols is None else other.static_cols)
+            )
             and _exact_equal(self.static, other.static)
         ):
             return False

@@ -289,11 +289,37 @@ def test_eq_compares_the_column_names():
 def test_eq_compares_static_values():
     """The same static columns with different values are a different dataset."""
     temporal = torch.tensor([[1.0], [2.0]])
-    left = _dataset(
-        temporal, [0, 2], static=torch.tensor([[10.0]]), static_cols=["s"]
-    )
+    left = _dataset(temporal, [0, 2], static=torch.tensor([[10.0]]), static_cols=["s"])
     right = _dataset(
         temporal.clone(), [0, 2], static=torch.tensor([[11.0]]), static_cols=["s"]
     )
 
     assert left != right
+
+
+def test_eq_compares_the_static_column_names():
+    """The same static values under different names are a different dataset."""
+    temporal, static = torch.tensor([[1.0], [2.0]]), torch.tensor([[10.0]])
+    left = _dataset(temporal, [0, 2], static=static, static_cols=["a"])
+    right = _dataset(temporal.clone(), [0, 2], static=static.clone(), static_cols=["b"])
+
+    assert left != right
+
+
+def test_eq_compares_y_idx():
+    """Datasets that differ only in which column is the target are different."""
+    values = torch.tensor([[1.0, 2.0], [3.0, 4.0]])
+    assert _dataset(values, [0, 2], cols=("y", "x")) != _dataset(
+        values.clone(), [0, 2], cols=("y", "x"), y_idx=1
+    )
+
+
+def test_eq_allows_static_without_column_names():
+    """static set with static_cols=None compares values and does not raise."""
+    temporal = torch.tensor([[1.0], [2.0]])
+    left = _dataset(temporal, [0, 2], static=torch.tensor([[10.0]]))
+    same = _dataset(temporal.clone(), [0, 2], static=torch.tensor([[10.0]]))
+    other = _dataset(temporal.clone(), [0, 2], static=torch.tensor([[11.0]]))
+
+    assert left == same
+    assert left != other
