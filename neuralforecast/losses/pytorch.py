@@ -1143,17 +1143,14 @@ def tweedie_domain_map(input: torch.Tensor, rho: float = 1.5):
 def tweedie_scale_decouple(output, loc=None, scale=None):
     """Tweedie Scale Decouple
 
-    Stabilizes model's output optimization, by learning total
-    count and logits based on anchoring `loc`, `scale`.
+    Stabilizes model's output optimization, by learning the mean as a
+    residual around the anchoring `loc`, `scale`, like the Poisson rate.
     Also adds Tweedie domain protection to the distribution parameters.
     """
-    log_mu, rho = output
-    log_mu = F.softplus(log_mu)
-    log_mu = torch.clamp(log_mu, 1e-9, 37)
+    raw, rho = output
     if (loc is not None) and (scale is not None):
-        log_mu += torch.log(loc)
-
-    log_mu = torch.clamp(log_mu, 1e-9, 37)
+        raw = raw * scale + loc
+    log_mu = torch.log(F.softplus(raw) + 1e-8)
     return (log_mu, rho)
 
 
