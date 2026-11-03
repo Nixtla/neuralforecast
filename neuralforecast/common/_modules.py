@@ -660,7 +660,8 @@ class FullAttention(nn.Module):
         attention_dropout (float, optional): Dropout rate applied to attention  
             weights.
         output_attention (bool, optional): If True, returns attention weights along
-            with output. If False, uses efficient flash attention.
+            with output. If False, uses PyTorch's `scaled_dot_product_attention`, which
+            keeps the flash kernel available when no explicit `attn_mask` is passed.
 
     Returns:
         (torch.Tensor): Attention output of shape [batch, seq_len, n_heads, head_dim].
@@ -669,10 +670,12 @@ class FullAttention(nn.Module):
 
     Notes:
         - When output_attention=False, uses PyTorch's optimized scaled_dot_product_attention
-          for better performance (flash attention).
+          for better performance. With no explicit `attn_mask` the causal mask is requested via
+          its `is_causal` flag, which keeps the flash kernel available; a boolean `attn_mask`
+          forces the math kernel.
         - When output_attention=True, computes attention explicitly using einsum operations.
-        - If mask_flag=True and no attn_mask is provided, automatically creates a
-          TriangularCausalMask for autoregressive attention.
+        - If mask_flag=True and no attn_mask is provided, applies a causal mask: the
+          TriangularCausalMask built for the explicit path, the `is_causal` flag otherwise.
         - The tau and delta parameters are accepted for API compatibility but unused.
     """
 
@@ -700,25 +703,23 @@ class FullAttention(nn.Module):
             v = values.permute(0, 2, 1, 3)
 
             scale = self.scale or 1.0 / math.sqrt(E)
-            sdpa_mask = None
-            if self.mask_flag and L == S:
-                if attn_mask is None:
-                    attn_mask = TriangularCausalMask(B, L, device=queries.device)
-                # Two separate mistakes lived here. TriangularCausalMask is built for
-                # masked_fill_ in the explicit path below, where True means "drop this
-                # position", while SDPA's boolean mask uses True for "keep" — so the mask
-                # arrived inverted, and every position attended only to the future. And the
-                # [:, 0] slice turned it into [B, L, S], whose leading batch axis collides
-                # with SDPA's head axis; it has to stay [B, 1, L, S] to broadcast over heads.
-                # Nothing was passed at all when attn_mask was None, which is how the
-                # VanillaTransformer decoder ended up non-causal on the efficient path.
-                sdpa_mask = ~attn_mask.mask
+            # Instantiate the same default mask the explicit path builds, but hand it to SDPA as
+            # `is_causal` -- allocating one and inverting it is pure overhead, and a concrete
+            # `attn_mask` would rule out the flash kernel.
+            #
+            # Only the default mask is guarded by `L == S`: a caller-supplied mask is always
+            # applied, so a causal mask on queries and keys of different lengths fails loudly
+            # here as it does in the explicit path instead of being dropped.
+            is_causal = self.mask_flag and attn_mask is None and L == S
+            # TriangularCausalMask uses True = drop; SDPA's boolean mask uses True = keep.
+            sdpa_mask = ~attn_mask.mask if (self.mask_flag and attn_mask is not None) else None
 
             attn_output = F.scaled_dot_product_attention(
                 q,
                 k,
                 v,
                 attn_mask=sdpa_mask,
+                is_causal=is_causal,
                 dropout_p=self.dropout.p if self.training else 0.0,
                 scale=scale,
             )
