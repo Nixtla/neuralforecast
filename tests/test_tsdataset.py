@@ -198,6 +198,7 @@ def test_polars_integration(temporal_df):
     np.testing.assert_array_equal(ds, ds_pl)
     np.testing.assert_array_equal(dataset.indptr, dataset_pl.indptr)
 
+
 def test_eq_same_values(setup_data):
     temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
     dataset, *_ = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
@@ -236,3 +237,63 @@ def test_eq_non_dataset_returns_false(setup_data):
     dataset, *_ = TimeSeriesDataset.from_df(df=temporal_df)
 
     assert (dataset == "not-a-dataset") is False
+
+
+def _dataset(temporal, indptr, cols=("y",), y_idx=0, static=None, static_cols=None):
+    return TimeSeriesDataset(
+        temporal=temporal,
+        temporal_cols=list(cols),
+        indptr=np.array(indptr),
+        y_idx=y_idx,
+        static=static,
+        static_cols=static_cols,
+    )
+
+
+def test_eq_requires_exact_values():
+    """A near-equal value is a different dataset: equality carries no tolerance."""
+    base = torch.tensor([[112.0], [113.0]])
+    dataset = _dataset(base, [0, 2])
+    nudged = _dataset(torch.tensor([[112.001], [113.0]]), [0, 2])
+
+    assert dataset != nudged
+
+
+def test_eq_treats_a_matching_nan_as_equal():
+    """equal_nan=True is a stated design choice: the same NaN compares equal."""
+    nan = float("nan")
+    left = _dataset(torch.tensor([[1.0], [nan]]), [0, 2])
+    right = _dataset(torch.tensor([[1.0], [nan]]), [0, 2])
+
+    assert left == right
+
+
+def test_eq_compares_the_series_boundaries():
+    """Same flat values split into different series are different datasets."""
+    flat = torch.tensor([[1.0], [2.0], [3.0]])
+    one_series = _dataset(flat, [0, 3])
+    two_series = _dataset(flat.clone(), [0, 1, 3])
+
+    assert one_series != two_series
+
+
+def test_eq_compares_the_column_names():
+    """Same values under a different column name are a different dataset."""
+    values = torch.tensor([[1.0], [2.0]])
+    target = _dataset(values, [0, 2], cols=("y",))
+    renamed = _dataset(values.clone(), [0, 2], cols=("target",))
+
+    assert target != renamed
+
+
+def test_eq_compares_static_values():
+    """The same static columns with different values are a different dataset."""
+    temporal = torch.tensor([[1.0], [2.0]])
+    left = _dataset(
+        temporal, [0, 2], static=torch.tensor([[10.0]]), static_cols=["s"]
+    )
+    right = _dataset(
+        temporal.clone(), [0, 2], static=torch.tensor([[11.0]]), static_cols=["s"]
+    )
+
+    assert left != right

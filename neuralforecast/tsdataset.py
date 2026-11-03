@@ -152,6 +152,16 @@ class BaseTimeSeriesDataset(Dataset):
         return static, static_cols
 
 
+def _exact_equal(a: torch.Tensor, b: torch.Tensor) -> bool:
+    """Bit-exact equality of two stored tensors, with NaN equal to NaN.
+
+    ``_as_torch_copy`` always stores float32 copies, so equal inputs hold
+    identical bits; a tolerance would let different datasets compare equal and
+    would break transitivity.
+    """
+    return a.shape == b.shape and torch.allclose(a, b, rtol=0, atol=0, equal_nan=True)
+
+
 class TimeSeriesDataset(BaseTimeSeriesDataset):
     """Time series dataset implementation.
 
@@ -220,30 +230,25 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
     def __eq__(self, other):
         if not isinstance(other, TimeSeriesDataset):
             return NotImplemented
-        if not np.array_equal(self.indptr, other.indptr):
+        # The static checks are cheap and come before the full temporal scan:
+        # datasets that differ only there return without comparing every value.
+        if (
+            self.y_idx != other.y_idx
+            or not np.array_equal(self.indptr, other.indptr)
+            or not self.temporal_cols.equals(other.temporal_cols)
+            or (self.static is None) != (other.static is None)
+        ):
             return False
-        if not self.temporal_cols.equals(other.temporal_cols):
+        if self.static is not None and not (
+            pd.Index(self.static_cols).equals(pd.Index(other.static_cols))
+            and _exact_equal(self.static, other.static)
+        ):
             return False
-        if self.temporal.shape != other.temporal.shape or not torch.isclose(
-            self.temporal, other.temporal, equal_nan=True
-        ).all():
-            return False
-        if (self.static is None) != (other.static is None):
-            return False
-        if self.static is not None:
-            if self.static.shape != other.static.shape or not torch.isclose(
-                self.static, other.static, equal_nan=True
-            ).all():
-                return False
-            self_static_cols = (
-                list(self.static_cols) if self.static_cols is not None else []
-            )
-            other_static_cols = (
-                list(other.static_cols) if other.static_cols is not None else []
-            )
-            if self_static_cols != other_static_cols:
-                return False
-        return True
+        return _exact_equal(self.temporal, other.temporal)
+
+    # The scalers modify a dataset in place, so it stays unhashable (#1712);
+    # state it explicitly so nobody later adds a hash based on the data.
+    __hash__ = None
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
