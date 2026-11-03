@@ -1115,8 +1115,9 @@ class Tweedie(Distribution):
             alpha = alpha.expand(shape)
             beta = beta.expand(shape)
 
-            N = torch.poisson(rate) + 1e-5
-            gamma = Gamma(N * alpha, beta)
+            N = torch.poisson(rate)
+            # Zero-count draws are masked below, but Gamma still needs a valid shape.
+            gamma = Gamma(N.clamp_min(1) * alpha, beta)
             samples = gamma.sample()
             samples[N == 0] = 0
 
