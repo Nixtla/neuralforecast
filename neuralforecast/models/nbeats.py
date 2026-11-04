@@ -300,14 +300,13 @@ class NBEATSBlock(nn.Module):
         self.dropout_prob = dropout_prob
 
         assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-        activ = getattr(nn, activation)()
 
         hidden_layers = [
             nn.Linear(in_features=input_size, out_features=mlp_units[0][0])
         ]
         for layer in mlp_units:
             hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
-            hidden_layers.append(activ)
+            hidden_layers.append(getattr(nn, activation)())
 
             if self.dropout_prob > 0:
                 raise NotImplementedError("dropout")
