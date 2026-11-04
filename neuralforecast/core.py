@@ -3278,8 +3278,9 @@ class NeuralForecast:
             return f"{model_name}_ql{quantile}"
         if quantile == 0.5:
             return f"{model_name}-median"
-        # Levels can be floats, so only round off the noise from the conversion.
-        level = round(100 - 200 * min(quantile, 1 - quantile), 6)
+        # Levels can be floats, so only round off the noise from the conversion,
+        # which reaches about 1e-5 when the level is a float32.
+        level = round(float(100 - 200 * min(quantile, 1 - quantile)), 4)
         level = int(level) if level == int(level) else level
         side = "lo" if quantile < 0.5 else "hi"
         return f"{model_name}-{side}-{level}"

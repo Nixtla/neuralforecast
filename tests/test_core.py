@@ -2436,6 +2436,8 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
         ([97.5], ["lo-97.5", "hi-97.5"]),
         ([80.5, 80.2], ["lo-80.5", "lo-80.2", "hi-80.2", "hi-80.5"]),
         ([99.9], ["lo-99.9", "hi-99.9"]),
+        ([np.float32(95)], ["lo-95", "hi-95"]),
+        ([np.float32(99.9)], ["lo-99.9", "hi-99.9"]),
     ],
 )
 def test_predict_level_column_names(setup_airplane_data, level, expected):
