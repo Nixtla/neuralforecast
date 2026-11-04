@@ -451,7 +451,7 @@ def augment_calendar_df(df, freq="H"):
     ds_data = np.vstack(
         [feat(ds_col) for feat in time_features_from_frequency_str(freq)]
     ).transpose(1, 0)
-    ds_data = pd.DataFrame(ds_data, columns=freq_map[freq])
+    ds_data = pd.DataFrame(ds_data, columns=freq_map[freq], index=df.index)
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
 
