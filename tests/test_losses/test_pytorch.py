@@ -362,6 +362,11 @@ def test_mase_scales_each_series_by_its_own_insample_errors():
 
     assert torch.isclose(loss, torch.tensor(1.0))
 
+    mask = torch.tensor([[1.0, 0.0], [1.0, 1.0]]).unsqueeze(-1)
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample, mask=mask)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
 
 def test_mase_scales_each_series_in_multivariate_batches():
     # [B=2, L=3, N=2], with a different scale per window and series.

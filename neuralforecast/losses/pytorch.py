@@ -471,9 +471,9 @@ class MASE(BasePointLoss):
     ) -> torch.Tensor:
         """
         Args:
-            y: Tensor (batch_size, output_size), Actual values.
-            y_hat: Tensor (batch_size, output_size)), Predicted values.
-            y_insample: Tensor (batch_size, input_size), Actual insample values.
+            y: Tensor [B, h, N], Actual values.
+            y_hat: Tensor [B, h, N], Predicted values.
+            y_insample: Tensor [B, L, N], Actual insample values.
             mask: Tensor, Specifies date stamps per serie to consider in loss.
 
         Returns:
