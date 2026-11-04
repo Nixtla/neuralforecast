@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common._base_model import DISTRIBUTION_LOSSES, MULTIQUANTILE_LOSSES
@@ -290,3 +291,48 @@ class TestDummyRecurrent:
                 ]
             ),
         )
+
+
+class _QuantileOffsetRecurrent(DummyRecurrent):
+    """Repeats the last value, plus the 0-based index of each output."""
+
+    def forward(self, windows_batch):
+        y_pred = super().forward(windows_batch)
+        return y_pred + torch.arange(
+            y_pred.shape[-1], dtype=y_pred.dtype, device=y_pred.device
+        )
+
+
+@pytest.mark.parametrize("scaler_type", ["identity", "robust"])
+@pytest.mark.parametrize("loss", [MQLoss(level=[80]), HuberMQLoss(level=[80])])
+def test_recurrent_predict_keeps_every_quantile(
+    longer_horizon_test, loss, scaler_type
+):
+    nf = NeuralForecast(
+        models=[
+            _QuantileOffsetRecurrent(
+                h=longer_horizon_test.h,
+                input_size=longer_horizon_test.input_size,
+                loss=loss,
+                scaler_type=scaler_type,
+            )
+        ],
+        freq="ME",
+    )
+    nf.fit(df=longer_horizon_test.train_df)
+
+    forecasts = nf.predict(futr_df=longer_horizon_test.test_df)
+
+    # The outputs are ordered [median, lo-80, hi-80] and equal the scaled last value
+    # plus 0, 1 and 2, so they stay evenly spaced once any scaler is undone.
+    median = forecasts["_QuantileOffsetRecurrent-median"]
+    lo = forecasts["_QuantileOffsetRecurrent-lo-80"]
+    hi = forecasts["_QuantileOffsetRecurrent-hi-80"]
+    np.testing.assert_allclose(hi - lo, lo - median)
+    # Collapsed quantiles are evenly spaced too, so check the width at every step.
+    assert (hi - lo).abs().min() > 0
+    # The median gets no offset, so undoing the scaling gives back the last value.
+    first_step = forecasts.groupby(TimeSeriesDatasetEnum.UniqueId).head(1)
+    np.testing.assert_allclose(
+        first_step["_QuantileOffsetRecurrent-median"], [405.0, 705.0]
+    )
