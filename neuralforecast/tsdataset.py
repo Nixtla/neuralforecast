@@ -250,7 +250,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
 
     # The scalers modify a dataset in place, so it stays unhashable (#1712);
     # state it explicitly so nobody later adds a hash based on the data.
-    __hash__ = None
+    # Assigning None is the documented way to disable hashing, but mypy sees
+    # object.__hash__ as a callable, hence the ignore.
+    __hash__ = None  # type: ignore[assignment]
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
