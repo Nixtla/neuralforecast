@@ -362,7 +362,8 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             static_df = ufp.filter_with_mask(
                 static_df, ufp.is_in(static_df[id_col], ids.to_list())
             )
-            if static_df.shape[0] != len(ids):
+            static_ids = static_df[id_col].to_list()
+            if len(static_ids) != len(ids) or len(set(static_ids)) != len(ids):
                 raise ValueError(
                     "`static_df` must have exactly one row for each series in `df`."
                 )

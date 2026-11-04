@@ -214,7 +214,9 @@ def test_static_features_follow_the_series_in_df(frame):
 
 
 @pytest.mark.parametrize(
-    "static_ids", [["b"], ["a", "b"], ["b", "c", "c"]], ids=["short", "wrong", "dup"]
+    "static_ids",
+    [["b"], ["a", "b"], ["b", "c", "c"], ["b", "b"]],
+    ids=["short", "wrong", "dup", "dup_for_missing"],
 )
 def test_static_df_must_cover_each_series_once(static_ids):
     df = pd.DataFrame(
