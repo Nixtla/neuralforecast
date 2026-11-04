@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import pytest
 import torch
 
@@ -30,6 +29,20 @@ def test_temporal_norm(scaler_type):
     scaler = TemporalNorm(scaler_type=scaler_type, dim=1, num_features=np_x.shape[-1])
     x_scaled = scaler.transform(x=x, mask=mask)
     x_recovered = scaler.inverse_transform(x_scaled)
+    assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
+
+@pytest.mark.parametrize("scaler_type", ['standard', 'robust', 'minmax', 'minmax1'])
+def test_temporal_norm_fully_masked_window(scaler_type):
+    np_x = np.arange(36, dtype=np.float32)[None, :, None]
+    np_mask = np.zeros(np_x.shape, dtype=np.float32)
+
+    x = torch.tensor(np_x)
+    mask = torch.tensor(np_mask)
+    scaler = TemporalNorm(scaler_type=scaler_type, dim=1, num_features=np_x.shape[-1])
+    x_scaled = scaler.transform(x=x, mask=mask)
+    x_recovered = scaler.inverse_transform(x_scaled)
+    assert torch.isfinite(x_scaled).all(), f'Scaled data is not finite with {scaler_type}'
+    assert torch.isfinite(x_recovered).all(), f'Recovered data is not finite with {scaler_type}'
     assert torch.allclose(x, x_recovered, atol=1e-3), f'Recovered data is not the same as original with {scaler_type}'
 
 @pytest.fixture
