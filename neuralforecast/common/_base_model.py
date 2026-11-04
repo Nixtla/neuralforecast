@@ -1887,12 +1887,13 @@ class BaseModel(pl.LightningModule):
             # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
             # insample input size of the recurrent network by the number of outputs so that each output
             # can be fed back to a specific input channel.
-            if output_batch.ndim == 4:
-                output_batch = output_batch.mean(dim=-1)
-
             insample_y = output_batch
+            if output_batch.ndim == 4:
+                insample_y = output_batch.mean(dim=-1)
+
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
-            y_hat = y_hat.unsqueeze(-1)
+            if y_hat.ndim == 3:
+                y_hat = y_hat.unsqueeze(-1)
 
         # Remove horizon dim: [B, 1, N, n_outputs] -> [B, N, n_outputs]
         y_hat = y_hat.squeeze(1)
