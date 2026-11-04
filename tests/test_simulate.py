@@ -1095,6 +1095,27 @@ class TestSampleFromQuantiles:
         assert "gaussian_copula" in VALID_SIMULATION_METHODS
         assert "schaake_shuffle" in VALID_SIMULATION_METHODS
 
+    @pytest.mark.parametrize("method", ["gaussian_copula", "schaake_shuffle"])
+    def test_level_order_does_not_change_samples(self, method):
+        """An unsorted quantile grid must give the same paths as a sorted one."""
+        from neuralforecast.tsdataset import TimeSeriesDataset
+        from neuralforecast.utils import AirPassengersPanel, sample_from_quantiles
+
+        dataset, *_ = TimeSeriesDataset.from_df(
+            AirPassengersPanel[["unique_id", "ds", "y"]]
+        )
+        n_series, h = dataset.n_groups, 12
+        q = np.array([0.05, 0.1, 0.5, 0.9, 0.95])
+        perm = np.array([2, 0, 1, 3, 4])
+        vals = np.tile(100 * q, (n_series, h, 1))
+
+        a = sample_from_quantiles(q, vals, dataset, n_paths=500, seed=0, method=method)
+        b = sample_from_quantiles(
+            q[perm], vals[..., perm], dataset, n_paths=500, seed=0, method=method
+        )
+
+        np.testing.assert_allclose(a, b)
+
 
 class TestConstants:
     def test_default_quantile_grid(self):
