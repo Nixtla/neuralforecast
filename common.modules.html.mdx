@@ -475,7 +475,7 @@ Name | Type | Description | Default
 `factor` | <code>[int](#int)</code> | Attention factor parameter (unused in FullAttention, kept for API compatibility with ProbAttention). | <code>5</code>
 `scale` | <code>[float](#float)</code> | Custom scaling factor for attention scores. If None, uses 1/sqrt(d_k) where d_k is the key dimension. | <code>None</code>
 `attention_dropout` | <code>[float](#float)</code> | Dropout rate applied to attention weights. | <code>0.1</code>
-`output_attention` | <code>[bool](#bool)</code> | If True, returns attention weights along with output. If False, uses efficient flash attention. | <code>False</code>
+`output_attention` | <code>[bool](#bool)</code> | If True, returns attention weights along with output. If False, uses PyTorch's `scaled_dot_product_attention`, which keeps the flash kernel available when no explicit `attn_mask` is passed. | <code>False</code>
 
 **Returns:**
 
@@ -488,10 +488,12 @@ Type | Description
 <summary>Notes</summary>
 
 - When output_attention=False, uses PyTorch's optimized scaled_dot_product_attention
-  for better performance (flash attention).
+  for better performance. With no explicit `attn_mask` the causal mask is requested via
+  its `is_causal` flag, which keeps the flash kernel available; a boolean `attn_mask`
+  forces the math kernel.
 - When output_attention=True, computes attention explicitly using einsum operations.
-- If mask_flag=True and no attn_mask is provided, automatically creates a
-  TriangularCausalMask for autoregressive attention.
+- If mask_flag=True and no attn_mask is provided, applies a causal mask: the
+  TriangularCausalMask built for the explicit path, the `is_causal` flag otherwise.
 - The tau and delta parameters are accepted for API compatibility but unused.
 
 </details>
