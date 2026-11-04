@@ -117,8 +117,6 @@ class NHITSBlock(nn.Module):
         assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
         assert pooling_mode in POOLING, f"{pooling_mode} is not in {POOLING}"
 
-        activ = getattr(nn, activation)()
-
         self.pooling_layer = getattr(nn, pooling_mode)(
             kernel_size=n_pool_kernel_size, stride=n_pool_kernel_size, ceil_mode=True
         )
@@ -129,7 +127,7 @@ class NHITSBlock(nn.Module):
         ]
         for layer in mlp_units:
             hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
-            hidden_layers.append(activ)
+            hidden_layers.append(getattr(nn, activation)())
 
             if self.dropout_prob > 0:
                 # raise NotImplementedError('dropout')

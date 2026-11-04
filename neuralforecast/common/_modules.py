@@ -115,20 +115,19 @@ class MLP(nn.Module):
                     f"hidden_size must be positive when num_layers>=2, got {hidden_size}"
                 )
             assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-            self.activation = getattr(nn, activation)()
 
             # MultiLayer Perceptron
             # Input layer
             layers = [
                 nn.Linear(in_features=in_features, out_features=hidden_size),
-                self.activation,
+                getattr(nn, activation)(),
                 nn.Dropout(dropout),
             ]
             # Hidden layers
             for i in range(num_layers - 2):
                 layers += [
                     nn.Linear(in_features=hidden_size, out_features=hidden_size),
-                    self.activation,
+                    getattr(nn, activation)(),
                     nn.Dropout(dropout),
                 ]
             # Output layer
