@@ -13,7 +13,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 import math
 import random
 from itertools import chain
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -1023,3 +1023,18 @@ def sample_from_quantiles(
             return samples.float().numpy()
         return samples.numpy()
     return samples
+
+
+def uncross_quantiles(fcsts: np.ndarray, quantiles: Sequence[float]) -> np.ndarray:
+    """Make quantile forecasts increase with their level, keeping the column order.
+
+    Args:
+        fcsts (np.ndarray): Forecasts with one column per quantile.
+        quantiles (Sequence[float]): Level of each column.
+
+    Returns:
+        np.ndarray: Forecasts with the same shape.
+    """
+    uncrossed = np.empty_like(fcsts)
+    uncrossed[..., np.argsort(quantiles)] = np.sort(fcsts, axis=-1)
+    return uncrossed
