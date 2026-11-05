@@ -1329,7 +1329,14 @@ class RevINMultivariate(nn.Module):
         # Reverse the normalization
         if self.affine:
             x = x - self.affine_bias
-            x = x / self.affine_weight
+            denom = self.affine_weight
+            min_abs = self.eps
+            safe_denom = torch.where(
+                denom.abs() < min_abs,
+                torch.where(denom < 0, -min_abs, min_abs),
+                denom,
+            )
+            x = x / safe_denom
 
         x = x * self.batch_std
         x = x + self.batch_mean
