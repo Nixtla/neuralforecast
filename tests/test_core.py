@@ -1872,7 +1872,7 @@ def test_neural_forecast_pandas_polars_compatibility(setup_airplane_data, setup_
 
     AirPassengersStatic = pd.DataFrame(
         {
-            "unique_id": ["H196", "H256"],
+            "unique_id": ["Airline1", "Airline2"],
             "airline1": [0, 1],
             "airline2": [1, 0],
         }
