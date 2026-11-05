@@ -479,10 +479,6 @@ class TSMixerx(BaseModel):
                 batch_size, self.h * self.loss.outputsize_multiplier, self.n_series
             )
             forecast = self.norm(forecast, "denorm")
-            if not isinstance(self.loss, DistributionLoss):
-                forecast = forecast.reshape(
-                    batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
-                ).transpose(2, 3)
-            forecast = forecast.reshape(batch_size, self.h, -1)
+            forecast = self._group_outputs_by_series(forecast, batch_size)
 
         return forecast

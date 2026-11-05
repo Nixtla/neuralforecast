@@ -18,7 +18,7 @@ from neuralforecast.common._modules import (
 )
 
 from ..common._base_model import BaseModel
-from ..losses.pytorch import MAE, DistributionLoss
+from ..losses.pytorch import MAE
 
 
 class FlattenHead(nn.Module):
@@ -415,10 +415,5 @@ class TimeXer(BaseModel):
             x_mark_enc = stat_exog_expanded.repeat(B, L, 1)
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        # DistributionLoss keeps parameter-major blocks; other losses group by series.
-        if not isinstance(self.loss, DistributionLoss):
-            y_pred = y_pred.reshape(
-                B, self.h, self.loss.outputsize_multiplier, self.n_series
-            ).transpose(2, 3)
-        y_pred = y_pred.reshape(B, self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, B)
         return y_pred
