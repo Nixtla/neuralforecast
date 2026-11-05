@@ -2050,7 +2050,7 @@ class DistributionLoss(_BaseLoss):
             Distribution: AffineTransformed distribution.
         """
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         if self.distribution in ("Poisson", "NegativeBinomial"):
             distr.support = constraints.nonnegative
@@ -2296,7 +2296,7 @@ class PMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
@@ -2531,7 +2531,7 @@ class GMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
@@ -2770,7 +2770,7 @@ class NBMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
