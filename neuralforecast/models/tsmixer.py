@@ -258,7 +258,11 @@ class TSMixer(BaseModel):
         x = x.permute(0, 2, 1)
         x = self.out(x)
         x = x.permute(0, 2, 1)
-        if self.revin:
+        self._set_distribution_output_scale(
+            loc=self.norm.batch_mean if self.revin else None,
+            scale=self.norm.batch_std if self.revin else None,
+        )
+        if self.revin and not self.loss.is_distribution_output:
             x = self.norm(x, "denorm")
 
         x = self._group_outputs_by_series(x, batch_size)

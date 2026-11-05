@@ -270,7 +270,11 @@ class SOFTSSharp(BaseModel):
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
 
         # De-Normalization from Non-stationary Transformer
-        if self.use_norm:
+        self._set_distribution_output_scale(
+            loc=means if self.use_norm else None,
+            scale=stdev if self.use_norm else None,
+        )
+        if self.use_norm and not self.loss.is_distribution_output:
             dec_out = dec_out * (
                 stdev[:, 0, :]
                 .unsqueeze(1)
