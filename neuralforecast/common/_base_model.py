@@ -2134,78 +2134,82 @@ class BaseModel(pl.LightningModule):
             total_test_size = self.test_size
             futr_temporal = batch["temporal"][:, :, -total_test_size + self.h :]
             batch["temporal"] = batch["temporal"][:, :, : -total_test_size + self.h]
-            self.test_size = self.h
-            
-            # Initialize explanation storage if explaining
-            if explain_state:
-                all_insample_explanations = []
-                all_futr_exog_explanations = []
-                all_hist_exog_explanations = []
-                all_stat_exog_explanations = []
-                all_baseline_predictions = []
-            
-            for i in range(self.n_predicts):
-                # Temporarily disable explanations for the recursive call
+            try:
+                self.test_size = self.h
+
+                # Initialize explanation storage if explaining
                 if explain_state:
-                    self.explain = False
+                    all_insample_explanations = []
+                    all_futr_exog_explanations = []
+                    all_hist_exog_explanations = []
+                    all_stat_exog_explanations = []
+                    all_baseline_predictions = []
+
+                for i in range(self.n_predicts):
+                    # Temporarily disable explanations for the recursive call
+                    if explain_state:
+                        self.explain = False
                 
-                # Make predictions for this step
-                y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
+                    # Make predictions for this step
+                    y_hat = self._predict_step_direct(batch, batch_idx, recursive=False)
                 
-                # Restore explanation state
+                    # Restore explanation state
+                    if explain_state:
+                        self.explain = True
+                
+                    y_hats.append(y_hat)
+                
+                    # Generate explanations
+                    if explain_state:
+                        (insample, futr_exog, hist_exog, stat_exog, baseline, _) = \
+                            self._compute_explanations_for_step(
+                                batch=batch,
+                                temporal_cols=temporal_cols,
+                                y_idx=y_idx,
+                                recursive_step=i,
+                                y_hat_shape=y_hat.shape,
+                            )
+                        if insample is not None:
+                            all_insample_explanations.append(insample)
+                            if futr_exog is not None:
+                                all_futr_exog_explanations.append(futr_exog)
+                            if hist_exog is not None:
+                                all_hist_exog_explanations.append(hist_exog)
+                            if stat_exog is not None:
+                                all_stat_exog_explanations.append(stat_exog)
+                            if baseline is not None:
+                                all_baseline_predictions.append(baseline)
+                
+                    # Update temporal with predictions for next iteration
+                    if i < self.n_predicts - 1:
+                        y_hat_median = y_hat
+                        if median_idx is not None:
+                            y_hat_median = y_hat[..., median_idx]
+                    
+                        # Update temporal of the batch with predictions
+                        temporal = batch["temporal"]
+                        if self.MULTIVARIATE:
+                            y_hat_median = y_hat_median.swapaxes(0, 2)
+                            y_hat_median = y_hat_median.swapaxes(1, 2)
+                            y_hat_median = y_hat_median.squeeze(1)
+                        else:
+                            y_hat_median = y_hat_median.squeeze(-1)
+
+                        temporal[:, y_idx, -self.h :] = y_hat_median
+
+                        # Concatenate next futr_temporal
+                        idx = i * self.h
+                        next_futr_temporal = futr_temporal[:, :, idx : idx + self.h]
+                        temporal = torch.cat((temporal, next_futr_temporal), dim=-1)
+
+                        # Update batch
+                        batch["temporal"] = temporal
+
+                y_hat = torch.cat(y_hats, dim=1)
+            finally:
+                self.test_size = total_test_size
                 if explain_state:
                     self.explain = True
-                
-                y_hats.append(y_hat)
-                
-                # Generate explanations
-                if explain_state:
-                    (insample, futr_exog, hist_exog, stat_exog, baseline, _) = \
-                        self._compute_explanations_for_step(
-                            batch=batch,
-                            temporal_cols=temporal_cols,
-                            y_idx=y_idx,
-                            recursive_step=i,
-                            y_hat_shape=y_hat.shape,
-                        )
-                    if insample is not None:
-                        all_insample_explanations.append(insample)
-                        if futr_exog is not None:
-                            all_futr_exog_explanations.append(futr_exog)
-                        if hist_exog is not None:
-                            all_hist_exog_explanations.append(hist_exog)
-                        if stat_exog is not None:
-                            all_stat_exog_explanations.append(stat_exog)
-                        if baseline is not None:
-                            all_baseline_predictions.append(baseline)
-                
-                # Update temporal with predictions for next iteration
-                if i < self.n_predicts - 1:
-                    y_hat_median = y_hat
-                    if median_idx is not None:
-                        y_hat_median = y_hat[..., median_idx]
-                    
-                    # Update temporal of the batch with predictions
-                    temporal = batch["temporal"]
-                    if self.MULTIVARIATE:
-                        y_hat_median = y_hat_median.swapaxes(0, 2)
-                        y_hat_median = y_hat_median.swapaxes(1, 2)
-                        y_hat_median = y_hat_median.squeeze(1)
-                    else:
-                        y_hat_median = y_hat_median.squeeze(-1)
-
-                    temporal[:, y_idx, -self.h :] = y_hat_median
-
-                    # Concatenate next futr_temporal
-                    idx = i * self.h
-                    next_futr_temporal = futr_temporal[:, :, idx : idx + self.h]
-                    temporal = torch.cat((temporal, next_futr_temporal), dim=-1)
-
-                    # Update batch
-                    batch["temporal"] = temporal
-
-            y_hat = torch.cat(y_hats, dim=1)
-            self.test_size = total_test_size
             
             # Return with concatenated explanations if explaining
             if explain_state:

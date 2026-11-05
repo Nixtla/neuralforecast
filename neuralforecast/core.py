@@ -2751,34 +2751,36 @@ class NeuralForecast:
 
         h_backup = self.h
         fcst_list = []
-        # Generate predictions for each dataset
-        for i, (start, stop, forecast_size) in enumerate(series_spans):
-            # Copy one series at a time, retaining context before the first origin.
-            trimmed_dataset = TimeSeriesDataset(
-                temporal=self.dataset.temporal[start:stop],
-                temporal_cols=self.dataset.temporal_cols,
-                static=None
-                if self.dataset.static is None
-                else self.dataset.static[i : i + 1],
-                static_cols=self.dataset.static_cols,
-                indptr=np.array([0, stop - start]),
-                y_idx=self.dataset.y_idx,
-            )
-            # The forecast span excludes the earlier context kept in the dataset.
-            self.h = forecast_size
-            fcsts, cols = self._generate_forecasts(
-                dataset=trimmed_dataset,
-                uids=self.uids[i : i + 1],
-                quantiles_=quantiles_,
-                level_=level_,
-                has_level=has_level,
-                step_size=step_size,
-                h=None,
-            )
-            fcst_list.append(fcsts)
+        try:
+            # Generate predictions for each dataset
+            for i, (start, stop, forecast_size) in enumerate(series_spans):
+                # Copy one series at a time, retaining context before the first origin.
+                trimmed_dataset = TimeSeriesDataset(
+                    temporal=self.dataset.temporal[start:stop],
+                    temporal_cols=self.dataset.temporal_cols,
+                    static=None
+                    if self.dataset.static is None
+                    else self.dataset.static[i : i + 1],
+                    static_cols=self.dataset.static_cols,
+                    indptr=np.array([0, stop - start]),
+                    y_idx=self.dataset.y_idx,
+                )
+                # The forecast span excludes the earlier context kept in the dataset.
+                self.h = forecast_size
+                fcsts, cols = self._generate_forecasts(
+                    dataset=trimmed_dataset,
+                    uids=self.uids[i : i + 1],
+                    quantiles_=quantiles_,
+                    level_=level_,
+                    has_level=has_level,
+                    step_size=step_size,
+                    h=None,
+                )
+                fcst_list.append(fcsts)
 
-        fcsts = np.vstack(fcst_list)
-        self.h = h_backup
+            fcsts = np.vstack(fcst_list)
+        finally:
+            self.h = h_backup
 
         # Add original y values
         original_y = {
@@ -3124,18 +3126,21 @@ class NeuralForecast:
                 "remove those series."
             )
 
-        self._add_level = True
-        cv_results = self.cross_validation(
-            df=df,
-            static_df=static_df,
-            n_windows=self.prediction_intervals.n_windows,
-            step_size=step_size,
-            val_size=val_size,
-            id_col=id_col,
-            time_col=time_col,
-            target_col=target_col,
-        )
-        self._add_level = False
+        add_level_backup = self._add_level
+        try:
+            self._add_level = True
+            cv_results = self.cross_validation(
+                df=df,
+                static_df=static_df,
+                n_windows=self.prediction_intervals.n_windows,
+                step_size=step_size,
+                val_size=val_size,
+                id_col=id_col,
+                time_col=time_col,
+                target_col=target_col,
+            )
+        finally:
+            self._add_level = add_level_backup
 
         kept = [time_col, id_col, "cutoff"]
         # conformity score for each model
@@ -3168,106 +3173,108 @@ class NeuralForecast:
                 model_name += str(count_names[model_name])
 
             old_test_size = model.get_test_size()
-            model.set_test_size(
-                h if h is not None else self.h
-            )  # To predict h steps ahead
+            try:
+                model.set_test_size(
+                    h if h is not None else self.h
+                )  # To predict h steps ahead
 
-            # Predict for every quantile or level if requested and the loss function supports it
-            # case 1: DistributionLoss and MixtureLosses
-            if (
-                quantiles_ is not None
-                and not isinstance(model.loss, (IQLoss, HuberIQLoss))
-                and hasattr(model.loss, "update_quantile")
-                and callable(model.loss.update_quantile)
-            ):
-                model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
-                )
-                fcsts_list.append(model_fcsts)
-                col_names = []
-                for i, quantile in enumerate(quantiles_):
-                    col_name = self._get_column_name(model_name, quantile, has_level)
-                    if i == 0:
-                        col_names.extend([f"{model_name}", col_name])
-                    else:
-                        col_names.extend([col_name])
-                if hasattr(model.loss, "return_params") and model.loss.return_params:
-                    cols.extend(
-                        col_names
-                        + [
-                            model_name + param_name
-                            for param_name in model.loss.param_names
-                        ]
-                    )
-                else:
-                    cols.extend(col_names)
-            # case 2: IQLoss
-            elif quantiles_ is not None and isinstance(
-                model.loss, (IQLoss, HuberIQLoss)
-            ):
-                # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
-                quantiles_iqloss = [
-                    0.01,
-                    0.05,
-                    0.1,
-                    0.2,
-                    0.3,
-                    0.5,
-                    0.7,
-                    0.8,
-                    0.9,
-                    0.95,
-                    0.99,
-                ]
-                fcsts_list_iqloss = []
-                for i, quantile in enumerate(quantiles_iqloss):
+                # Predict for every quantile or level if requested and the loss function supports it
+                # case 1: DistributionLoss and MixtureLosses
+                if (
+                    quantiles_ is not None
+                    and not isinstance(model.loss, (IQLoss, HuberIQLoss))
+                    and hasattr(model.loss, "update_quantile")
+                    and callable(model.loss.update_quantile)
+                ):
                     model_fcsts = model.predict(
-                        dataset=dataset, quantiles=[quantile], h=h, **data_kwargs
+                        dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
                     )
-                    fcsts_list_iqloss.append(model_fcsts)
-                fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
+                    fcsts_list.append(model_fcsts)
+                    col_names = []
+                    for i, quantile in enumerate(quantiles_):
+                        col_name = self._get_column_name(model_name, quantile, has_level)
+                        if i == 0:
+                            col_names.extend([f"{model_name}", col_name])
+                        else:
+                            col_names.extend([col_name])
+                    if hasattr(model.loss, "return_params") and model.loss.return_params:
+                        cols.extend(
+                            col_names
+                            + [
+                                model_name + param_name
+                                for param_name in model.loss.param_names
+                            ]
+                        )
+                    else:
+                        cols.extend(col_names)
+                # case 2: IQLoss
+                elif quantiles_ is not None and isinstance(
+                    model.loss, (IQLoss, HuberIQLoss)
+                ):
+                    # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
+                    quantiles_iqloss = [
+                        0.01,
+                        0.05,
+                        0.1,
+                        0.2,
+                        0.3,
+                        0.5,
+                        0.7,
+                        0.8,
+                        0.9,
+                        0.95,
+                        0.99,
+                    ]
+                    fcsts_list_iqloss = []
+                    for i, quantile in enumerate(quantiles_iqloss):
+                        model_fcsts = model.predict(
+                            dataset=dataset, quantiles=[quantile], h=h, **data_kwargs
+                        )
+                        fcsts_list_iqloss.append(model_fcsts)
+                    fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
 
-                # Get the actual requested quantiles
-                model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
-                fcsts_list.append(model_fcsts)
+                    # Get the actual requested quantiles
+                    model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
+                    fcsts_list.append(model_fcsts)
 
-                # Get the right column names
-                col_names = []
-                for i, quantile in enumerate(quantiles_):
-                    col_name = self._get_column_name(model_name, quantile, has_level)
-                    col_names.extend([col_name])
-                cols.extend(col_names)
-            # case 3: PointLoss via prediction intervals
-            elif quantiles_ is not None and model.loss.outputsize_multiplier == 1:
-                if self.prediction_intervals is None:
-                    raise AttributeError(
-                        f"You have trained {model_name} with loss={type(model.loss).__name__}(). \n"
-                        " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                    # Get the right column names
+                    col_names = []
+                    for i, quantile in enumerate(quantiles_):
+                        col_name = self._get_column_name(model_name, quantile, has_level)
+                        col_names.extend([col_name])
+                    cols.extend(col_names)
+                # case 3: PointLoss via prediction intervals
+                elif quantiles_ is not None and model.loss.outputsize_multiplier == 1:
+                    if self.prediction_intervals is None:
+                        raise AttributeError(
+                            f"You have trained {model_name} with loss={type(model.loss).__name__}(). \n"
+                            " You then must set `prediction_intervals` during fit to use level or quantiles during predict."
+                        )
+                    model_fcsts = model.predict(
+                        dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
                     )
-                model_fcsts = model.predict(
-                    dataset=dataset, quantiles=quantiles_, h=h, **data_kwargs
-                )
-                prediction_interval_method = get_prediction_interval_method(
-                    self.prediction_intervals.method
-                )
-                fcsts_with_intervals, out_cols = prediction_interval_method(
-                    model_fcsts,
-                    self._cs_df,
-                    model=model_name,
-                    level=level_ if has_level else None,
-                    cs_n_windows=self.prediction_intervals.n_windows,
-                    n_series=len(uids),
-                    horizon=self.h,
-                    quantiles=quantiles_ if not has_level else None,
-                )
-                fcsts_list.append(fcsts_with_intervals)
-                cols.extend([model_name] + out_cols)
-            # base case: quantiles or levels are not supported or provided as arguments
-            else:
-                model_fcsts = model.predict(dataset=dataset, h=h, **data_kwargs)
-                fcsts_list.append(model_fcsts)
-                cols.extend(model_name + n for n in model.loss.output_names)
-            model.set_test_size(old_test_size)  # Set back to original value
+                    prediction_interval_method = get_prediction_interval_method(
+                        self.prediction_intervals.method
+                    )
+                    fcsts_with_intervals, out_cols = prediction_interval_method(
+                        model_fcsts,
+                        self._cs_df,
+                        model=model_name,
+                        level=level_ if has_level else None,
+                        cs_n_windows=self.prediction_intervals.n_windows,
+                        n_series=len(uids),
+                        horizon=self.h,
+                        quantiles=quantiles_ if not has_level else None,
+                    )
+                    fcsts_list.append(fcsts_with_intervals)
+                    cols.extend([model_name] + out_cols)
+                # base case: quantiles or levels are not supported or provided as arguments
+                else:
+                    model_fcsts = model.predict(dataset=dataset, h=h, **data_kwargs)
+                    fcsts_list.append(model_fcsts)
+                    cols.extend(model_name + n for n in model.loss.output_names)
+            finally:
+                model.set_test_size(old_test_size)
         fcsts = np.concatenate(fcsts_list, axis=-1)
 
         return fcsts, cols
