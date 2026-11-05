@@ -2815,6 +2815,7 @@ class BaseModel(pl.LightningModule):
         from neuralforecast.utils import (
             DEFAULT_QUANTILE_GRID,
             VALID_SIMULATION_METHODS,
+            uncross_quantiles,
         )
 
         if method not in VALID_SIMULATION_METHODS:
@@ -2847,10 +2848,9 @@ class BaseModel(pl.LightningModule):
 
         # Get quantile forecasts via existing predict infrastructure
         if isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
-            # IQLoss: multiple forward passes, one per quantile in a grid
-            iq_grid = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.99]
+            # IQLoss: one forward pass per requested quantile
             iq_fcsts = []
-            for q in iq_grid:
+            for q in quantiles:
                 f = self.predict(
                     dataset=dataset,
                     random_seed=random_seed,
@@ -2859,9 +2859,7 @@ class BaseModel(pl.LightningModule):
                 )
                 iq_fcsts.append(f)
             # Each f is (n_series * H, 1); stack along last axis
-            iq_all = np.concatenate(iq_fcsts, axis=-1)  # (n_series * H, len(iq_grid))
-            # Interpolate to the requested quantile positions
-            fcsts = np.quantile(iq_all, quantiles, axis=-1).T  # (n_series * H, n_quantiles)
+            fcsts = uncross_quantiles(np.concatenate(iq_fcsts, axis=-1), quantiles)
             n_quantiles = len(quantile_positions)
             quantile_fcsts = fcsts[:, :n_quantiles]
         else:
