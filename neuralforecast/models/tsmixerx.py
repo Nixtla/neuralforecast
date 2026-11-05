@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from ..common._base_model import BaseModel
 from ..common._modules import RevINMultivariate
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class TemporalMixing(nn.Module):
@@ -469,13 +469,20 @@ class TSMixerx(BaseModel):
         forecast = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
 
         # Reverse Instance Normalization on output
-        if self.revin:
+        self._set_distribution_output_scale(
+            loc=self.norm.batch_mean if self.revin else None,
+            scale=self.norm.batch_std if self.revin else None,
+        )
+        if self.revin and not self.loss.is_distribution_output:
+            # DistributionLoss keeps parameter-major blocks; other losses group by series.
+            if not isinstance(self.loss, DistributionLoss):
+                forecast = forecast.reshape(
+                    batch_size, self.h, self.n_series, self.loss.outputsize_multiplier
+                ).transpose(2, 3)
             forecast = forecast.reshape(
-                batch_size, self.h * self.loss.outputsize_multiplier, -1
-            )  #   [B, h, N * n_outputs] -> [B, h * n_outputs, N]
+                batch_size, self.h * self.loss.outputsize_multiplier, self.n_series
+            )
             forecast = self.norm(forecast, "denorm")
-            forecast = forecast.reshape(
-                batch_size, self.h, -1
-            )  #   [B, h * n_outputs, N] -> [B, h, n_outputs * N]
+            forecast = self._group_outputs_by_series(forecast, batch_size)
 
         return forecast

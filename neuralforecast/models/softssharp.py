@@ -270,7 +270,11 @@ class SOFTSSharp(BaseModel):
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
 
         # De-Normalization from Non-stationary Transformer
-        if self.use_norm:
+        self._set_distribution_output_scale(
+            loc=means if self.use_norm else None,
+            scale=stdev if self.use_norm else None,
+        )
+        if self.use_norm and not self.loss.is_distribution_output:
             dec_out = dec_out * (
                 stdev[:, 0, :]
                 .unsqueeze(1)
@@ -287,6 +291,6 @@ class SOFTSSharp(BaseModel):
         insample_y = windows_batch["insample_y"]
 
         y_pred = self.forecast(insample_y)
-        y_pred = y_pred.reshape(insample_y.shape[0], self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, insample_y.shape[0])
 
         return y_pred

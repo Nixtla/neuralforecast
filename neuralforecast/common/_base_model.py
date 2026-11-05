@@ -1508,6 +1508,15 @@ class BaseModel(pl.LightningModule):
         )
         return windows_batch
 
+    def _group_outputs_by_series(self, y_pred, batch_size):
+        # Standard distributions keep parameter-major blocks; quantile and
+        # mixture losses group each series' outputs together.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
+        return y_pred.reshape(batch_size, self.h, -1)
+
     def _parse_windows(self, batch, windows):
         # windows: [Ws, L + h, C, n_series]
 
@@ -1632,16 +1641,33 @@ class BaseModel(pl.LightningModule):
 
         return y_loc, y_scale
 
+    def _set_distribution_output_scale(self, loc=None, scale=None):
+        # Distribution heads emit parameters, not target values. Keep the window
+        # statistics for the loss's parameter-specific links instead of applying
+        # the inverse normalization to every output channel. Learned RevIN affine
+        # parameters still transform the inputs; they do not transform logits,
+        # degrees of freedom or unconstrained dispersion parameters.
+        self._distribution_output_scale = (
+            (loc, scale) if self.loss.is_distribution_output else (None, None)
+        )
+
+    def _distribution_args(self, output, y_idx):
+        loc, scale = self._get_loc_scale(y_idx)
+        window_loc, window_scale = getattr(
+            self, "_distribution_output_scale", (None, None)
+        )
+        if window_loc is not None:
+            loc = loc + scale * window_loc
+            scale = scale * window_scale
+        return self.loss.scale_decouple(output=output, loc=loc, scale=scale)
+
     def _compute_valid_loss(
         self, insample_y, outsample_y, output, outsample_mask, y_idx
     ):
         output_from_scaled_distribution = False
         
         if self.loss.is_distribution_output:
-            y_loc, y_scale = self._get_loc_scale(y_idx)
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
+            distr_args = self._distribution_args(output, y_idx)
             if isinstance(
                 self.valid_loss, (losses.sCRPS, losses.MQLoss, losses.HuberMQLoss)
             ):
@@ -1751,9 +1777,7 @@ class BaseModel(pl.LightningModule):
         if self.loss.is_distribution_output:
             # Sample distribution
             y_loc, y_scale = self._get_loc_scale(y_idx)
-            distr_args = self.loss.scale_decouple(
-                output=output_batch, loc=y_loc, scale=y_scale
-            )
+            distr_args = self._distribution_args(output_batch, y_idx)
             # When validating, the output is the mean of the distribution which is an attribute
             distr = self.loss.get_distribution(distr_args=distr_args)
 
@@ -1861,9 +1885,7 @@ class BaseModel(pl.LightningModule):
         if self.loss.is_distribution_output:
             # Sample distribution
             y_loc, y_scale = self._get_loc_scale(y_idx)
-            distr_args = self.loss.scale_decouple(
-                output=output_batch, loc=y_loc, scale=y_scale
-            )
+            distr_args = self._distribution_args(output_batch, y_idx)
             # When predicting, we need to sample to get the quantiles. The mean is an attribute.
             _, _, quants = self.loss.sample(
                 distr_args=distr_args, num_samples=self.n_samples
@@ -1916,11 +1938,8 @@ class BaseModel(pl.LightningModule):
 
         # Inverse normalization and sampling
         if self.loss.is_distribution_output:
-            y_loc, y_scale = self._get_loc_scale(y_idx)
             # Always compute distribution args (needed for both explain and normal mode)
-            distr_args = self.loss.scale_decouple(
-                output=output_batch, loc=y_loc, scale=y_scale
-            )
+            distr_args = self._distribution_args(output_batch, y_idx)
             # Normal mode: full distribution processing with sampling
             _, sample_mean, quants = self.loss.sample(distr_args=distr_args)
             y_hat = torch.concat((sample_mean, quants), axis=-1)
@@ -2419,11 +2438,8 @@ class BaseModel(pl.LightningModule):
         output = self.loss.domain_map(output)
 
         if self.loss.is_distribution_output:
-            y_loc, y_scale = self._get_loc_scale(y_idx)
             outsample_y = original_outsample_y
-            distr_args = self.loss.scale_decouple(
-                output=output, loc=y_loc, scale=y_scale
-            )
+            distr_args = self._distribution_args(output, y_idx)
             loss = self.loss(y=outsample_y, distr_args=distr_args, mask=outsample_mask)
         else:
             loss = self.loss(

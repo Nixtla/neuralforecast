@@ -439,7 +439,11 @@ class RMoK(BaseModel):
             .reshape(B, N, self.h * self.loss.outputsize_multiplier)
             .permute(0, 2, 1)
         )
-        y_pred = self.rev(y_pred, "denorm")
-        y_pred = y_pred.reshape(B, self.h, -1)
+        self._set_distribution_output_scale(
+            loc=self.rev.batch_mean, scale=self.rev.batch_std
+        )
+        if not self.loss.is_distribution_output:
+            y_pred = self.rev(y_pred, "denorm")
+        y_pred = self._group_outputs_by_series(y_pred, B)
 
         return y_pred
