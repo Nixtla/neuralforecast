@@ -76,15 +76,20 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
 
     if model_cls is RMoK:
 
-        def inject(module, args):
-            if args[1] == "denorm":
-                return raw, args[1]
-
-        handle = model.rev.register_forward_pre_hook(inject)
+        # Every expert returns the same known tensor, so the softmax gate
+        # preserves it, including when distribution heads skip RevIN's inverse.
+        handles = [
+            expert.register_forward_hook(
+                lambda module, args, output: raw.permute(0, 2, 1).reshape(
+                    batch_size * n_series, h * q
+                )
+            )
+            for expert in model.experts
+        ]
     else:
-        handle = getattr(model, head_name).register_forward_hook(
+        handles = [getattr(model, head_name).register_forward_hook(
             lambda module, args, output: raw
-        )
+        )]
 
     norm = getattr(model, "norm", getattr(model, "rev", None))
     if not normalize:
@@ -104,7 +109,8 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
             )
         )
     finally:
-        handle.remove()
+        for handle in handles:
+            handle.remove()
 
     expected = torch.empty(batch_size, h, n_series, q, dtype=torch.float32)
     for b in range(batch_size):
@@ -122,11 +128,11 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
                         value = raw[b, t * q + k, n]
                     else:
                         value = raw[b, n, t * q + k]
-                    if norm is not None:
+                    if norm is not None and not loss.is_distribution_output:
                         value = (
                             value - norm.affine_bias[0, 0, n]
                         ) / norm.affine_weight[0, 0, n]
-                    if normalize:
+                    if normalize and not loss.is_distribution_output:
                         value = value * std[b, n] + mean[b, n]
                     expected[b, t, n, k] = value
 
