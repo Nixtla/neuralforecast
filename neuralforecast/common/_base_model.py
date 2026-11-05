@@ -1843,7 +1843,7 @@ class BaseModel(pl.LightningModule):
         # Reset state and horizon
         self.maintain_state = False
         self.rnn_state = None
-        self.h = self.horizon_backup
+        self.h = self.predict_horizon
 
         # Squeeze for univariate case
         if not self.MULTIVARIATE:
@@ -1897,12 +1897,13 @@ class BaseModel(pl.LightningModule):
             # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
             # insample input size of the recurrent network by the number of outputs so that each output
             # can be fed back to a specific input channel.
-            if output_batch.ndim == 4:
-                output_batch = output_batch.mean(dim=-1)
-
             insample_y = output_batch
+            if output_batch.ndim == 4:
+                insample_y = output_batch.mean(dim=-1)
+
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
-            y_hat = y_hat.unsqueeze(-1)
+            if y_hat.ndim == 3:
+                y_hat = y_hat.unsqueeze(-1)
 
         # Remove horizon dim: [B, 1, N, n_outputs] -> [B, N, n_outputs]
         y_hat = y_hat.squeeze(1)
@@ -2705,7 +2706,7 @@ class BaseModel(pl.LightningModule):
             pred_trainer_kwargs["inference_mode"] = False
             self.explainer_config = explainer_config
             trainer = pl.Trainer(**pred_trainer_kwargs)
-            out = trainer.predict(self, datamodule=datamodule)
+            out = self._predict_with_trainer(trainer, datamodule)
             fcsts = []
             insample_explanations = []
             futr_exog_explanations = []
@@ -2764,7 +2765,7 @@ class BaseModel(pl.LightningModule):
                 self._pred_trainer = pl.Trainer(**pred_trainer_kwargs)
                 self._pred_trainer_kwargs = pred_trainer_kwargs
             trainer = self._pred_trainer
-            fcsts = trainer.predict(self, datamodule=datamodule)
+            fcsts = self._predict_with_trainer(trainer, datamodule)
             fcsts = torch.vstack(fcsts)
             self.explanations = None
             if h is not None:
@@ -2778,12 +2779,19 @@ class BaseModel(pl.LightningModule):
         fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
 
-        # Reset n_predicts
-        self.n_predicts = 1
-        self.h = self.horizon_backup
-        self.predict_horizon = self.horizon_backup
-
         return fcsts
+
+    def _predict_with_trainer(self, trainer, datamodule):
+        try:
+            return trainer.predict(self, datamodule=datamodule)
+        finally:
+            self.n_predicts = 1
+            self.h = self.horizon_backup
+            self.predict_horizon = self.horizon_backup
+            if self.RECURRENT:
+                self.input_size = self.input_size_backup
+                self.maintain_state = False
+                self.rnn_state = None
 
     def simulate(
         self,
