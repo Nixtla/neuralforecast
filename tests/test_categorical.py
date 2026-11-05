@@ -21,6 +21,7 @@ from neuralforecast.models import (
 )
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.auto import AutoMLP
+from neuralforecast.utils import generate_series
 
 CITIES = ["paris", "london", "tokyo", "berlin"]
 DOWS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -873,3 +874,23 @@ def test_distributed_simulate_with_categoricals(spark_session, tmp_path):
     spark_futr = spark.createDataFrame(_futr_df())
     sims = nf.simulate(futr_df=spark_futr, engine=spark, n_paths=5).toPandas()
     assert np.isfinite(sims["NHITS"].to_numpy()).all()
+
+
+def test_predict_insample_with_categorical_ids():
+    df = generate_series(3, min_length=50, max_length=50, freq="D")
+    assert df["unique_id"].dtype == "category"
+    model = MLP(
+        h=7,
+        input_size=14,
+        max_steps=2,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="D")
+    nf.fit(df)
+    nf.predict()
+
+    insample = nf.predict_insample()
+
+    assert insample["unique_id"].nunique() == 3
