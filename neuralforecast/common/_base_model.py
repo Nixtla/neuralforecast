@@ -1263,12 +1263,10 @@ class BaseModel(pl.LightningModule):
             model.load_state_dict(content["state_dict"], strict=True)
         return model
 
-    def _create_windows(self, batch, step, defer_flatten=False):
-        # Internal univariate paths can keep series/start axes separate until
-        # sampling. The default retains the flattened layout for direct callers.
+    def _create_windows(self, batch, step):
+        # Keep univariate series/start axes separate until sampling.
         # Parse common data
         window_size = self.input_size + self.h
-        deferred = defer_flatten and not self.MULTIVARIATE
         temporal_cols = batch["temporal_cols"]
         temporal = batch["temporal"]
 
@@ -1285,7 +1283,7 @@ class BaseModel(pl.LightningModule):
                 )
 
             sample_weight_windows = None
-            if deferred and "sample_weight" in temporal_cols:
+            if not self.MULTIVARIATE and "sample_weight" in temporal_cols:
                 sw_idx = temporal_cols.get_loc("sample_weight")
                 weight_windows = temporal[:, sw_idx].unfold(
                     -1, window_size, self.step_size
@@ -1305,12 +1303,8 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                if not deferred:
-                    windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
             # Extract sample_weight before availability filtering so it is never
             # seen by the model as a feature
@@ -1334,7 +1328,7 @@ class BaseModel(pl.LightningModule):
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            if deferred:
+            if not self.MULTIVARIATE:
                 mask = windows[:, :, :, available_idx]
                 insample_condition = mask[:, :, : self.input_size].sum((2, 3)).reshape(-1)
             else:
@@ -1343,7 +1337,7 @@ class BaseModel(pl.LightningModule):
             final_condition = insample_condition >= min_insample_points
 
             if self.h > 0:
-                if deferred:
+                if not self.MULTIVARIATE:
                     outsample_condition = mask[:, :, self.input_size :].sum((2, 3)).reshape(-1)
                 else:
                     outsample_condition = windows[:, self.input_size :, available_idx]
@@ -1355,12 +1349,6 @@ class BaseModel(pl.LightningModule):
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
-
-            # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
-            if static is not None and not self.MULTIVARIATE and not deferred:
-                static = torch.repeat_interleave(
-                    static, repeats=windows_per_serie, dim=0
-                )
 
             # Protection of empty windows
             if final_condition.sum() == 0:
@@ -1421,19 +1409,11 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                if not deferred:
-                    windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
-                if static is not None and not deferred:
-                    static = torch.repeat_interleave(
-                        static, repeats=windows_per_serie, dim=0
-                    )
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
             n_windows = (
-                windows.shape[0] * windows.shape[1] if deferred else windows.shape[0]
+                windows.shape[0] if self.MULTIVARIATE else windows.shape[0] * windows.shape[1]
             )
             final_condition = torch.arange(n_windows, device=windows.device)
 
@@ -1513,7 +1493,7 @@ class BaseModel(pl.LightningModule):
         sample_weight=None,
     ):
         w_idxs_final = final_condition[w_idxs]
-        if windows_temporal.ndim == 5:
+        if not self.MULTIVARIATE:
             # Flatten series/start indices only after sampling; the full window
             # tensor remains a view of the original temporal data.
             series_idxs = torch.div(
@@ -1525,8 +1505,6 @@ class BaseModel(pl.LightningModule):
                 static = static[series_idxs]
         else:
             windows_sample = windows_temporal[w_idxs_final]
-            if static is not None and not self.MULTIVARIATE:
-                static = static[w_idxs_final]
 
         if sample_weight is not None:
             sample_weight = sample_weight[w_idxs_final]
@@ -1969,7 +1947,7 @@ class BaseModel(pl.LightningModule):
     def _predict_step_recurrent(self, batch, batch_idx):
         self.input_size = self.inference_input_size
         windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
-            batch, step="predict", defer_flatten=True
+            batch, step="predict"
         )
         n_windows = len(final_condition)
         y_idx = batch["y_idx"]
@@ -2081,7 +2059,7 @@ class BaseModel(pl.LightningModule):
         """Compute explanations for a single prediction step."""
         # Create windows and normalize for explanations
         windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
-            batch, step="predict", defer_flatten=True
+            batch, step="predict"
         )
         n_windows = len(final_condition)
 
@@ -2262,7 +2240,6 @@ class BaseModel(pl.LightningModule):
             windows_temporal, static, static_cols, final_condition, _, temporal_cols = self._create_windows(
                 batch,
                 step="predict",
-                defer_flatten=True,
             )
             n_windows = len(final_condition)
             y_idx = batch["y_idx"]
@@ -2388,7 +2365,7 @@ class BaseModel(pl.LightningModule):
         y_idx = batch["y_idx"]
 
         windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
-            self._create_windows(batch, step="train", defer_flatten=True)
+            self._create_windows(batch, step="train")
         )
         final_condition = self._shard_multivariate_windows(final_condition)
         n_windows = len(final_condition)
@@ -2497,7 +2474,7 @@ class BaseModel(pl.LightningModule):
             return np.nan
 
         windows_temporal, static, static_cols, final_condition, sample_weight_windows, temporal_cols = (
-            self._create_windows(batch, step="val", defer_flatten=True)
+            self._create_windows(batch, step="val")
         )
         final_condition = self._shard_multivariate_windows(final_condition)
         n_windows = len(final_condition)

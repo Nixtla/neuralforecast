@@ -41,10 +41,40 @@ def test_deferred_windows_keep_samples_and_gradients(
     model = MLPMultivariate(n_series=n, **kwargs) if multivariate else MLP(**kwargs)
     model.val_size, model.test_size = 6, 3
     model.predict_step_size = stride
-    legacy = model._create_windows(batch, step)
-    deferred = model._create_windows(batch, step, defer_flatten=True)
-    assert legacy[-1].equals(deferred[-1])
-    torch.testing.assert_close(legacy[3], deferred[3], rtol=0, atol=0)
+    # Build the materialized reference directly, independently of the model's
+    # window creation and sampling helpers.
+    if step == "train":
+        values = torch.nn.functional.pad(temporal[:, :, :-9], (0, model.h))
+    elif step == "val":
+        values = temporal[:, :, -13:-3]
+    else:
+        values = temporal[:, :, -7:]
+    reference = values.unfold(-1, model.input_size + model.h, stride)
+    starts = reference.shape[2]
+    if multivariate:
+        reference = reference.permute(2, 3, 1, 0)
+        reference_static = batch["static"]
+    else:
+        reference = reference.permute(0, 2, 3, 1).flatten(0, 1).unsqueeze(-1)
+        reference_static = batch["static"].repeat_interleave(starts, dim=0)
+    reference_cols = batch["temporal_cols"]
+    reference_weights = None
+    if step == "train" and weighted:
+        weight_idx = reference_cols.get_loc("sample_weight")
+        reference_weights = reference[:, model.input_size :, weight_idx : weight_idx + 1].mean(1)
+        reference = reference[:, :, [i for i in range(len(columns)) if i != weight_idx]]
+        reference_cols = reference_cols.delete(weight_idx)
+    if step == "train":
+        mask = reference[:, :, reference_cols.get_loc("available_mask")]
+        valid = (mask[:, : model.input_size].sum((1, 2)) >= max(1, int(model.input_size * 0.5 * model.n_series))) & (
+            mask[:, model.input_size :].sum((1, 2)) >= max(1, int(model.h * 0.5 * model.n_series))
+        )
+        valid = valid.nonzero().squeeze(-1)
+    else:
+        valid = torch.arange(len(reference))
+    deferred = model._create_windows(batch, step)
+    assert reference_cols.equals(deferred[-1])
+    torch.testing.assert_close(valid, deferred[3], rtol=0, atol=0)
     if not multivariate:
         # The deferred view owns only the underlying series, never all windows.
         assert deferred[0].ndim == 5
@@ -52,14 +82,17 @@ def test_deferred_windows_keep_samples_and_gradients(
             deferred[0].untyped_storage().nbytes()
             <= n * len(columns) * (length + model.h) * 8
         )
-    idxs = torch.tensor([len(legacy[3]) - 1, 0, 0, len(legacy[3]) // 2])
-    samples = []
-    for windows, static, static_cols, valid, weights, cols in [legacy, deferred]:
-        samples.append(
-            model._sample_windows(
-                windows, static, static_cols, cols, idxs, valid, weights
-            )
-        )
+    idxs = torch.tensor([len(valid) - 1, 0, 0, len(valid) // 2])
+    selected = valid[idxs]
+    samples = [dict(
+        temporal=reference[selected],
+        static=reference_static if multivariate else reference_static[selected],
+        sample_weight=None if reference_weights is None else reference_weights[selected],
+    )]
+    windows, static, static_cols, valid, weights, cols = deferred
+    samples.append(model._sample_windows(
+        windows, static, static_cols, cols, idxs, valid, weights
+    ))
     for key in ["temporal", "static", "sample_weight"]:
         if samples[0][key] is None:
             assert samples[1][key] is None
