@@ -982,7 +982,7 @@ def sample_from_quantiles(
     and calls the appropriate sampling function.
 
     Args:
-        quantile_positions: array-like (Q,) sorted quantile levels in (0, 1).
+        quantile_positions: array-like (Q,) quantile levels in (0, 1), in any order.
         quantile_values: array-like (n_series, H, Q) quantile forecast values.
         dataset: NeuralForecast TimeSeriesDataset.
         n_paths: number of sample paths.
@@ -1000,10 +1000,15 @@ def sample_from_quantiles(
 
     y_hist = extract_y_hist(dataset)
 
+    # The samplers need sorted levels, but MQLoss(level=...) lists the median first.
+    quantile_positions = np.array(quantile_positions)
+    sort_idx = np.argsort(quantile_positions)
     quantile_positions_t = torch.as_tensor(
-        np.array(quantile_positions), dtype=torch.float64
+        quantile_positions[sort_idx], dtype=torch.float64
     )
-    quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
+    quantile_values_t = torch.as_tensor(
+        np.asarray(quantile_values)[..., sort_idx], dtype=torch.float64
+    )
 
     sampler = {
         "gaussian_copula": gaussian_copula_sample,
