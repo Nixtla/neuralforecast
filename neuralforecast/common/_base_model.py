@@ -35,7 +35,7 @@ from neuralforecast._serialization import (
     registered_classes,
     save_tensors,
 )
-from neuralforecast.common.enums import ExplainerEnum
+from neuralforecast.common.enums import ADDITIVE_EXPLAINERS
 from neuralforecast.tsdataset import (
     BaseTimeSeriesDataset,
     TimeSeriesDataModule,
@@ -3345,9 +3345,7 @@ class BaseModel(pl.LightningModule):
 
         explainer_class = self.explainer_config["explainer"]
         explainer_name = explainer_class.__name__ if hasattr(explainer_class, '__name__') else str(explainer_class)
-        additive_explainers = ExplainerEnum.AdditiveExplainers
-
-        if explainer_name in additive_explainers:
+        if explainer_name in ADDITIVE_EXPLAINERS:
             baseline_stat_exog = stat_exog * 0 if stat_exog is not None else None
             if self.RECURRENT:
                 baseline_predictions = self._predict_step_recurrent_batch(
