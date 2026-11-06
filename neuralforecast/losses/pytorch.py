@@ -762,7 +762,7 @@ class MQLoss(BasePointLoss):
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
         quantiles = self.quantiles[None, None, None, :]
-        losses = (1 / len(quantiles)) * (quantiles * sq + (1 - quantiles) * s1_q)
+        losses = (1 / quantiles.shape[-1]) * (quantiles * sq + (1 - quantiles) * s1_q)
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
 
         return _weighted_mean(losses=losses, weights=weights)
@@ -3194,7 +3194,7 @@ class HuberMQLoss(BasePointLoss):
         ) + F.huber_loss(
             (1 - quantiles) * s1_q, zero_error, reduction="none", delta=self.delta
         )
-        losses = (1 / len(quantiles)) * losses
+        losses = (1 / quantiles.shape[-1]) * losses
 
         weights = self._compute_weights(y=losses, mask=mask)
 
