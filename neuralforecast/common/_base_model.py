@@ -927,7 +927,7 @@ class BaseModel(pl.LightningModule):
             num_tasks = distributed_config.num_nodes * distributed_config.devices
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
-        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        use_gpu = is_gpu_accelerator(self.trainer_kwargs.get("accelerator", "auto"))
         distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
