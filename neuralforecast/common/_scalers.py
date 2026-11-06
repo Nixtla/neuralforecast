@@ -78,15 +78,14 @@ def minmax_statistics(x, mask, eps=1e-6, dim=-1):
     Returns:
         torch.Tensor: Same shape as `x`, except scaled.
     """
-    mask = mask.clone()
-    mask[mask == 0] = torch.inf
-    mask[mask == 1] = 0
-    x_max = torch.max(
-        torch.nan_to_num(x - mask, nan=-torch.inf), dim=dim, keepdim=True
-    )[0]
-    x_min = torch.min(torch.nan_to_num(x + mask, nan=torch.inf), dim=dim, keepdim=True)[
-        0
-    ]
+    valid = mask.bool()
+    x_max = torch.where(valid, x, -torch.inf).amax(dim=dim, keepdim=True)
+    x_min = torch.where(valid, x, torch.inf).amin(dim=dim, keepdim=True)
+
+    # Windows with no valid points fall back to shift 0 and scale 1
+    empty = ~valid.any(dim=dim, keepdim=True)
+    x_max = torch.where(empty, torch.ones_like(x_max), x_max)
+    x_min = torch.where(empty, torch.zeros_like(x_min), x_min)
     x_max = x_max.type(x.dtype)
     x_min = x_min.type(x.dtype)
 
@@ -130,15 +129,14 @@ def minmax1_statistics(x, mask, eps=1e-6, dim=-1):
         torch.Tensor: Same shape as `x`, except scaled.
     """
     # Mask values (set masked to -inf or +inf)
-    mask = mask.clone()
-    mask[mask == 0] = torch.inf
-    mask[mask == 1] = 0
-    x_max = torch.max(
-        torch.nan_to_num(x - mask, nan=-torch.inf), dim=dim, keepdim=True
-    )[0]
-    x_min = torch.min(torch.nan_to_num(x + mask, nan=torch.inf), dim=dim, keepdim=True)[
-        0
-    ]
+    valid = mask.bool()
+    x_max = torch.where(valid, x, -torch.inf).amax(dim=dim, keepdim=True)
+    x_min = torch.where(valid, x, torch.inf).amin(dim=dim, keepdim=True)
+
+    # Windows with no valid points fall back to shift 0 and scale 1
+    empty = ~valid.any(dim=dim, keepdim=True)
+    x_max = torch.where(empty, torch.ones_like(x_max), x_max)
+    x_min = torch.where(empty, torch.zeros_like(x_min), x_min)
     x_max = x_max.type(x.dtype)
     x_min = x_min.type(x.dtype)
 
