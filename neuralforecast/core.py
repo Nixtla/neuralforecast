@@ -862,7 +862,7 @@ class NeuralForecast:
         target_col: str = "y",
         distributed_config: Optional[DistributedConfig] = None,
         prediction_intervals: Optional[PredictionIntervals] = None,
-    ) -> None:
+    ) -> "NeuralForecast":
         """Fit the core.NeuralForecast
 
         Fit `models` to a large set of time series from DataFrame `df`
@@ -1096,6 +1096,8 @@ class NeuralForecast:
                     model._reuse_search = False
 
         self._fitted = True
+
+        return self
 
     def make_future_dataframe(
         self, df: Optional[DFType] = None, h: Optional[int] = None
