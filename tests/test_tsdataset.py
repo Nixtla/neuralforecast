@@ -44,6 +44,19 @@ def test_data_module(setup_data):
         np.testing.assert_array_equal(batch["temporal_cols"], ["y", "available_mask"])
 
 
+def test_data_module_drop_last_keeps_every_validation_series():
+    # `drop_last` is for training batches: validation must still see every series.
+    temporal_df = generate_series(n_series=5, n_temporal_features=0)
+    dataset, *_ = TimeSeriesDataset.from_df(df=temporal_df)
+
+    data = TimeSeriesDataModule(
+        dataset=dataset, batch_size=2, valid_batch_size=4, drop_last=True
+    )
+
+    assert [len(b["temporal"]) for b in data.train_dataloader()] == [2, 2]
+    assert [len(b["temporal"]) for b in data.val_dataloader()] == [4, 1]
+
+
 def test_static_features(setup_data):
     temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
     batch_size = 128
