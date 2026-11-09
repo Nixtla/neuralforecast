@@ -54,6 +54,7 @@ from neuralforecast.models import (
     DeepNPTS,
     DilatedRNN,
     DLinear,
+    ESRNN,
     FEDformer,
     Informer,
     MLPMultivariate,
@@ -173,6 +174,12 @@ def _list_distributed_parquet_files(fs, partitions_path: str) -> List[str]:
     return files
 
 
+def _uses_esrnn(model):
+    """Recognize ES-RNN both directly and inside an automatic model wrapper."""
+    model_class = model.cls_model if isinstance(model, BaseAuto) else type(model)
+    return issubclass(model_class, ESRNN)
+
+
 def _insample_times(
     times: np.ndarray,
     uids: Series,
@@ -227,6 +234,8 @@ def _insample_times(
 
 
 MODEL_FILENAME_DICT = {
+    "esrnn": ESRNN,
+    "autoesrnn": ESRNN,
     "autoformer": Autoformer,
     "autoautoformer": Autoformer,
     "deepar": DeepAR,
@@ -525,6 +534,8 @@ class NeuralForecast:
                 )
 
         self.h = models[0].h
+        if local_scaler_type is not None and any(_uses_esrnn(model) for model in models):
+            raise ValueError("ESRNN requires local_scaler_type=None to preserve positive targets.")
         self.models_init = models
         self.freq = freq
         if local_scaler_type is not None and local_scaler_type not in _type2scaler:
@@ -722,6 +733,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
         )
+        dataset.frequency = self.freq
         self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
 
@@ -2686,6 +2698,10 @@ class NeuralForecast:
             raise Exception(
                 "The models must be fitted first with `fit` or `cross_validation`."
             )
+        if any(_uses_esrnn(model) for model in self.models):
+            raise NotImplementedError(
+                "ESRNN does not support predict_insample; use chronological cross_validation instead."
+            )
         test_size = self.models[0].get_test_size()
 
         quantiles_ = None
@@ -3250,9 +3266,16 @@ class NeuralForecast:
                 prediction_interval_method = get_prediction_interval_method(
                     self.prediction_intervals.method
                 )
+                # Single-output losses can name their point output (for example
+                # QuantileLoss uses '_ql0.5'). Calibration stores that full name,
+                # whereas interval methods use the model name for their output.
+                conformity_scores = self._cs_df
+                point_column = model_name + model.loss.output_names[0]
+                if model_name not in conformity_scores.columns and point_column in conformity_scores.columns:
+                    conformity_scores = ufp.rename(conformity_scores, {point_column: model_name})
                 fcsts_with_intervals, out_cols = prediction_interval_method(
                     model_fcsts,
-                    self._cs_df,
+                    conformity_scores,
                     model=model_name,
                     level=level_ if has_level else None,
                     cs_n_windows=self.prediction_intervals.n_windows,

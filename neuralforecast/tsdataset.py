@@ -63,14 +63,19 @@ class TimeSeriesLoader(DataLoader):
             return torch.stack(batch, 0, out=out)
 
         elif isinstance(elem, Mapping):
+            identity = {}
+            if "series_idx" in elem:
+                identity["series_idx"] = self.collate_fn([d["series_idx"] for d in batch])
             if elem["static"] is None:
                 return dict(
+                    **identity,
                     temporal=self.collate_fn([d["temporal"] for d in batch]),
                     temporal_cols=elem["temporal_cols"],
                     y_idx=elem["y_idx"],
                 )
 
             return dict(
+                **identity,
                 static=self.collate_fn([d["static"] for d in batch]),
                 static_cols=elem["static_cols"],
                 temporal=self.collate_fn([d["temporal"] for d in batch]),
@@ -182,10 +187,16 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         y_idx: int,
         static=None,
         static_cols=None,
+        series_ids=None,
+        series_times=None,
+        frequency=None,
     ):
         self.temporal = self._as_torch_copy(temporal)
         self.indptr = indptr
         self.n_groups = self.indptr.size - 1
+        self.series_ids = series_ids
+        self.series_times = series_times
+        self.frequency = frequency
         sizes = np.diff(indptr)
         super().__init__(
             temporal_cols=temporal_cols,
@@ -214,6 +225,7 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             static = None if self.static is None else self.static[idx, :]
 
             item = dict(
+                series_idx=torch.tensor(idx, dtype=torch.long),
                 temporal=temporal,
                 temporal_cols=self.temporal_cols,
                 static=static,
@@ -296,6 +308,19 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             raise ValueError(
                 "Cannot append `futr_dataset` with different number of groups."
             )
+        series_ids = getattr(self, "series_ids", None)
+        history_times = getattr(self, "series_times", None)
+        future_times = getattr(futr_dataset, "series_times", None)
+        if series_ids is not None and getattr(futr_dataset, "series_ids", None) is not None:
+            if series_ids != futr_dataset.series_ids:
+                raise ValueError("Cannot append datasets with different series identities.")
+        series_times = None
+        if history_times is not None and future_times is not None:
+            series_times = []
+            for history, future in zip(history_times, future_times):
+                if len(history) and len(future) and future[0] <= history[-1]:
+                    raise ValueError("Appended series times must follow existing history.")
+                series_times.append(np.concatenate((history, future)))
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = self.temporal.shape
         len_futr = futr_dataset.temporal.shape[0]
@@ -321,6 +346,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             static=self.static,
             y_idx=self.y_idx,
             static_cols=self.static_cols,
+            series_ids=series_ids,
+            series_times=series_times,
+            frequency=getattr(self, "frequency", None),
         )
 
     @staticmethod
@@ -379,6 +407,12 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
             y_idx=dataset.y_idx,
             static=dataset.static,
             static_cols=dataset.static_cols,
+            series_ids=getattr(dataset, "series_ids", None),
+            frequency=getattr(dataset, "frequency", None),
+            series_times=(
+                [times[left_trim : len(times) - right_trim] for times in dataset.series_times]
+                if getattr(dataset, "series_times", None) is not None else None
+            ),
         )
 
     @staticmethod
@@ -420,6 +454,8 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         ds = df[time_col].to_numpy()
         if sort_idxs is not None:
             ds = ds[sort_idxs]
+        dataset.series_ids = list(ids)
+        dataset.series_times = [ds[indptr[i] : indptr[i + 1]].copy() for i in range(len(ids))]
         return dataset, indices, dates, ds
 
 
