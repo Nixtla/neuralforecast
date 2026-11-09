@@ -368,7 +368,9 @@ def test_mape_gradient_is_finite_with_zero_targets():
 def test_MQLoss_normalization_with_mask_and_horizon_weight():
     quantiles = torch.tensor([0.1, 0.5, 0.9])
     y = torch.tensor([[[2.0], [4.0], [8.0]]])
-    y_hat = torch.tensor([[[[1.0, 2.0, 3.0]], [[2.0, 4.0, 6.0]], [[6.0, 8.0, 10.0]]]])
+    y_hat = torch.tensor(
+        [[[[1.0, 2.0, 3.0]], [[2.0, 4.0, 6.0]], [[6.0, 8.0, 10.0]]]]
+    )
     mask = torch.tensor([[[1.0], [0.0], [1.0]]])
     horizon_weight = torch.tensor([1.0, 2.0, 3.0])
 
@@ -388,7 +390,9 @@ def test_MQLoss_normalization_with_mask_and_horizon_weight():
 def test_sCRPS_matches_mean_quantile_pinball_reference():
     quantiles = [0.1, 0.5, 0.9]
     y = torch.tensor([[[1.0], [2.0], [4.0]]])
-    y_hat = torch.tensor([[[[0.0, 1.0, 2.0]], [[1.0, 2.0, 3.0]], [[2.0, 4.0, 5.0]]]])
+    y_hat = torch.tensor(
+        [[[[0.0, 1.0, 2.0]], [[1.0, 2.0, 3.0]], [[2.0, 4.0, 5.0]]]]
+    )
     mask = torch.ones_like(y)
     q = torch.tensor(quantiles)
 
