@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-15-xlarge, windows-latest]
+        os: [ubuntu-latest, macos-latest-xlarge, windows-latest]
         python-version: ['3.11', '3.12', '3.13', '3.14']
     steps:
       - name: Clone repo
