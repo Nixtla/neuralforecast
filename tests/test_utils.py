@@ -39,6 +39,14 @@ def test_week_of_year_uses_iso_week():
     np.testing.assert_allclose(WeekOfYear()(index), expected)
 
 
+@pytest.mark.parametrize("feature", [WeekOfYear, DayOfWeek, DayOfYear])
+def test_time_features_return_nan_on_nat(feature):
+    index = pd.DatetimeIndex(["2024-01-01", pd.NaT, "2024-01-08"])
+    values = np.asarray(feature()(index), dtype=float)
+    assert np.isnan(values[1])
+    assert not np.isnan(values[[0, 2]]).any()
+
+
 def test_day_of_week_and_day_of_year():
     # 2024-01-01 is a Monday
     index = pd.date_range("2024-01-01", periods=7, freq="D")

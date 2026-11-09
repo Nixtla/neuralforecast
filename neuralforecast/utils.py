@@ -362,7 +362,7 @@ class WeekOfYear(TimeFeature):
     """Week of year encoded as value between [-0.5, 0.5]."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        week = index.isocalendar().week.to_numpy(dtype=np.int64)
+        week = index.isocalendar().week.to_numpy(dtype="float64", na_value=np.nan)
         return (week - 1) / 52.0 - 0.5
 
 
