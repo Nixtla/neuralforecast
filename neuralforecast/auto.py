@@ -559,7 +559,7 @@ class AutoESRNN(BaseAuto):
         "h": None,
         "season_length": (),
         "encoder_hidden_size": tune.choice([16, 32, 64]),
-        "dilations": tune.choice([((1, 2), (4, 8)), ((1, 2, 4, 8),)]),
+        "dilations": tune.choice([[[1, 2], [4, 8]], [[1, 2, 4, 8]]]),
         "learning_rate": tune.loguniform(1e-4, 1e-2),
         "level_variability_penalty": tune.choice([0.0, 10.0, 50.0]),
         "max_steps": tune.choice([100, 300, 500]),

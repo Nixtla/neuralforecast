@@ -164,3 +164,68 @@ def test_autoesrnn_enforces_single_gpu_ray_reservations():
 
     with pytest.raises(ValueError, match="one GPU"):
         AutoESRNN(h=2, ray_options=RayOptions(gpus=2))
+
+
+def test_default_dilations_survive_persisted_optuna_study_resume(tmp_path):
+    from neuralforecast.auto import AutoESRNN
+    from neuralforecast.common._base_auto import OptunaOptions
+
+    default_config = AutoESRNN.get_default_config(h=2, backend="optuna")
+
+    def config(trial):
+        sampled = default_config(trial)
+        sampled.update(
+            max_steps=1,
+            val_check_steps=1,
+            encoder_hidden_size=4,
+            batch_size=1,
+            accelerator="cpu",
+            devices=1,
+            logger=False,
+            enable_progress_bar=False,
+            enable_model_summary=False,
+            num_sanity_val_steps=0,
+        )
+        return sampled
+
+    storage = f"sqlite:///{(tmp_path / 'esrnn-study.db').as_posix()}"
+    options = OptunaOptions(
+        create_study_kwargs={
+            "storage": storage,
+            "study_name": "esrnn-defaults",
+            "load_if_exists": True,
+        }
+    )
+    dataset, *_ = TimeSeriesDataset.from_df(_panel())
+    for expected_trials in (2, 4):
+        auto = AutoESRNN(
+            h=2,
+            config=config,
+            backend="optuna",
+            num_samples=2,
+            # Start TPE early so trial two consumes choices read from SQLite.
+            search_alg=optuna.samplers.TPESampler(seed=3, n_startup_trials=1),
+            optuna_options=options,
+        )
+        auto.fit(dataset, val_size=2)
+        assert len(auto.results.trials) == expected_trials
+        assert all(
+            t.state == optuna.trial.TrialState.COMPLETE for t in auto.results.trials
+        )
+        assert np.isfinite(auto.results.best_value)
+
+    reloaded = optuna.load_study(study_name="esrnn-defaults", storage=storage)
+    assert len(reloaded.trials) == 4
+    assert all("dilations" in trial.params for trial in reloaded.trials)
+
+
+def test_default_optuna_dilation_distribution_is_json_stable():
+    from neuralforecast.auto import AutoESRNN
+
+    trial = optuna.create_study().ask()
+    AutoESRNN.get_default_config(h=2, backend="optuna")(trial)
+    distribution = trial.distributions["dilations"]
+    restored = optuna.distributions.json_to_distribution(
+        optuna.distributions.distribution_to_json(distribution)
+    )
+    optuna.distributions.check_distribution_compatibility(distribution, restored)
