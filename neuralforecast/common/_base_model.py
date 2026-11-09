@@ -1508,6 +1508,15 @@ class BaseModel(pl.LightningModule):
         )
         return windows_batch
 
+    def _group_outputs_by_series(self, y_pred, batch_size):
+        # Standard distributions keep parameter-major blocks; quantile and
+        # mixture losses group each series' outputs together.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
+        return y_pred.reshape(batch_size, self.h, -1)
+
     def _parse_windows(self, batch, windows):
         # windows: [Ws, L + h, C, n_series]
 
