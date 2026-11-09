@@ -1,7 +1,7 @@
 __all__ = ["ESRNN"]
 
 import json
-from typing import Optional, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
@@ -252,7 +252,7 @@ class ESRNN(BaseModel):
             raise ValueError(
                 "dilations must contain nonempty groups of positive integers."
             )
-        base_options = dict(
+        base_options: dict[str, Any] = dict(
             inference_windows_batch_size=-1,
             start_padding_enabled=False,
         )
@@ -293,10 +293,10 @@ class ESRNN(BaseModel):
             ]
         )
         self.decoder = nn.Linear(encoder_hidden_size, h)
-        self.series_ids_ = []
-        self.series_starts_ = []
-        self.series_frequencies_ = []
-        self._batch_series_rows = []
+        self.series_ids_: list[Any] = []
+        self.series_starts_: list[Any] = []
+        self.series_frequencies_: list[Union[int, str]] = []
+        self._batch_series_rows: list[int] = []
 
     @property
     def _first_origin(self):

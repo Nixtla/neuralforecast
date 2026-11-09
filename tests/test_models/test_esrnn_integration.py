@@ -295,3 +295,15 @@ def test_direct_fit_with_minimal_two_timestamp_history():
     predicted = model.predict(dataset.append(future), test_size=1)
     assert predicted.shape == (1, 1)
     assert np.isfinite(predicted).all() and (predicted > 0).all()
+
+
+@pytest.mark.parametrize("offset", [0, 30])
+def test_esrnn_rejects_noncontiguous_explicit_validation(offset):
+    from neuralforecast import NeuralForecast
+
+    train = _panel().query("unique_id == 'a'").copy()
+    validation = train.head(2).copy()
+    validation["ds"] += pd.Timedelta(days=offset)
+    forecaster = NeuralForecast(models=[_small_model()], freq="D")
+    with pytest.raises(ValueError, match="ESRNN.*contiguous"):
+        forecaster.fit(df=train, val_df=validation)

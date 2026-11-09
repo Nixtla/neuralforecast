@@ -3271,7 +3271,11 @@ class NeuralForecast:
                 # whereas interval methods use the model name for their output.
                 conformity_scores = self._cs_df
                 point_column = model_name + model.loss.output_names[0]
-                if model_name not in conformity_scores.columns and point_column in conformity_scores.columns:
+                if (
+                    conformity_scores is not None
+                    and model_name not in conformity_scores.columns
+                    and point_column in conformity_scores.columns
+                ):
                     conformity_scores = ufp.rename(conformity_scores, {point_column: model_name})
                 fcsts_with_intervals, out_cols = prediction_interval_method(
                     model_fcsts,

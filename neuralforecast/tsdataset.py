@@ -317,9 +317,9 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         series_times = None
         if history_times is not None and future_times is not None:
             series_times = []
+            # Explicit validation sets may be temporally independent. Preserve
+            # their times; models with chronological requirements validate them.
             for history, future in zip(history_times, future_times):
-                if len(history) and len(future) and future[0] <= history[-1]:
-                    raise ValueError("Appended series times must follow existing history.")
                 series_times.append(np.concatenate((history, future)))
         # Define and fill new temporal with updated information
         len_temporal, col_temporal = self.temporal.shape
