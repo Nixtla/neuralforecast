@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import sys
+import subprocess
 import tempfile
 import threading
 import warnings
@@ -58,7 +59,12 @@ def _native_module(required=False):
                         build_directory=str(build),
                         verbose=False,
                     )
-                except (RuntimeError, OSError, ImportError) as error:
+                except (
+                    RuntimeError,
+                    OSError,
+                    ImportError,
+                    subprocess.SubprocessError,
+                ) as error:
                     _NATIVE_ERROR = error
                     if not required:
                         warnings.warn(

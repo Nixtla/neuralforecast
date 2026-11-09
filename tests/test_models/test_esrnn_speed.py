@@ -1,6 +1,7 @@
 """Numerical equivalence checks for batched and fused ES-RNN execution."""
 
 from copy import deepcopy
+import subprocess
 
 import pytest
 import torch
@@ -228,12 +229,29 @@ def test_training_scans_once_and_batches_each_recurrent_group(monkeypatch, penal
     assert torch.isfinite(model.es.smoothing.grad).all()
 
 
-def test_auto_backend_falls_back_without_compiler(monkeypatch):
+@pytest.mark.parametrize(
+    "error",
+    [
+        RuntimeError("compiler missing"),
+        subprocess.CalledProcessError(1, ["where", "cl"]),
+        ImportError("DLL load failed"),
+    ],
+    ids=["compilation", "compiler-discovery", "module-loading"],
+)
+def test_auto_backend_falls_back_without_compiler(monkeypatch, error):
     import neuralforecast.common._esrnn as kernels
     from neuralforecast.models import ESRNN
+    from torch.utils import cpp_extension
+
+    attempts = []
+
+    def unavailable(*args, **kwargs):
+        attempts.append(1)
+        raise error
 
     monkeypatch.setattr(kernels, "_NATIVE", None)
-    monkeypatch.setattr(kernels, "_NATIVE_ERROR", RuntimeError("compiler missing"))
+    monkeypatch.setattr(kernels, "_NATIVE_ERROR", None)
+    monkeypatch.setattr(cpp_extension, "load", unavailable)
     model = ESRNN(
         h=2,
         input_size=3,
@@ -243,10 +261,16 @@ def test_auto_backend_falls_back_without_compiler(monkeypatch):
         dilations=((1,),),
     )
     y = torch.arange(10, dtype=torch.float32) + 2
-    prediction, scale = model._forecast_series(y, 0, [5, 8])
+    with pytest.warns(RuntimeWarning, match="using batched PyTorch"):
+        prediction, scale = model._forecast_series(y, 0, [5, 8])
     (prediction * scale).sum().backward()
     assert torch.isfinite(prediction).all()
     assert torch.isfinite(model.es.smoothing.grad).all()
+    assert kernels._native_module() is None
+    with pytest.raises(RuntimeError, match="could not compile") as failure:
+        kernels._native_module(required=True)
+    assert failure.value.__cause__ is error
+    assert attempts == [1]
 
 
 def test_native_scan_promotes_mixed_input_parameter_dtypes():
