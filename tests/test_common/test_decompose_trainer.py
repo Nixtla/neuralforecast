@@ -10,7 +10,9 @@ windows (or the call failed).
 import pytest
 import torch
 
-from neuralforecast.models import NLinear
+from neuralforecast.models import NBEATS, NHITS, NLinear
+from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.utils import AirPassengersDF
 
 
 class _DataModule:
@@ -56,7 +58,20 @@ def _patch(monkeypatch, trainer_cls, device_count):
     )
 
 
-def test_decompose_pins_one_device_on_multi_gpu(monkeypatch):
+@pytest.mark.parametrize(
+    "accelerator, device_count, expected_devices",
+    [
+        ("gpu", 2, [0]),
+        ("cuda", 2, [0]),
+        ("auto", 2, [0]),
+        ("gpu", 1, -1),
+        ("cuda", 1, -1),
+        ("cpu", 4, -1),
+    ],
+)
+def test_decompose_pins_one_device(
+    monkeypatch, accelerator, device_count, expected_devices
+):
     captured = {}
 
     class Trainer(_RecordingTrainer):
@@ -64,41 +79,27 @@ def test_decompose_pins_one_device_on_multi_gpu(monkeypatch):
             super().__init__(**kwargs)
             captured["kwargs"] = kwargs
 
-    _patch(monkeypatch, Trainer, device_count=2)
-    model = _model(accelerator="gpu", devices=-1)
+    _patch(monkeypatch, Trainer, device_count=device_count)
+    # "auto" counts as GPU only when CUDA is available.
+    monkeypatch.setattr(
+        "pytorch_lightning.accelerators.cuda.CUDAAccelerator.is_available",
+        staticmethod(lambda: True),
+    )
+    model = _model(accelerator=accelerator, devices=-1)
 
     out = model.decompose(dataset=object())
 
-    assert captured["kwargs"]["devices"] == [0]
-    assert captured["kwargs"]["strategy"] == "auto"
-    assert captured["kwargs"]["accelerator"] == "gpu"
+    assert captured["kwargs"]["accelerator"] == accelerator
+    assert captured["kwargs"]["devices"] == expected_devices
+    if expected_devices == [0]:
+        assert captured["kwargs"]["strategy"] == "auto"
+    else:
+        assert "strategy" not in captured["kwargs"]
     # The guard copies the kwargs. Training must keep devices=-1.
     assert model.trainer_kwargs["devices"] == -1
     assert "strategy" not in model.trainer_kwargs
     assert model.decompose_forecast is False
     assert out.shape == (2, 1)
-
-
-def test_decompose_leaves_single_gpu_and_cpu_unchanged(monkeypatch):
-    captured = {}
-
-    class Trainer(_RecordingTrainer):
-        def __init__(self, **kwargs):
-            super().__init__(**kwargs)
-            captured["kwargs"] = kwargs
-
-    _patch(monkeypatch, Trainer, device_count=1)
-    model = _model(accelerator="gpu", devices=-1)
-    model.decompose(dataset=object())
-    assert captured["kwargs"]["devices"] == -1
-    assert "strategy" not in captured["kwargs"]
-
-    _patch(monkeypatch, Trainer, device_count=4)
-    cpu = _model(accelerator="cpu", devices=-1)
-    cpu.decompose(dataset=object())
-    assert captured["kwargs"]["accelerator"] == "cpu"
-    assert captured["kwargs"]["devices"] == -1
-    assert "strategy" not in captured["kwargs"]
 
 
 def test_decompose_resets_flag_when_predict_fails(monkeypatch):
@@ -107,5 +108,53 @@ def test_decompose_resets_flag_when_predict_fails(monkeypatch):
 
     with pytest.raises(RuntimeError, match="predict failed"):
         model.decompose(dataset=object())
+
+    assert model.decompose_forecast is False
+
+
+def _air_passengers_dataset():
+    dataset, *_ = TimeSeriesDataset.from_df(AirPassengersDF)
+    return dataset
+
+
+def _real_model(model_cls, **kwargs):
+    return model_cls(
+        h=12,
+        input_size=24,
+        max_steps=1,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        enable_model_summary=False,
+        logger=False,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("model_cls", [NHITS, NBEATS])
+def test_decompose_real_model_matches_predict(model_cls):
+    dataset = _air_passengers_dataset()
+    n_stacks = 3
+    model = _real_model(model_cls)
+
+    decomposed = model.decompose(dataset=dataset)
+    predicted = model.predict(dataset=dataset)
+
+    assert decomposed.shape == (1, n_stacks + 1, 12)
+    assert decomposed.sum(axis=1) == pytest.approx(
+        predicted.reshape(1, 12), rel=1e-4, abs=1e-4
+    )
+    assert model.decompose_forecast is False
+
+
+def test_decompose_real_model_resets_flag_when_forward_fails(monkeypatch):
+    dataset = _air_passengers_dataset()
+    model = _real_model(NHITS)
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("forward failed")
+
+    monkeypatch.setattr(model, "forward", boom)
+    with pytest.raises(RuntimeError, match="forward failed"):
+        model.decompose(dataset=dataset)
 
     assert model.decompose_forecast is False

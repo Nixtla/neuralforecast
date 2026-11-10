@@ -103,6 +103,16 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.numpy()
 
 
+def _is_gpu_accelerator(accelerator):
+    from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+    return (
+        accelerator in ("gpu", "cuda")
+        or isinstance(accelerator, CUDAAccelerator)
+        or (accelerator == "auto" and CUDAAccelerator.is_available())
+    )
+
+
 def _resolve_cat_emb_dim(strategy: Union[str, int], cardinality: int) -> int:
     """Resolve a categorical embedding dimension from a named strategy.
 
@@ -910,15 +920,6 @@ class BaseModel(pl.LightningModule):
             model.__dict__.pop("_trainer", None)
             return model
 
-        def is_gpu_accelerator(accelerator):
-            from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-            return (
-                accelerator == "gpu"
-                or isinstance(accelerator, CUDAAccelerator)
-                or (accelerator == "auto" and CUDAAccelerator.is_available())
-            )
-
         local_mode = distributed_config.num_nodes == 1
         if local_mode:
             num_tasks = 1
@@ -927,7 +928,7 @@ class BaseModel(pl.LightningModule):
             num_tasks = distributed_config.num_nodes * distributed_config.devices
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
-        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        use_gpu = _is_gpu_accelerator(self.trainer_kwargs["accelerator"])
         distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
@@ -2625,7 +2626,7 @@ class BaseModel(pl.LightningModule):
         copy: training keeps the original devices and strategy.
         """
         pred_trainer_kwargs = self.trainer_kwargs.copy()
-        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
+        if _is_gpu_accelerator(pred_trainer_kwargs.get("accelerator", None)) and (
             torch.cuda.device_count() > 1
         ):
             pred_trainer_kwargs["devices"] = [0]
