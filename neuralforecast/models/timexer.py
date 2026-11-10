@@ -415,5 +415,5 @@ class TimeXer(BaseModel):
             x_mark_enc = stat_exog_expanded.repeat(B, L, 1)
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred.reshape(B, self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, B)
         return y_pred

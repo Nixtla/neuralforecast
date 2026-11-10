@@ -1264,6 +1264,7 @@ class BaseModel(pl.LightningModule):
         return model
 
     def _create_windows(self, batch, step):
+        # Keep univariate series/start axes separate until sampling.
         # Parse common data
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
@@ -1281,6 +1282,19 @@ class BaseModel(pl.LightningModule):
                     "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
                 )
 
+            sample_weight_windows = None
+            if not self.MULTIVARIATE and "sample_weight" in temporal_cols:
+                sw_idx = temporal_cols.get_loc("sample_weight")
+                weight_windows = temporal[:, sw_idx].unfold(
+                    -1, window_size, self.step_size
+                )
+                sample_weight_windows = (
+                    weight_windows[:, :, self.input_size :].mean(-1).reshape(-1, 1, 1)
+                )
+                keep = [i for i in range(temporal.shape[1]) if i != sw_idx]
+                temporal = temporal[:, keep]
+                temporal_cols = temporal_cols.delete(sw_idx)
+
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
@@ -1289,11 +1303,8 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
             # Extract sample_weight before availability filtering so it is never
             # seen by the model as a feature
@@ -1306,8 +1317,6 @@ class BaseModel(pl.LightningModule):
                 keep = [i for i in range(windows.shape[2]) if i != sw_idx]
                 windows = windows[:, :, keep, :]
                 temporal_cols = temporal_cols.delete(sw_idx)
-            else:
-                sample_weight_windows = None
 
             # Calculate minimum required available points based on fractions
             min_insample_points = max(
@@ -1319,17 +1328,20 @@ class BaseModel(pl.LightningModule):
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            insample_condition = windows[:, : self.input_size, available_idx]
-            insample_condition = torch.sum(
-                insample_condition, axis=(1, -1)
-            )  # Sum over time & series dimension
+            if not self.MULTIVARIATE:
+                mask = windows[:, :, :, available_idx]
+                insample_condition = mask[:, :, : self.input_size].sum((2, 3)).reshape(-1)
+            else:
+                insample_condition = windows[:, : self.input_size, available_idx]
+                insample_condition = torch.sum(insample_condition, axis=(1, -1))
             final_condition = insample_condition >= min_insample_points
 
             if self.h > 0:
-                outsample_condition = windows[:, self.input_size :, available_idx]
-                outsample_condition = torch.sum(
-                    outsample_condition, axis=(1, -1)
-                )  # Sum over time & series dimension
+                if not self.MULTIVARIATE:
+                    outsample_condition = mask[:, :, self.input_size :].sum((2, 3)).reshape(-1)
+                else:
+                    outsample_condition = windows[:, self.input_size :, available_idx]
+                    outsample_condition = torch.sum(outsample_condition, axis=(1, -1))
                 final_condition = (outsample_condition >= min_outsample_points) & (
                     insample_condition >= min_insample_points
                 )
@@ -1337,12 +1349,6 @@ class BaseModel(pl.LightningModule):
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
-
-            # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
-            if static is not None and not self.MULTIVARIATE:
-                static = torch.repeat_interleave(
-                    static, repeats=windows_per_serie, dim=0
-                )
 
             # Protection of empty windows
             if final_condition.sum() == 0:
@@ -1403,17 +1409,13 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
-                if static is not None:
-                    static = torch.repeat_interleave(
-                        static, repeats=windows_per_serie, dim=0
-                    )
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
-            final_condition = torch.arange(windows.shape[0], device=windows.device)
+            n_windows = (
+                windows.shape[0] if self.MULTIVARIATE else windows.shape[0] * windows.shape[1]
+            )
+            final_condition = torch.arange(n_windows, device=windows.device)
 
             return windows, static, static_cols, final_condition, None, temporal_cols
         else:
@@ -1491,10 +1493,18 @@ class BaseModel(pl.LightningModule):
         sample_weight=None,
     ):
         w_idxs_final = final_condition[w_idxs]
-        windows_sample = windows_temporal[w_idxs_final]
-
-        if static is not None and not self.MULTIVARIATE:
-            static = static[w_idxs_final]
+        if not self.MULTIVARIATE:
+            # Flatten series/start indices only after sampling; the full window
+            # tensor remains a view of the original temporal data.
+            series_idxs = torch.div(
+                w_idxs_final, windows_temporal.shape[1], rounding_mode="floor"
+            )
+            start_idxs = w_idxs_final % windows_temporal.shape[1]
+            windows_sample = windows_temporal[series_idxs, start_idxs]
+            if static is not None:
+                static = static[series_idxs]
+        else:
+            windows_sample = windows_temporal[w_idxs_final]
 
         if sample_weight is not None:
             sample_weight = sample_weight[w_idxs_final]
@@ -1507,6 +1517,15 @@ class BaseModel(pl.LightningModule):
             sample_weight=sample_weight,
         )
         return windows_batch
+
+    def _group_outputs_by_series(self, y_pred, batch_size):
+        # Standard distributions keep parameter-major blocks; quantile and
+        # mixture losses group each series' outputs together.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
+        return y_pred.reshape(batch_size, self.h, -1)
 
     def _parse_windows(self, batch, windows):
         # windows: [Ws, L + h, C, n_series]
@@ -1833,7 +1852,7 @@ class BaseModel(pl.LightningModule):
         # Reset state and horizon
         self.maintain_state = False
         self.rnn_state = None
-        self.h = self.horizon_backup
+        self.h = self.predict_horizon
 
         # Squeeze for univariate case
         if not self.MULTIVARIATE:
@@ -1887,12 +1906,13 @@ class BaseModel(pl.LightningModule):
             # mean as feedback signal for the recurrent predictions. A more precise way is to increase the
             # insample input size of the recurrent network by the number of outputs so that each output
             # can be fed back to a specific input channel.
-            if output_batch.ndim == 4:
-                output_batch = output_batch.mean(dim=-1)
-
             insample_y = output_batch
+            if output_batch.ndim == 4:
+                insample_y = output_batch.mean(dim=-1)
+
             y_hat = self._inv_normalization(y_hat=output_batch, y_idx=y_idx)
-            y_hat = y_hat.unsqueeze(-1)
+            if y_hat.ndim == 3:
+                y_hat = y_hat.unsqueeze(-1)
 
         # Remove horizon dim: [B, 1, N, n_outputs] -> [B, N, n_outputs]
         y_hat = y_hat.squeeze(1)
@@ -2695,7 +2715,7 @@ class BaseModel(pl.LightningModule):
             pred_trainer_kwargs["inference_mode"] = False
             self.explainer_config = explainer_config
             trainer = pl.Trainer(**pred_trainer_kwargs)
-            out = trainer.predict(self, datamodule=datamodule)
+            out = self._predict_with_trainer(trainer, datamodule)
             fcsts = []
             insample_explanations = []
             futr_exog_explanations = []
@@ -2754,7 +2774,7 @@ class BaseModel(pl.LightningModule):
                 self._pred_trainer = pl.Trainer(**pred_trainer_kwargs)
                 self._pred_trainer_kwargs = pred_trainer_kwargs
             trainer = self._pred_trainer
-            fcsts = trainer.predict(self, datamodule=datamodule)
+            fcsts = self._predict_with_trainer(trainer, datamodule)
             fcsts = torch.vstack(fcsts)
             self.explanations = None
             if h is not None:
@@ -2768,12 +2788,19 @@ class BaseModel(pl.LightningModule):
         fcsts = tensor_to_numpy(fcsts).flatten()
         fcsts = fcsts.reshape(-1, len(self.loss.output_names))
 
-        # Reset n_predicts
-        self.n_predicts = 1
-        self.h = self.horizon_backup
-        self.predict_horizon = self.horizon_backup
-
         return fcsts
+
+    def _predict_with_trainer(self, trainer, datamodule):
+        try:
+            return trainer.predict(self, datamodule=datamodule)
+        finally:
+            self.n_predicts = 1
+            self.h = self.horizon_backup
+            self.predict_horizon = self.horizon_backup
+            if self.RECURRENT:
+                self.input_size = self.input_size_backup
+                self.maintain_state = False
+                self.rnn_state = None
 
     def simulate(
         self,
