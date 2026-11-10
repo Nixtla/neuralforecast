@@ -521,3 +521,104 @@ def test_optuna_time_budget(setup_module):
     assert isinstance(auto.results, optuna.Study)
     y_hat = auto.predict(dataset=dataset)
     assert y_hat.shape[0] > 0
+
+
+def _translated_distributions(space):
+    to_optuna = BaseAuto._ray_config_to_optuna(space)
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=0))
+    study.optimize(lambda trial: to_optuna(trial) and 0.0, n_trials=1)
+    return study.trials[0].distributions
+
+
+@pytest.mark.parametrize(
+    "domain, expected",
+    [
+        # randint and lograndint exclude upper, optuna's suggest_int includes high
+        (tune.randint(1, 3), optuna.distributions.IntDistribution(1, 2)),
+        (
+            tune.lograndint(16, 256),
+            optuna.distributions.IntDistribution(16, 255, log=True),
+        ),
+        # qrandint includes upper and only samples multiples of q
+        (tune.qrandint(8, 64, 8), optuna.distributions.IntDistribution(8, 64, step=8)),
+        (tune.qrandint(1, 30, 8), optuna.distributions.IntDistribution(8, 24, step=8)),
+        (tune.qrandint(1, 3), optuna.distributions.IntDistribution(1, 3)),
+    ],
+)
+def test_optuna_config_translates_integer_spaces(domain, expected):
+    distributions = _translated_distributions({"param": domain})
+    assert distributions["param"] == expected
+
+
+def test_optuna_config_integer_spaces_match_ray_samples():
+    space = {
+        "randint": tune.randint(1, 3),
+        "lograndint": tune.lograndint(16, 256),
+        "qrandint": tune.qrandint(8, 64, 8),
+    }
+    to_optuna = BaseAuto._ray_config_to_optuna(space)
+    seen = {k: set() for k in space}
+
+    def objective(trial):
+        for k, v in to_optuna(trial).items():
+            seen[k].add(v)
+        return 0.0
+
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=0))
+    study.optimize(objective, n_trials=50)
+    assert seen["randint"] == {1, 2}
+    for k in ("lograndint", "qrandint"):
+        assert all(type(v) is int for v in seen[k])
+    assert all(16 <= v < 256 for v in seen["lograndint"])
+    assert all(8 <= v <= 64 and v % 8 == 0 for v in seen["qrandint"])
+
+
+def test_optuna_config_rejects_quantized_log_integers():
+    to_optuna = BaseAuto._ray_config_to_optuna({"param": tune.qlograndint(8, 64, 8)})
+    study = optuna.create_study()
+    with pytest.raises(ValueError, match="qlograndint"):
+        study.optimize(to_optuna, n_trials=1)
+
+
+def _auto_classes():
+    import neuralforecast.auto as auto
+
+    return [
+        cls
+        for name, cls in vars(auto).items()
+        if name.startswith("Auto")
+        and isinstance(cls, type)
+        and issubclass(cls, BaseAuto)
+        and hasattr(cls, "default_config")
+    ]
+
+
+@pytest.mark.parametrize("cls", _auto_classes(), ids=lambda cls: cls.__name__)
+def test_optuna_default_configs_sample_integers_within_ray_domain(cls):
+    h, n_series = 12, 2
+    ray_config = cls.get_default_config(h=h, backend="ray", n_series=n_series)
+    to_optuna = cls.get_default_config(h=h, backend="optuna", n_series=n_series)
+    integer_domains = {
+        k: v for k, v in ray_config.items() if isinstance(v, tune.search.sample.Integer)
+    }
+
+    def objective(trial):
+        config = to_optuna(trial)
+        for k, domain in integer_domains.items():
+            value = config[k]
+            assert type(value) is int, (k, value)
+            if isinstance(domain.get_sampler(), tune.search.sample.Quantized):
+                assert domain.lower <= value <= domain.upper, (k, value)
+            else:
+                assert domain.lower <= value < domain.upper, (k, value)
+        return 0.0
+
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=0))
+    study.optimize(objective, n_trials=20, catch=())
+
+
+def test_optuna_config_warns_when_dropping_float_log_quantization():
+    to_optuna = BaseAuto._ray_config_to_optuna({"param": tune.qloguniform(1e-4, 1e-1, 5e-5)})
+    study = optuna.create_study()
+    with pytest.warns(UserWarning, match="quantization"):
+        study.optimize(lambda trial: to_optuna(trial) and 0.0, n_trials=1)
