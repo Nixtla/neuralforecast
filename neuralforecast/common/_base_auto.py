@@ -478,6 +478,12 @@ class BaseAuto(pl.LightningModule):
                         if isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._LogUniform
                         ):
+                            warnings.warn(
+                                f"Optuna doesn't support quantized log-uniform floats, "
+                                f"so the quantization (q={sampler.q}) of {k!r} is "
+                                "dropped.",
+                                stacklevel=2,
+                            )
                             v = trial.suggest_float(k, v.lower, v.upper, log=True)
                         elif isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._Uniform

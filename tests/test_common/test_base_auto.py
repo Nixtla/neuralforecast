@@ -578,3 +578,47 @@ def test_optuna_config_rejects_quantized_log_integers():
     study = optuna.create_study()
     with pytest.raises(ValueError, match="qlograndint"):
         study.optimize(to_optuna, n_trials=1)
+
+
+def _auto_classes():
+    import neuralforecast.auto as auto
+
+    return [
+        cls
+        for name, cls in vars(auto).items()
+        if name.startswith("Auto")
+        and isinstance(cls, type)
+        and issubclass(cls, BaseAuto)
+        and hasattr(cls, "default_config")
+    ]
+
+
+@pytest.mark.parametrize("cls", _auto_classes(), ids=lambda cls: cls.__name__)
+def test_optuna_default_configs_sample_integers_within_ray_domain(cls):
+    h, n_series = 12, 2
+    ray_config = cls.get_default_config(h=h, backend="ray", n_series=n_series)
+    to_optuna = cls.get_default_config(h=h, backend="optuna", n_series=n_series)
+    integer_domains = {
+        k: v for k, v in ray_config.items() if isinstance(v, tune.search.sample.Integer)
+    }
+
+    def objective(trial):
+        config = to_optuna(trial)
+        for k, domain in integer_domains.items():
+            value = config[k]
+            assert type(value) is int, (k, value)
+            if isinstance(domain.get_sampler(), tune.search.sample.Quantized):
+                assert domain.lower <= value <= domain.upper, (k, value)
+            else:
+                assert domain.lower <= value < domain.upper, (k, value)
+        return 0.0
+
+    study = optuna.create_study(sampler=optuna.samplers.RandomSampler(seed=0))
+    study.optimize(objective, n_trials=20, catch=())
+
+
+def test_optuna_config_warns_when_dropping_float_log_quantization():
+    to_optuna = BaseAuto._ray_config_to_optuna({"param": tune.qloguniform(1e-4, 1e-1, 5e-5)})
+    study = optuna.create_study()
+    with pytest.warns(UserWarning, match="quantization"):
+        study.optimize(lambda trial: to_optuna(trial) and 0.0, n_trials=1)
