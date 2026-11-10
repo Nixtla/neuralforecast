@@ -2791,9 +2791,13 @@ class BaseModel(pl.LightningModule):
         return fcsts
 
     def _predict_with_trainer(self, trainer, datamodule):
+        # Lightning doesn't restore train mode if predict raises, and doesn't force
+        # it at the start of the next fit.
+        was_training = self.training
         try:
             return trainer.predict(self, datamodule=datamodule)
         finally:
+            self.train(was_training)
             self.n_predicts = 1
             self.h = self.horizon_backup
             self.predict_horizon = self.horizon_backup
@@ -2959,8 +2963,12 @@ class BaseModel(pl.LightningModule):
             **data_module_kwargs,
         )
         trainer = pl.Trainer(**self.trainer_kwargs)
-        fcsts = trainer.predict(self, datamodule=datamodule)
-        self.decompose_forecast = False  # Default decomposition back to false
+        was_training = self.training
+        try:
+            fcsts = trainer.predict(self, datamodule=datamodule)
+        finally:
+            self.train(was_training)
+            self.decompose_forecast = False  # Default decomposition back to false
         fcsts = torch.vstack(fcsts)
         return tensor_to_numpy(fcsts)
     
