@@ -162,6 +162,53 @@ Type | Description
 
 ### TemporalConvolutionEncoder
 
+### `TemporalConvolutionEncoder`
+
+```python
+TemporalConvolutionEncoder(
+    in_channels, out_channels, kernel_size, dilations, activation="ReLU"
+)
+```
+
+Bases: <code>[Module](#torch.nn.Module)</code>
+
+Temporal Convolution Encoder for sequence modeling.
+
+Applies a deep stack of exponentially dilated causal convolutions to capture
+long-range temporal dependencies. The encoder receives input in [N, T, C_in]
+format, permutes it to [N, C_in, T] for convolution operations, and applies
+multiple causal convolutional layers with exponentially increasing dilations.
+This architecture enables efficient modeling of exponentially large receptive
+fields, creating weighted averages over long-term historical patterns.
+
+**Parameters:**
+
+Name | Type | Description | Default
+---- | ---- | ----------- | -------
+`in_channels` | <code>[int](#int)</code> | Number of input channels (features) in the time series. | *required*
+`out_channels` | <code>[int](#int)</code> | Number of output channels after convolution operations. All layers in the stack output this dimensionality. | *required*
+`kernel_size` | <code>[int](#int)</code> | Size of the convolving kernel for each causal convolution layer. Determines the local temporal window. | *required*
+`dilations` | <code>list of int</code> | List of dilation factors for each convolution layer. Controls the temporal spacing between kernel points. For example, [1, 2, 4, 8] creates 4 layers with exponentially increasing receptive fields. | *required*
+`activation` | <code>[str](#str)</code> | Activation function name. Must be one of the supported activations in ACTIVATIONS list (e.g., 'ReLU', 'Tanh', 'GELU'). | <code>'ReLU'</code>
+
+**Returns:**
+
+Type | Description
+---- | -----------
+<code>[Tensor](#torch.Tensor)</code> | Encoded output tensor of shape [N, T, C_out] after applying all causal convolution layers and permuting back to time-first format.
+
+<details class="notes" open markdown="1">
+<summary>Notes</summary>
+
+- Input is automatically permuted from [N, T, C_in] to [N, C_in, T] before
+  convolution and permuted back to [N, T, C_out] after processing.
+- Each layer uses CausalConv1d with padding to ensure causality (no future
+  information leakage).
+- Exponentially increasing dilations allow the receptive field to grow
+  exponentially with network depth, enabling efficient long-range modeling.
+- Used as an encoder component in TCN (Temporal Convolutional Network) models.
+
+</details>
 
 
 ## 3. Transformers
@@ -428,7 +475,7 @@ Name | Type | Description | Default
 `factor` | <code>[int](#int)</code> | Attention factor parameter (unused in FullAttention, kept for API compatibility with ProbAttention). | <code>5</code>
 `scale` | <code>[float](#float)</code> | Custom scaling factor for attention scores. If None, uses 1/sqrt(d_k) where d_k is the key dimension. | <code>None</code>
 `attention_dropout` | <code>[float](#float)</code> | Dropout rate applied to attention weights. | <code>0.1</code>
-`output_attention` | <code>[bool](#bool)</code> | If True, returns attention weights along with output. If False, uses efficient flash attention. | <code>False</code>
+`output_attention` | <code>[bool](#bool)</code> | If True, returns attention weights along with output. If False, uses PyTorch's `scaled_dot_product_attention`, which keeps the flash kernel available when no explicit `attn_mask` is passed. | <code>False</code>
 
 **Returns:**
 
@@ -441,10 +488,12 @@ Type | Description
 <summary>Notes</summary>
 
 - When output_attention=False, uses PyTorch's optimized scaled_dot_product_attention
-  for better performance (flash attention).
+  for better performance. With no explicit `attn_mask` the causal mask is requested via
+  its `is_causal` flag, which keeps the flash kernel available; a boolean `attn_mask`
+  forces the math kernel.
 - When output_attention=True, computes attention explicitly using einsum operations.
-- If mask_flag=True and no attn_mask is provided, automatically creates a
-  TriangularCausalMask for autoregressive attention.
+- If mask_flag=True and no attn_mask is provided, applies a causal mask: the
+  TriangularCausalMask built for the explicit path, the `is_causal` flag otherwise.
 - The tau and delta parameters are accepted for API compatibility but unused.
 
 </details>
