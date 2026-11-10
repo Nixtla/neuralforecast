@@ -2994,3 +2994,39 @@ def test_predict_insample_uses_correct_static_per_series():
     b = ins[ins["unique_id"] == "B"]["NHITS"].to_numpy()
     # Same history, different static -> predictions must differ once static is aligned.
     assert not np.allclose(a, b), "series B was predicted with series A's static features"
+
+
+@pytest.mark.parametrize("explicit_drop_last", [True, False])
+def test_fit_accepts_drop_last_in_dataloader_kwargs(explicit_drop_last):
+    # `drop_last` is a restorable dataloader kwarg, so passing it explicitly has to override
+    # `drop_last_loader` instead of raising "got multiple values for keyword argument".
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    model = MLP(
+        h=12,
+        input_size=24,
+        max_steps=2,
+        drop_last_loader=not explicit_drop_last,
+        dataloader_kwargs={"drop_last": explicit_drop_last},
+        enable_progress_bar=False,
+        logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df)
+
+    # The user's dict must not be consumed by the fit.
+    assert model.dataloader_kwargs == {"drop_last": explicit_drop_last}
+
+
+def test_fit_keeps_other_dataloader_kwargs():
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    model = MLP(
+        h=12,
+        input_size=24,
+        max_steps=2,
+        dataloader_kwargs={"pin_memory": False},
+        enable_progress_bar=False,
+        logger=False,
+    )
+    NeuralForecast(models=[model], freq="ME").fit(df)
+
+    assert model.dataloader_kwargs == {"pin_memory": False}
