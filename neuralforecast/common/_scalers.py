@@ -70,8 +70,8 @@ def minmax_statistics(x, mask, eps=1e-6, dim=-1):
     Args:
         x (torch.Tensor): Input tensor.
         mask (torch.Tensor): Tensor bool, same dimension as `x`, indicates where `x` is valid and False
-            where `x` should be masked. Mask should not be all False in any column of
-            dimension dim to avoid NaNs from zero division.
+            where `x` should be masked. A column of dimension dim that is all False
+            falls back to x_min = 0 and x_range = 1.
         eps (float, optional): Small value to avoid division by zero. Defaults to 1e-6.
         dim (int, optional): Dimension over to compute min and max. Defaults to -1.
 
@@ -120,8 +120,8 @@ def minmax1_statistics(x, mask, eps=1e-6, dim=-1):
     Args:
         x (torch.Tensor): Input tensor.
         mask (torch.Tensor): Tensor bool, same dimension as `x`, indicates where `x` is valid and False
-            where `x` should be masked. Mask should not be all False in any column of
-            dimension dim to avoid NaNs from zero division.
+            where `x` should be masked. A column of dimension dim that is all False
+            falls back to x_min = 0 and x_range = 1.
         eps (float, optional): Small value to avoid division by zero. Defaults to 1e-6.
         dim (int, optional): Dimension over to compute min and max. Defaults to -1.
 
