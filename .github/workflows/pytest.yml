@@ -44,6 +44,10 @@ jobs:
         with:
           arch: x64
 
+      - name: Run ESRNN native tests (windows)
+        if: runner.os == 'Windows'
+        run: uv run pytest tests/test_models/test_esrnn_speed.py --no-cov
+
       - name: Run pytest (macos)
         if: runner.os == 'macOS'
         env:

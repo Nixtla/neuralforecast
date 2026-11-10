@@ -121,6 +121,29 @@ void recurrent_product(const T* left, const T* weight, T* result, int B, int H, 
 }
 #endif
 
+// Keep platform directives outside AT_DISPATCH arguments for MSVC's preprocessor.
+template <typename T>
+void serial_recurrent_forward(const Tensor& out, const Tensor& zero, const Tensor& wh,
+                              const Tensor& recurrent_weights, const Tensor& previous,
+                              Tensor& rec, int64_t t, int64_t B, int64_t H) {
+#ifdef __APPLE__
+  recurrent_product(t ? out.data_ptr<T>()+(t-1)*B*H : zero.data_ptr<T>(),
+                    wh.data_ptr<T>(),rec.data_ptr<T>(),B,H,false);
+#else
+  at::mm_out(rec,previous,recurrent_weights);
+#endif
+}
+
+template <typename T>
+void serial_recurrent_backward(const Tensor& dg, const Tensor& wh, Tensor& dh,
+                               int64_t t, int64_t B, int64_t H) {
+#ifdef __APPLE__
+  recurrent_product(dg.data_ptr<T>()+t*B*4*H,wh.data_ptr<T>(),dh.data_ptr<T>(),B,H,true);
+#else
+  at::mm_out(dh,dg.select(0,t),wh);
+#endif
+}
+
 // Single-row activation helpers share formulas between serial and parallel scans.
 template <typename T>
 void activate_row(T* gates, const T* recurrent, const T* bias,
@@ -205,15 +228,10 @@ std::vector<Tensor> lstm_forward(Tensor x, Tensor wi, Tensor wh, Tensor bi, Tens
 #endif
   auto recurrent_weights=wh.t(),prev=zero;
   for(int64_t t=0;t<T;++t) {
-#ifndef __APPLE__
-    at::mm_out(rec,prev,recurrent_weights);
-#endif
     AT_DISPATCH_FLOATING_TYPES(x.scalar_type(),"lstm_scan_forward",[&] {
       auto *G=gates.data_ptr<scalar_t>(), *C=states.data_ptr<scalar_t>(), *Y=out.data_ptr<scalar_t>(), *R=rec.data_ptr<scalar_t>();
       const auto *BH=bh.data_ptr<scalar_t>();
-#ifdef __APPLE__
-      recurrent_product(t ? Y+(t-1)*B*H : zero.data_ptr<scalar_t>(),wh.data_ptr<scalar_t>(),R,B,H,false);
-#endif
+      serial_recurrent_forward<scalar_t>(out,zero,wh,recurrent_weights,prev,rec,t,B,H);
       for(int64_t b=0;b<B;++b) {
         const int64_t k=t*B*H+b*H;
         activate_row(G+t*B*4*H+b*4*H,R+b*4*H,BH,t ? C+k-B*H : nullptr,C+k,Y+k,H);
@@ -254,13 +272,8 @@ std::vector<Tensor> lstm_backward(Tensor x,Tensor wi,Tensor wh,Tensor out,Tensor
         const int64_t k=t*B*H+b*H,g=t*B*4*H+b*4*H;
         gradient_row(G+g,C+k,t ? C+k-B*H : nullptr,DY+k,DH+b*H,DC+b*H,DG+g,H);
       }
-#ifdef __APPLE__
-      recurrent_product(DG+t*B*4*H,wh.data_ptr<scalar_t>(),DH,B,H,true);
-#endif
+      serial_recurrent_backward<scalar_t>(dg,wh,dh,t,B,H);
     });
-#ifndef __APPLE__
-    at::mm_out(dh,dg.select(0,t),wh);
-#endif
   }
   auto flat=dg.reshape({T*B,4*H});
   auto dx=at::mm(flat,wi).reshape_as(x), dwi=at::mm(flat.t(),x.reshape({T*B,I}));
