@@ -85,6 +85,77 @@ def test_tsmixerx_static_exogenous_is_batch_independent():
     torch.testing.assert_close(forecast_one[0], forecast_many[0])
 
 
+def _repeat_static_for_reference(model, batch_size):
+    """Make the reference model use the old B-row static computation."""
+    hooks = []
+    mixers = [model.feature_mixer_stat]
+    mixers.extend(layer.feature_mixer_stat for layer in model.mixing_block)
+
+    def repeat_hook(_module, args, batch_size=batch_size):
+        (stat_exog,) = args
+        return (stat_exog.expand(batch_size, -1, -1),)
+
+    for mixer in mixers:
+        hooks.append(mixer.register_forward_pre_hook(repeat_hook))
+    return hooks
+
+
+def test_tsmixerx_static_exogenous_matches_repeated_reference():
+    """The broadcast form matches the old repeated computation and gradients."""
+    batch_size, input_size, horizon, n_series, stat_size = 4, 12, 6, 5, 2
+    model = TSMixerx(
+        h=horizon,
+        input_size=input_size,
+        n_series=n_series,
+        stat_exog_list=[f"s{i}" for i in range(stat_size)],
+        n_block=2,
+        dropout=0.0,
+        max_steps=1,
+    )
+    reference = TSMixerx(
+        h=horizon,
+        input_size=input_size,
+        n_series=n_series,
+        stat_exog_list=[f"s{i}" for i in range(stat_size)],
+        n_block=2,
+        dropout=0.0,
+        max_steps=1,
+    )
+    reference.load_state_dict(model.state_dict())
+    model.train()
+    reference.train()
+    hooks = _repeat_static_for_reference(reference, batch_size)
+
+    batch = {
+        "insample_y": torch.randn(batch_size, input_size, n_series),
+        "hist_exog": None,
+        "futr_exog": None,
+        "stat_exog": torch.randn(n_series, stat_size),
+    }
+    forecast = model(batch)
+    reference_forecast = reference(batch)
+
+    for hook in hooks:
+        hook.remove()
+
+    torch.testing.assert_close(forecast, reference_forecast, atol=1e-6, rtol=1e-6)
+
+    model.zero_grad(set_to_none=True)
+    reference.zero_grad(set_to_none=True)
+    forecast.sum().backward()
+    reference_forecast.sum().backward()
+
+    for (name, parameter), (reference_name, reference_parameter) in zip(
+        model.named_parameters(), reference.named_parameters()
+    ):
+        assert name == reference_name
+        assert (parameter.grad is None) == (reference_parameter.grad is None)
+        if parameter.grad is not None:
+            torch.testing.assert_close(
+                parameter.grad, reference_parameter.grad, atol=1e-6, rtol=1e-6
+            )
+
+
 def test_tsmixerx_static_exogenous_gradients():
     """The broadcast must keep gradients flowing back to the static tensor."""
     batch_size, input_size, horizon, n_series, stat_size = 4, 12, 6, 5, 2
@@ -123,6 +194,18 @@ def test_tsmixerx_static_exogenous_training_with_dropout():
         dropout=0.5,
         max_steps=1,
     )
+    seen_output_shapes = []
+    hooks = []
+    mixers = [model.feature_mixer_stat]
+    mixers.extend(layer.feature_mixer_stat for layer in model.mixing_block)
+    for mixer in mixers:
+        hooks.append(
+            mixer.register_forward_hook(
+                lambda _module, _args, output: seen_output_shapes.append(
+                    tuple(output.shape)
+                )
+            )
+        )
     batch = {
         "insample_y": torch.randn(batch_size, input_size, n_series),
         "hist_exog": None,
@@ -133,7 +216,11 @@ def test_tsmixerx_static_exogenous_training_with_dropout():
     model.train()
     forecast = model(batch)
 
+    for hook in hooks:
+        hook.remove()
+
     assert forecast.shape == (batch_size, horizon, n_series)
+    assert all(shape[0] == 1 for shape in seen_output_shapes)
 
 
 def test_mixing_layer_static_exogenous_accepts_batch_shaped_static():

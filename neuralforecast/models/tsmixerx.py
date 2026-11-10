@@ -123,9 +123,6 @@ class MixingLayerWithStaticExogenous(nn.Module):
 
     def forward(self, inputs):
         input, stat_exog = inputs
-        # Static covariates are shared by every window in the batch. Compute
-        # their embedding once and broadcast it, instead of repeating the
-        # [N, S] tensor B times before the mixer.
         x_stat = self.feature_mixer_stat(stat_exog)  # [1, h, S] -> [1, h, ff_dim]
         if x_stat.shape[0] != input.shape[0]:
             x_stat = x_stat.expand(input.shape[0], -1, -1)
@@ -449,12 +446,8 @@ class TSMixerx(BaseModel):
                 (x, x_futr), dim=2
             )  #   [B, h, ff_dim] + [B, h, ff_dim] -> [B, h, 2 * ff_dim]
 
-        # Concatenate x with static exogenous
+        # static covariates are batch-independent: compute once, broadcast over B
         if self.stat_exog_size > 0:
-            # Static covariates are batch-independent: build the [1, h, N * S]
-            # tensor once and broadcast the mixer output over the batch.
-            # Dropout therefore shares one mask across the batch, which is
-            # acceptable for static features and avoids B redundant copies.
             stat_exog = stat_exog.reshape(1, 1, -1).expand(1, self.h, -1)
             x_stat = self.feature_mixer_stat(
                 stat_exog
