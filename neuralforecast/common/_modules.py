@@ -786,7 +786,23 @@ class PositionalEmbedding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
 
         pe = pe.unsqueeze(0)
-        self.register_buffer("pe", pe)
+        self.register_buffer("pe", pe, persistent=False)
+        self.register_load_state_dict_pre_hook(self._drop_persistent_pe)
+
+    @staticmethod
+    def _drop_persistent_pe(
+        module,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        # Positional encodings are deterministic. Ignore buffers saved by older
+        # versions so their checkpoints still load with ``strict=True``.
+        state_dict.pop(prefix + "pe", None)
 
     def forward(self, x):
         return self.pe[:, : x.size(1)]
