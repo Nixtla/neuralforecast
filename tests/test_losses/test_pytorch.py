@@ -362,17 +362,18 @@ def test_mape_gradient_is_finite_with_zero_targets():
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
 
 
-def test_scrps_without_mask_matches_all_ones_mask():
+@pytest.mark.parametrize("shape", [(2, 4, 1), (3, 6, 3)])
+def test_scrps_without_mask_matches_all_ones_mask(shape):
     torch.manual_seed(0)
-    y = torch.rand(2, 4, 1)
-    y_hat = torch.rand(2, 4, 1, 5)
+    y = torch.rand(*shape)
+    y_hat = torch.rand(*shape, 5)
     loss = sCRPS(level=[80, 90])
 
     no_mask = loss(y=y, y_hat=y_hat, y_insample=None)
     ones_mask = loss(y=y, y_hat=y_hat, y_insample=None, mask=torch.ones_like(y))
 
     assert torch.isfinite(no_mask)
-    assert torch.isclose(no_mask, ones_mask)
+    assert torch.equal(no_mask, ones_mask)
 
 
 def test_scrps_norm_ignores_masked_points():
@@ -388,3 +389,7 @@ def test_scrps_norm_ignores_masked_points():
     changed = loss(y=y_big, y_hat=y_hat, y_insample=None, mask=mask)
 
     assert torch.isclose(base, changed)
+
+    # sCRPS on only the unmasked steps pins both the mask and the denominator
+    unmasked = loss(y=y[:, :2], y_hat=y_hat[:, :2], y_insample=None)
+    torch.testing.assert_close(base, unmasked)
