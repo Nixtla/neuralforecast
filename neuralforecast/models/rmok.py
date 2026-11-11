@@ -440,6 +440,6 @@ class RMoK(BaseModel):
             .permute(0, 2, 1)
         )
         y_pred = self.rev(y_pred, "denorm")
-        y_pred = y_pred.reshape(B, self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, B)
 
         return y_pred
