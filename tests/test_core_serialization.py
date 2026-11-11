@@ -5,13 +5,14 @@ import os
 import pickle
 
 import numpy as np
+import pandas as pd
 import pytest
 import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast import register_loss, register_lr_scheduler, register_optimizer
 from neuralforecast._serialization import TAG, SerializationError
-from neuralforecast.losses.pytorch import MAE, DistributionLoss
+from neuralforecast.losses.pytorch import GMM, MAE, NBMM, PMM, DistributionLoss
 from neuralforecast.models import MLP, NLinear
 from neuralforecast.utils import AirPassengersPanel, PredictionIntervals
 
@@ -500,13 +501,17 @@ def test_an_unregistered_class_cannot_be_saved(panel, tmp_path):
         nf.save(str(tmp_path / "nope"), overwrite=True)
 
 
-def test_save_right_after_fit_with_distribution_loss(panel, tmp_path):
+@pytest.mark.parametrize(
+    "loss", [DistributionLoss("Normal"), GMM(), PMM(), NBMM()], ids=lambda l: type(l).__name__
+)
+def test_save_right_after_fit_with_distribution_loss(panel, tmp_path, loss):
     model = MLP(
         h=12,
         input_size=24,
-        loss=DistributionLoss("Normal"),
+        loss=loss,
         max_steps=2,
         accelerator="cpu",
+        devices=1,
         enable_progress_bar=False,
         logger=False,
     )
@@ -515,4 +520,6 @@ def test_save_right_after_fit_with_distribution_loss(panel, tmp_path):
 
     nf.save(str(tmp_path / "ckpt"), overwrite=True)
 
-    assert NeuralForecast.load(str(tmp_path / "ckpt")).predict() is not None
+    pd.testing.assert_frame_equal(
+        NeuralForecast.load(str(tmp_path / "ckpt")).predict(), nf.predict()
+    )
