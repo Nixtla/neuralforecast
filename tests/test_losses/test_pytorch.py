@@ -107,6 +107,24 @@ def test_HuberIQLoss_init_and_update():
     assert check.q == 0.7
 
 
+# Once predict() has fixed the quantile, eval mode keeps using it and
+# training mode samples quantiles again.
+@pytest.mark.parametrize("loss_cls", [IQLoss, HuberIQLoss])
+def test_IQLoss_samples_quantiles_in_train_mode_after_update_quantile(loss_cls):
+    check = loss_cls()
+    y_hat = torch.zeros(4, 3, 1)
+
+    check.update_quantile([0.7])
+    check.eval()
+    check.domain_map(y_hat)
+    assert check.q == 0.7
+
+    check.train()
+    check.domain_map(y_hat)
+    assert isinstance(check.q, torch.Tensor)
+    assert not check.has_predicted
+
+
 # Each 1 is an error, there are 6 datapoints.
 def test_MAE_complete_mask():
     y = torch.Tensor([[0, 0, 0], [0, 0, 0]]).unsqueeze(-1)
