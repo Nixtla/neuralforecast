@@ -238,7 +238,7 @@ Name | Type | Description | Default
 `dataset` | <code>[BaseTimeSeriesDataset](#neuralforecast.tsdataset.BaseTimeSeriesDataset)</code> | Time series dataset. | *required*
 `batch_size` | <code>[int](#int)</code> | Batch size for training. Defaults to 32. | <code>32</code>
 `valid_batch_size` | <code>[int](#int)</code> | Batch size for validation. Defaults to 1024. | <code>1024</code>
-`drop_last` | <code>[bool](#bool)</code> | Whether to drop the last incomplete batch. Defaults to False. | <code>False</code>
+`drop_last` | <code>[bool](#bool)</code> | Whether to drop the last incomplete training batch. Defaults to False. | <code>False</code>
 `shuffle_train` | <code>[bool](#bool)</code> | Whether to shuffle training data. Defaults to True. | <code>True</code>
 `**dataloaders_kwargs` | | Additional keyword arguments for data loaders. | <code>{}</code>
 
