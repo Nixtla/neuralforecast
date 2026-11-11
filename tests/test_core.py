@@ -1793,6 +1793,47 @@ def test_val_df_equivalence_with_val_size(setup_airplane_data):
     np.testing.assert_allclose(losses_val_size, losses_val_df, atol=1e-4)
 
 
+def test_val_df_is_scaled_with_local_scaler():
+    # The validation rows appended by `val_df` must be scaled with the scalers
+    # fitted on the training rows, like every other dataset the scalers see.
+    n_train, n_val = 40, 8
+    train_df = pd.DataFrame(
+        {
+            "unique_id": np.repeat(["a", "b"], n_train),
+            "ds": np.tile(np.arange(n_train), 2),
+            "y": np.tile([0.0, 1.0], n_train),
+        }
+    )
+    val_df = pd.DataFrame(
+        {
+            "unique_id": np.repeat(["a", "b"], n_val),
+            "ds": np.tile(np.arange(n_train, n_train + n_val), 2),
+            "y": np.full(2 * n_val, 10.5),
+        }
+    )
+    nf = NeuralForecast(
+        models=[
+            MLP(
+                h=4,
+                input_size=8,
+                max_steps=1,
+                accelerator="cpu",
+                enable_progress_bar=False,
+                logger=False,
+            )
+        ],
+        freq=1,
+        local_scaler_type="standard",
+    )
+    nf.fit(train_df, val_df=val_df)
+    y = nf.dataset.temporal[:, nf.dataset.y_idx].numpy()
+    val_y = np.concatenate(
+        [y[nf.dataset.indptr[i + 1] - n_val : nf.dataset.indptr[i + 1]] for i in range(2)]
+    )
+    # train mean 0.5 and std 0.5, so 10.5 maps to 20
+    np.testing.assert_allclose(val_y, 20.0, rtol=1e-3)
+
+
 @pytest.mark.parametrize("model,expected_error", [
     (NHITS(h=12, input_size=24, max_steps=50, hist_exog_list=["not_included"], scaler_type="robust"),
      "historical exogenous variables not found in input dataset"),
