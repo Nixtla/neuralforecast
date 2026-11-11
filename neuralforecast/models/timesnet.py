@@ -156,7 +156,7 @@ class TimesNet(BaseModel):
         step_size (int): Step size between each window of temporal data.
         scaler_type (str): Type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): Random_seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): optional (default=None), Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional (default=None), User specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional (default=None), List of parameters used by the user specified `optimizer`.
