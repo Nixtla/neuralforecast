@@ -103,6 +103,16 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.numpy()
 
 
+def _is_gpu_accelerator(accelerator):
+    from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+    return (
+        accelerator in ("gpu", "cuda")
+        or isinstance(accelerator, CUDAAccelerator)
+        or (accelerator == "auto" and CUDAAccelerator.is_available())
+    )
+
+
 def _resolve_cat_emb_dim(strategy: Union[str, int], cardinality: int) -> int:
     """Resolve a categorical embedding dimension from a named strategy.
 
@@ -910,15 +920,6 @@ class BaseModel(pl.LightningModule):
             model.__dict__.pop("_trainer", None)
             return model
 
-        def is_gpu_accelerator(accelerator):
-            from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-            return (
-                accelerator == "gpu"
-                or isinstance(accelerator, CUDAAccelerator)
-                or (accelerator == "auto" and CUDAAccelerator.is_available())
-            )
-
         local_mode = distributed_config.num_nodes == 1
         if local_mode:
             num_tasks = 1
@@ -927,7 +928,7 @@ class BaseModel(pl.LightningModule):
             num_tasks = distributed_config.num_nodes * distributed_config.devices
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
-        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        use_gpu = _is_gpu_accelerator(self.trainer_kwargs["accelerator"])
         distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
@@ -1264,6 +1265,7 @@ class BaseModel(pl.LightningModule):
         return model
 
     def _create_windows(self, batch, step):
+        # Keep univariate series/start axes separate until sampling.
         # Parse common data
         window_size = self.input_size + self.h
         temporal_cols = batch["temporal_cols"]
@@ -1281,6 +1283,19 @@ class BaseModel(pl.LightningModule):
                     "Time series is too short for training, consider setting a smaller input size or set start_padding_enabled=True"
                 )
 
+            sample_weight_windows = None
+            if not self.MULTIVARIATE and "sample_weight" in temporal_cols:
+                sw_idx = temporal_cols.get_loc("sample_weight")
+                weight_windows = temporal[:, sw_idx].unfold(
+                    -1, window_size, self.step_size
+                )
+                sample_weight_windows = (
+                    weight_windows[:, :, self.input_size :].mean(-1).reshape(-1, 1, 1)
+                )
+                keep = [i for i in range(temporal.shape[1]) if i != sw_idx]
+                temporal = temporal[:, keep]
+                temporal_cols = temporal_cols.delete(sw_idx)
+
             windows = temporal.unfold(
                 dimension=-1, size=window_size, step=self.step_size
             )
@@ -1289,11 +1304,8 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
             # Extract sample_weight before availability filtering so it is never
             # seen by the model as a feature
@@ -1306,8 +1318,6 @@ class BaseModel(pl.LightningModule):
                 keep = [i for i in range(windows.shape[2]) if i != sw_idx]
                 windows = windows[:, :, keep, :]
                 temporal_cols = temporal_cols.delete(sw_idx)
-            else:
-                sample_weight_windows = None
 
             # Calculate minimum required available points based on fractions
             min_insample_points = max(
@@ -1319,17 +1329,20 @@ class BaseModel(pl.LightningModule):
 
             # Sample based on available conditions
             available_idx = temporal_cols.get_loc("available_mask")
-            insample_condition = windows[:, : self.input_size, available_idx]
-            insample_condition = torch.sum(
-                insample_condition, axis=(1, -1)
-            )  # Sum over time & series dimension
+            if not self.MULTIVARIATE:
+                mask = windows[:, :, :, available_idx]
+                insample_condition = mask[:, :, : self.input_size].sum((2, 3)).reshape(-1)
+            else:
+                insample_condition = windows[:, : self.input_size, available_idx]
+                insample_condition = torch.sum(insample_condition, axis=(1, -1))
             final_condition = insample_condition >= min_insample_points
 
             if self.h > 0:
-                outsample_condition = windows[:, self.input_size :, available_idx]
-                outsample_condition = torch.sum(
-                    outsample_condition, axis=(1, -1)
-                )  # Sum over time & series dimension
+                if not self.MULTIVARIATE:
+                    outsample_condition = mask[:, :, self.input_size :].sum((2, 3)).reshape(-1)
+                else:
+                    outsample_condition = windows[:, self.input_size :, available_idx]
+                    outsample_condition = torch.sum(outsample_condition, axis=(1, -1))
                 final_condition = (outsample_condition >= min_outsample_points) & (
                     insample_condition >= min_insample_points
                 )
@@ -1337,12 +1350,6 @@ class BaseModel(pl.LightningModule):
             # Parse Static data to match windows
             static = batch.get("static", None)
             static_cols = batch.get("static_cols", None)
-
-            # Repeat static if univariate: [n_series, S] -> [Ws * n_series, S]
-            if static is not None and not self.MULTIVARIATE:
-                static = torch.repeat_interleave(
-                    static, repeats=windows_per_serie, dim=0
-                )
 
             # Protection of empty windows
             if final_condition.sum() == 0:
@@ -1403,17 +1410,13 @@ class BaseModel(pl.LightningModule):
                 # [n_series, C, Ws, L + h] -> [Ws, L + h, C, n_series]
                 windows = windows.permute(2, 3, 1, 0)
             else:
-                # [n_series, C, Ws, L + h] -> [Ws * n_series, L + h, C, 1]
-                windows_per_serie = windows.shape[2]
-                windows = windows.permute(0, 2, 3, 1)
-                windows = windows.flatten(0, 1)
-                windows = windows.unsqueeze(-1)
-                if static is not None:
-                    static = torch.repeat_interleave(
-                        static, repeats=windows_per_serie, dim=0
-                    )
+                # [n_series, C, Ws, L + h] -> [n_series, Ws, L + h, C, 1]
+                windows = windows.permute(0, 2, 3, 1).unsqueeze(-1)
 
-            final_condition = torch.arange(windows.shape[0], device=windows.device)
+            n_windows = (
+                windows.shape[0] if self.MULTIVARIATE else windows.shape[0] * windows.shape[1]
+            )
+            final_condition = torch.arange(n_windows, device=windows.device)
 
             return windows, static, static_cols, final_condition, None, temporal_cols
         else:
@@ -1491,10 +1494,18 @@ class BaseModel(pl.LightningModule):
         sample_weight=None,
     ):
         w_idxs_final = final_condition[w_idxs]
-        windows_sample = windows_temporal[w_idxs_final]
-
-        if static is not None and not self.MULTIVARIATE:
-            static = static[w_idxs_final]
+        if not self.MULTIVARIATE:
+            # Flatten series/start indices only after sampling; the full window
+            # tensor remains a view of the original temporal data.
+            series_idxs = torch.div(
+                w_idxs_final, windows_temporal.shape[1], rounding_mode="floor"
+            )
+            start_idxs = w_idxs_final % windows_temporal.shape[1]
+            windows_sample = windows_temporal[series_idxs, start_idxs]
+            if static is not None:
+                static = static[series_idxs]
+        else:
+            windows_sample = windows_temporal[w_idxs_final]
 
         if sample_weight is not None:
             sample_weight = sample_weight[w_idxs_final]
@@ -1507,6 +1518,15 @@ class BaseModel(pl.LightningModule):
             sample_weight=sample_weight,
         )
         return windows_batch
+
+    def _group_outputs_by_series(self, y_pred, batch_size):
+        # Standard distributions keep parameter-major blocks; quantile and
+        # mixture losses group each series' outputs together.
+        if not isinstance(self.loss, DistributionLoss):
+            y_pred = y_pred.reshape(
+                batch_size, self.h, self.loss.outputsize_multiplier, self.n_series
+            ).transpose(2, 3)
+        return y_pred.reshape(batch_size, self.h, -1)
 
     def _parse_windows(self, batch, windows):
         # windows: [Ws, L + h, C, n_series]
@@ -2617,6 +2637,21 @@ class BaseModel(pl.LightningModule):
             distributed_config=distributed_config,
         )
 
+    def _inference_trainer_kwargs(self):
+        """Trainer kwargs for predict and decompose.
+
+        Lightning cannot gather predictions across devices, so a multi-GPU
+        host runs inference on device 0 with strategy "auto". The dict is a
+        copy: training keeps the original devices and strategy.
+        """
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if _is_gpu_accelerator(pred_trainer_kwargs.get("accelerator", None)) and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+            pred_trainer_kwargs["strategy"] = "auto"
+        return pred_trainer_kwargs
+
     def predict(
         self,
         dataset,
@@ -2660,13 +2695,7 @@ class BaseModel(pl.LightningModule):
         self.predict_step_size = step_size
         self.decompose_forecast = False
 
-        # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
-        pred_trainer_kwargs = self.trainer_kwargs.copy()
-        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
-            torch.cuda.device_count() > 1
-        ):
-            pred_trainer_kwargs["devices"] = [0]
-            pred_trainer_kwargs["strategy"] = "auto"
+        pred_trainer_kwargs = self._inference_trainer_kwargs()
 
         # Determine the number of predictions to make in case h > self.h
         if h is None:
@@ -2934,17 +2963,20 @@ class BaseModel(pl.LightningModule):
 
         self.predict_step_size = step_size
         self.decompose_forecast = True
-        datamodule = TimeSeriesDataModule(
-            dataset=dataset,
-            valid_batch_size=self.valid_batch_size,
-            **data_module_kwargs,
-        )
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        fcsts = trainer.predict(self, datamodule=datamodule)
-        self.decompose_forecast = False  # Default decomposition back to false
-        fcsts = torch.vstack(fcsts)
-        return tensor_to_numpy(fcsts)
-    
+        try:
+            datamodule = TimeSeriesDataModule(
+                dataset=dataset,
+                valid_batch_size=self.valid_batch_size,
+                **data_module_kwargs,
+            )
+            trainer = pl.Trainer(**self._inference_trainer_kwargs())
+            fcsts = trainer.predict(self, datamodule=datamodule)
+            fcsts = torch.vstack(fcsts)
+            return tensor_to_numpy(fcsts)
+        finally:
+            # Forecast mode again even when predict raises.
+            self.decompose_forecast = False
+
     def _predict_step_wrapper(
         self,
         insample_y,

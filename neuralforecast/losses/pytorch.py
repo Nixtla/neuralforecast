@@ -874,7 +874,7 @@ class IQLoss(QuantileLoss):
         Returns:
             torch.Tensor: Domain mapped tensor.
         """
-        if self.eval() and self.has_predicted:
+        if not self.training and self.has_predicted:
             quantiles = torch.full(
                 size=y_hat.shape,
                 fill_value=self.q,
@@ -3287,7 +3287,7 @@ class HuberIQLoss(HuberQLoss):
             - shape: [B, h, 1] for univariate
             - shape: [B, h, N] for multivariate
         """
-        if self.eval() and self.has_predicted:
+        if not self.training and self.has_predicted:
             quantiles = torch.full(
                 size=y_hat.shape,
                 fill_value=self.q,
