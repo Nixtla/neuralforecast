@@ -2841,7 +2841,6 @@ class BaseModel(pl.LightningModule):
         from neuralforecast.utils import (
             DEFAULT_QUANTILE_GRID,
             VALID_SIMULATION_METHODS,
-            uncross_quantiles,
         )
 
         if method not in VALID_SIMULATION_METHODS:
@@ -2862,7 +2861,7 @@ class BaseModel(pl.LightningModule):
             predict_quantiles = None  # use model's built-in quantiles
             quantile_positions = self.loss.quantiles.cpu().numpy()
         elif isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
-            # IQLoss: one forward pass per quantile, then take quantile over results
+            # IQLoss: one forward pass per grid level, then interpolate
             predict_quantiles = None  # handled below
             quantile_positions = np.array(quantiles)
         else:
@@ -2874,9 +2873,10 @@ class BaseModel(pl.LightningModule):
 
         # Get quantile forecasts via existing predict infrastructure
         if isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
-            # IQLoss: one forward pass per requested quantile
+            # IQLoss: multiple forward passes, one per quantile in a grid
+            iq_grid = [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.8, 0.9, 0.95, 0.99]
             iq_fcsts = []
-            for q in quantiles:
+            for q in iq_grid:
                 f = self.predict(
                     dataset=dataset,
                     random_seed=random_seed,
@@ -2884,10 +2884,14 @@ class BaseModel(pl.LightningModule):
                     **data_module_kwargs,
                 )
                 iq_fcsts.append(f)
-            # Each f is (n_series * H, 1); stack along last axis
-            fcsts = uncross_quantiles(np.concatenate(iq_fcsts, axis=-1), quantiles)
+            # Each f is (n_series * H, 1); stack along last axis and sort each
+            # row, since the levels can cross
+            iq_all = np.sort(np.concatenate(iq_fcsts, axis=-1), axis=-1)
+            # Interpolate each row at the requested quantiles
+            quantile_fcsts = np.apply_along_axis(
+                lambda row: np.interp(quantiles, iq_grid, row), -1, iq_all
+            )
             n_quantiles = len(quantile_positions)
-            quantile_fcsts = fcsts[:, :n_quantiles]
         else:
             fcsts = self.predict(
                 dataset=dataset,
