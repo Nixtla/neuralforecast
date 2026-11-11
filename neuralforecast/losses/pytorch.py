@@ -3421,8 +3421,11 @@ class sCRPS(BasePointLoss):
         Returns:
             float: sCRPS.
         """
+        if mask is None:
+            mask = torch.ones_like(y)
+
         mql = self.mql(y=y, y_hat=y_hat, mask=mask, y_insample=y_insample)
-        norm = torch.sum(torch.abs(y))
+        norm = torch.sum(torch.abs(y) * mask)
         unmean = torch.sum(mask)
         scrps = 2 * mql * unmean / (norm + 1e-5)
         return scrps

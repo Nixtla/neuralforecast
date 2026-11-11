@@ -103,6 +103,16 @@ def tensor_to_numpy(tensor: torch.Tensor) -> np.ndarray:
     return tensor.numpy()
 
 
+def _is_gpu_accelerator(accelerator):
+    from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+    return (
+        accelerator in ("gpu", "cuda")
+        or isinstance(accelerator, CUDAAccelerator)
+        or (accelerator == "auto" and CUDAAccelerator.is_available())
+    )
+
+
 def _resolve_cat_emb_dim(strategy: Union[str, int], cardinality: int) -> int:
     """Resolve a categorical embedding dimension from a named strategy.
 
@@ -910,15 +920,6 @@ class BaseModel(pl.LightningModule):
             model.__dict__.pop("_trainer", None)
             return model
 
-        def is_gpu_accelerator(accelerator):
-            from pytorch_lightning.accelerators.cuda import CUDAAccelerator
-
-            return (
-                accelerator == "gpu"
-                or isinstance(accelerator, CUDAAccelerator)
-                or (accelerator == "auto" and CUDAAccelerator.is_available())
-            )
-
         local_mode = distributed_config.num_nodes == 1
         if local_mode:
             num_tasks = 1
@@ -927,7 +928,7 @@ class BaseModel(pl.LightningModule):
             num_tasks = distributed_config.num_nodes * distributed_config.devices
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
-        use_gpu = is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        use_gpu = _is_gpu_accelerator(self.trainer_kwargs["accelerator"])
         distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
@@ -2636,6 +2637,21 @@ class BaseModel(pl.LightningModule):
             distributed_config=distributed_config,
         )
 
+    def _inference_trainer_kwargs(self):
+        """Trainer kwargs for predict and decompose.
+
+        Lightning cannot gather predictions across devices, so a multi-GPU
+        host runs inference on device 0 with strategy "auto". The dict is a
+        copy: training keeps the original devices and strategy.
+        """
+        pred_trainer_kwargs = self.trainer_kwargs.copy()
+        if _is_gpu_accelerator(pred_trainer_kwargs.get("accelerator", None)) and (
+            torch.cuda.device_count() > 1
+        ):
+            pred_trainer_kwargs["devices"] = [0]
+            pred_trainer_kwargs["strategy"] = "auto"
+        return pred_trainer_kwargs
+
     def predict(
         self,
         dataset,
@@ -2679,13 +2695,7 @@ class BaseModel(pl.LightningModule):
         self.predict_step_size = step_size
         self.decompose_forecast = False
 
-        # Protect when case of multiple gpu. PL does not support return preds with multiple gpu.
-        pred_trainer_kwargs = self.trainer_kwargs.copy()
-        if (pred_trainer_kwargs.get("accelerator", None) == "gpu") and (
-            torch.cuda.device_count() > 1
-        ):
-            pred_trainer_kwargs["devices"] = [0]
-            pred_trainer_kwargs["strategy"] = "auto"
+        pred_trainer_kwargs = self._inference_trainer_kwargs()
 
         # Determine the number of predictions to make in case h > self.h
         if h is None:
@@ -2955,17 +2965,20 @@ class BaseModel(pl.LightningModule):
 
         self.predict_step_size = step_size
         self.decompose_forecast = True
-        datamodule = TimeSeriesDataModule(
-            dataset=dataset,
-            valid_batch_size=self.valid_batch_size,
-            **data_module_kwargs,
-        )
-        trainer = pl.Trainer(**self.trainer_kwargs)
-        fcsts = trainer.predict(self, datamodule=datamodule)
-        self.decompose_forecast = False  # Default decomposition back to false
-        fcsts = torch.vstack(fcsts)
-        return tensor_to_numpy(fcsts)
-    
+        try:
+            datamodule = TimeSeriesDataModule(
+                dataset=dataset,
+                valid_batch_size=self.valid_batch_size,
+                **data_module_kwargs,
+            )
+            trainer = pl.Trainer(**self._inference_trainer_kwargs())
+            fcsts = trainer.predict(self, datamodule=datamodule)
+            fcsts = torch.vstack(fcsts)
+            return tensor_to_numpy(fcsts)
+        finally:
+            # Forecast mode again even when predict raises.
+            self.decompose_forecast = False
+
     def _predict_step_wrapper(
         self,
         insample_y,
