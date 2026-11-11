@@ -38,6 +38,16 @@ jobs:
       - name: Install dependencies
         run: uv sync --group dev --group aws --extra spark
 
+      - name: Configure Visual C++ compiler
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+        with:
+          arch: x64
+
+      - name: Run ESRNN native tests (windows)
+        if: runner.os == 'Windows'
+        run: uv run pytest tests/test_models/test_esrnn_speed.py --no-cov
+
       - name: Run pytest (macos)
         if: runner.os == 'macOS'
         env:

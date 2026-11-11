@@ -1761,10 +1761,12 @@ def test_val_df_parameter_validation(setup_airplane_data):
         nf.fit(AirPassengersPanel_train, val_size=12, val_df=val_df)
 
 
-def test_val_df_equivalence_with_val_size(setup_airplane_data):
+@pytest.mark.parametrize("validation_shift_months", [0, -24, -144])
+def test_val_df_equivalence_with_val_size(setup_airplane_data, validation_shift_months):
     # Splitting off the last 12 rows per series as val_df and passing them
     # explicitly must produce the same valid_trajectories as using val_size=12
-    # on the full training DataFrame (same combined dataset, same random seed).
+    # on the full training DataFrame (same values and random seed). NHITS also
+    # permits validation timestamps that overlap or precede the training dates.
     AirPassengersPanel_train, _ = setup_airplane_data
     val_size = 12
 
@@ -1778,6 +1780,7 @@ def test_val_df_equivalence_with_val_size(setup_airplane_data):
         .tail(val_size)
         .reset_index(drop=True)
     )
+    val_df["ds"] += pd.DateOffset(months=validation_shift_months)
 
     model_kwargs = dict(h=12, input_size=24, max_steps=10, random_seed=42)
 
