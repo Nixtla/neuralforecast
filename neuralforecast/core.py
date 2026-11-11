@@ -957,10 +957,19 @@ class NeuralForecast:
                         time_col=time_col,
                         target_col=target_col,
                     ).min_size
-                # The internal conformal CV rebuilds the cat vocab
-                # from the training split. Restore the full-panel vocabulary
-                # so the final models match a plain fit
-                _saved_vocab = self.categorical_vocab_
+                # The internal conformal CV rebuilds the dataset with a cat vocab
+                # from the training split only. Restore the full-panel state so
+                # the final models match a plain fit
+                _saved_state = {
+                    attr: getattr(self, attr)
+                    for attr in (
+                        "categorical_vocab_",
+                        "dataset",
+                        "uids",
+                        "last_dates",
+                        "ds",
+                    )
+                }
                 self._cs_df = self._conformity_scores(
                     df=df,
                     id_col=id_col,
@@ -969,7 +978,8 @@ class NeuralForecast:
                     static_df=static_df,
                     val_size=conformal_val_size,
                 )
-                self.categorical_vocab_ = _saved_vocab
+                for attr, value in _saved_state.items():
+                    setattr(self, attr, value)
 
         elif isinstance(df, SparkDataFrame):
             if static_df is not None and not isinstance(static_df, SparkDataFrame):

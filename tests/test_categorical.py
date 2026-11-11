@@ -350,6 +350,31 @@ def test_prediction_intervals_preserve_full_vocab():
     assert nf.categorical_vocab_["flag"] == {"A": 1, "B": 2}
 
 
+def test_prediction_intervals_final_dataset_matches_plain_fit():
+    # The conformal CV rebuilds nf.dataset with a vocabulary from the training
+    # split only, so "B" (seen only in the calibration tail) was encoded as 0.
+    # The dataset the final models train on must match a plain fit.
+    from neuralforecast.utils import PredictionIntervals
+
+    df = _panel(n_series=2, n=48, cols=())
+    df["flag"] = np.where(df["ds"] >= 42, "B", "A")
+
+    def _fit(**fit_kwargs):
+        model = _model(
+            MLP,
+            hist_exog_list=["flag"],
+            cat_exog_list=["flag"],
+            categorical_cardinalities={"flag": 2},
+        )
+        nf = NeuralForecast(models=[model], freq=1)
+        nf.fit(df, **fit_kwargs)
+        return nf
+
+    plain = _fit()
+    conformal = _fit(prediction_intervals=PredictionIntervals(n_windows=2))
+    torch.testing.assert_close(conformal.dataset.temporal, plain.dataset.temporal)
+
+
 def test_no_categoricals_is_inert():
     # When no categorical lists are declared, sizes equal the raw counts and the
     # vocabulary stays empty -> the carve-out is a no-op.
