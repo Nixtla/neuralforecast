@@ -261,8 +261,6 @@ class TSMixer(BaseModel):
         if self.revin:
             x = self.norm(x, "denorm")
 
-        x = x.reshape(
-            batch_size, self.h, self.loss.outputsize_multiplier * self.n_series
-        )
+        x = self._group_outputs_by_series(x, batch_size)
 
         return x
