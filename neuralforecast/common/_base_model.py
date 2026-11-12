@@ -970,14 +970,18 @@ class BaseModel(pl.LightningModule):
         else:
             datamodule_constructor = _DistributedTimeSeriesDataModule
 
-        dataloader_kwargs = (
-            self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
-        )
+        # `drop_last` is one of the restorable dataloader kwargs, so an explicit value in
+        # `dataloader_kwargs` has to win over `drop_last_loader`. Passing it as a named argument
+        # and again through `**dataloader_kwargs` raised "got multiple values for keyword
+        # argument". Copy first: `dataloader_kwargs` is the user's dict and must not be mutated,
+        # or the value would be gone from the model after the first fit.
+        dataloader_kwargs = dict(self.dataloader_kwargs or {})
+        drop_last = dataloader_kwargs.pop("drop_last", self.drop_last_loader)
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
-            drop_last=self.drop_last_loader,
+            drop_last=drop_last,
             shuffle_train=shuffle_train,
             **dataloader_kwargs,
         )
