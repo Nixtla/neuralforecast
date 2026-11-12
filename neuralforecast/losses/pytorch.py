@@ -471,9 +471,9 @@ class MASE(BasePointLoss):
     ) -> torch.Tensor:
         """
         Args:
-            y: Tensor (batch_size, output_size), Actual values.
-            y_hat: Tensor (batch_size, output_size)), Predicted values.
-            y_insample: Tensor (batch_size, input_size), Actual insample values.
+            y: Tensor [B, h, N], Actual values.
+            y_hat: Tensor [B, h, N], Predicted values.
+            y_insample: Tensor [B, L, N], Actual insample values.
             mask: Tensor, Specifies date stamps per serie to consider in loss.
 
         Returns:
@@ -486,7 +486,8 @@ class MASE(BasePointLoss):
             ),
             axis=1,
         )
-        losses = _divide_no_nan(delta_y, scale[:, None, None])
+        # [B] or [B, N] -> [B, 1, N], so that each series uses its own scale
+        losses = _divide_no_nan(delta_y, scale.view(scale.shape[0], 1, -1))
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
