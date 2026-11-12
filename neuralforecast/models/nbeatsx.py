@@ -194,7 +194,6 @@ class NBEATSBlock(nn.Module):
         self.stat_input_size = stat_input_size
 
         assert activation in ACTIVATIONS, f"{activation} is not in {ACTIVATIONS}"
-        activ = getattr(nn, activation)()
 
         # Input vector for the block is
         # y_lags (input_size) + historical exogenous (hist_input_size*input_size) +
@@ -212,7 +211,7 @@ class NBEATSBlock(nn.Module):
         ]
         for layer in mlp_units:
             hidden_layers.append(nn.Linear(in_features=layer[0], out_features=layer[1]))
-            hidden_layers.append(activ)
+            hidden_layers.append(getattr(nn, activation)())
 
             if self.dropout_prob > 0:
                 hidden_layers.append(nn.Dropout(p=self.dropout_prob))

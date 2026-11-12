@@ -1,5 +1,6 @@
 import pytest
 import torch
+import torch.nn as nn
 
 from neuralforecast.common._modules import FullAttention, MLP, TriangularCausalMask
 
@@ -121,3 +122,22 @@ def test_full_attention_does_not_drop_a_caller_mask_of_wrong_shape():
 
     with pytest.raises(RuntimeError):
         attentive(q, keys, keys, attn_mask=mask)
+
+
+def test_mlp_prelu_has_independent_parameters():
+    mlp = MLP(
+        in_features=8,
+        out_features=1,
+        activation="PReLU",
+        hidden_size=16,
+        num_layers=4,
+        dropout=0.0,
+    )
+    prelus = [
+        module
+        for module in mlp.layers
+        if isinstance(module, nn.PReLU)
+    ]
+    assert len(prelus) == 3
+    assert len({id(module) for module in prelus}) == 3
+    assert len({id(module.weight) for module in prelus}) == 3
