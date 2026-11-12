@@ -368,9 +368,9 @@ __call__(y, y_hat, y_insample, mask=None)
 
 Name | Type | Description | Default
 ---- | ---- | ----------- | -------
-`y` | <code>[Tensor](#torch.Tensor)</code> | Tensor (batch_size, output_size), Actual values. | *required*
-`y_hat` | <code>[Tensor](#torch.Tensor)</code> | Tensor (batch_size, output_size)), Predicted values. | *required*
-`y_insample` | <code>[Tensor](#torch.Tensor)</code> | Tensor (batch_size, input_size), Actual insample values. | *required*
+`y` | <code>[Tensor](#torch.Tensor)</code> | Tensor [B, h, N], Actual values. | *required*
+`y_hat` | <code>[Tensor](#torch.Tensor)</code> | Tensor [B, h, N], Predicted values. | *required*
+`y_insample` | <code>[Tensor](#torch.Tensor)</code> | Tensor [B, L, N], Actual insample values. | *required*
 `mask` | <code>[Union](#typing.Union)\[[Tensor](#torch.Tensor), None\]</code> | Tensor, Specifies date stamps per serie to consider in loss. | <code>None</code>
 
 **Returns:**
