@@ -2871,7 +2871,7 @@ class BaseModel(pl.LightningModule):
             predict_quantiles = None  # use model's built-in quantiles
             quantile_positions = self.loss.quantiles.cpu().numpy()
         elif isinstance(self.loss, (losses.IQLoss, losses.HuberIQLoss)):
-            # IQLoss: one forward pass per quantile, then take quantile over results
+            # IQLoss: one forward pass per grid level, then interpolate
             predict_quantiles = None  # handled below
             quantile_positions = np.array(quantiles)
         else:
@@ -2894,12 +2894,17 @@ class BaseModel(pl.LightningModule):
                     **data_module_kwargs,
                 )
                 iq_fcsts.append(f)
-            # Each f is (n_series * H, 1); stack along last axis
-            iq_all = np.concatenate(iq_fcsts, axis=-1)  # (n_series * H, len(iq_grid))
-            # Interpolate to the requested quantile positions
-            fcsts = np.quantile(iq_all, quantiles, axis=-1).T  # (n_series * H, n_quantiles)
+            # Each f is (n_series * H, 1); stack along last axis and sort each
+            # row, since the levels can cross
+            iq_all = np.sort(np.concatenate(iq_fcsts, axis=-1), axis=-1)
+            # Interpolate every row at the requested quantiles; the grid is the
+            # same for all rows, so find the indices and weights once
+            grid = np.asarray(iq_grid)
+            q = np.asarray(quantiles, dtype=float)
+            i = np.clip(np.searchsorted(grid, q, side="right") - 1, 0, len(grid) - 2)
+            w = np.clip((q - grid[i]) / (grid[i + 1] - grid[i]), 0, 1)
+            quantile_fcsts = iq_all[:, i] * (1 - w) + iq_all[:, i + 1] * w
             n_quantiles = len(quantile_positions)
-            quantile_fcsts = fcsts[:, :n_quantiles]
         else:
             fcsts = self.predict(
                 dataset=dataset,

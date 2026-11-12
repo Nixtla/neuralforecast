@@ -5,6 +5,9 @@ import pandas as pd
 import pytest
 import torch
 
+from neuralforecast.losses.pytorch import HuberIQLoss, IQLoss
+from tests.helpers.iqloss import calibrated_iqloss_nf
+
 
 def _get_model_cols(df):
     """Get model columns (everything except unique_id, ds, sample_id)."""
@@ -479,6 +482,18 @@ class TestSimulation:
         for col in model_cols:
             assert not np.any(np.isnan(result[col].values))
             assert not np.any(np.isinf(result[col].values))
+
+    @pytest.mark.parametrize("loss", [IQLoss, HuberIQLoss])
+    @pytest.mark.parametrize("crossing", [False, True])
+    def test_iqloss_follows_the_requested_quantiles(self, loss, crossing):
+        """IQLoss marginals match the model's quantile forecasts, also when they cross."""
+        nf = calibrated_iqloss_nf(loss, crossing=crossing)
+        sims = nf.simulate(n_paths=5000, seed=0)
+
+        for _, step in sims.groupby(["unique_id", "ds"]):
+            assert np.allclose(
+                np.percentile(step["MLP"], [10, 50, 90]), [10, 50, 90], atol=3
+            )
 
     # ------------------------------------------------------------------
     # MAE + conformal prediction

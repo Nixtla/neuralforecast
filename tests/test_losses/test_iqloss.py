@@ -1,5 +1,6 @@
 # %% Test IQLoss for all types of architectures
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import pytest
 import sys
@@ -7,9 +8,10 @@ import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
-from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN, MLP
-from neuralforecast.losses.pytorch import IQLoss, HuberIQLoss
+from neuralforecast.models import MLP, NBEATSx, NHITS, TSMixerx, LSTM, BiTCN
+from neuralforecast.losses.pytorch import HuberIQLoss, IQLoss
 from tests.helpers.data import air_passengers
+from tests.helpers.iqloss import calibrated_iqloss_nf
 
 @pytest.mark.skipif(
     sys.platform == "darwin",
@@ -145,3 +147,23 @@ def test_iqloss_samples_quantiles_when_refit_after_predict(loss_cls):
 
     loss = nf.models[0].loss
     assert isinstance(loss.q, torch.Tensor) and loss.training
+
+
+@pytest.mark.parametrize("loss", [IQLoss, HuberIQLoss])
+@pytest.mark.parametrize(
+    "quantiles", [[0.1, 0.9], [0.9, 0.1, 0.5], [0.005, 0.999]]
+)
+def test_iqloss_predict_returns_the_requested_quantiles(loss, quantiles):
+    fcsts = calibrated_iqloss_nf(loss).predict(quantiles=quantiles)
+
+    for q in quantiles:
+        assert np.allclose(fcsts[f"MLP_ql{q}"], 100 * q)
+
+
+@pytest.mark.parametrize("loss", [IQLoss, HuberIQLoss])
+def test_iqloss_predict_uncrosses_quantiles(loss):
+    quantiles = [0.9, 0.1, 0.5]
+    fcsts = calibrated_iqloss_nf(loss, crossing=True).predict(quantiles=quantiles)
+
+    values = fcsts[[f"MLP_ql{q}" for q in sorted(quantiles)]].to_numpy()
+    assert (np.diff(values, axis=1) >= 0).all()
