@@ -16,7 +16,14 @@ from .softs import DataEmbedding_inverted
 class PositionalEmbedding(nn.Module):
     def __init__(self, d_series, max_len=5000):
         super(PositionalEmbedding, self).__init__()
-        self.register_buffer("position_embedding", torch.zeros(1, max_len, d_series))
+        self.register_buffer(
+            "position_embedding",
+            torch.zeros(1, max_len, d_series),
+            persistent=False,
+        )
+        self.register_load_state_dict_pre_hook(
+            self._drop_persistent_position_embedding
+        )
 
         position = torch.arange(0, max_len).unsqueeze(1).float()
         div_term = torch.exp(
@@ -26,6 +33,21 @@ class PositionalEmbedding(nn.Module):
 
         self.position_embedding[:, :, 0::2] = torch.sin(position * div_term)
         self.position_embedding[:, :, 1::2] = torch.cos(position * div_term)
+
+    @staticmethod
+    def _drop_persistent_position_embedding(
+        module,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        # Positional encodings are deterministic. Ignore buffers saved by older
+        # versions so their checkpoints still load with ``strict=True``.
+        state_dict.pop(prefix + "position_embedding", None)
 
     def forward(self, x, scale=1.0):
         return x + scale * self.position_embedding[:, : x.size(1)]
