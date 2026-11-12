@@ -64,6 +64,13 @@ def resolve_decoder_activation(activation, ignored_because, default="ReLU"):
     return default if activation is None else activation
 
 
+def _safe_affine_denominator(weight, eps):
+    """Clamp near-zero RevIN affine weights without a denorm gradient."""
+    floor = torch.full_like(weight, eps)
+    signed_floor = torch.where(weight < 0, -floor, floor)
+    return torch.where(weight.abs() <= floor, signed_floor, weight)
+
+
 class MLP(nn.Module):  
     """Multi-Layer Perceptron for time series forecasting.
 
@@ -1242,7 +1249,8 @@ class RevIN(nn.Module):
             return x
         if self.affine:
             x = x - self.affine_bias
-            x = x / (self.affine_weight + self.eps * self.eps)
+            denominator = _safe_affine_denominator(self.affine_weight, self.eps)
+            x = x / denominator
         x = x * self.stdev
         if self.subtract_last:
             x = x + self.last
@@ -1329,7 +1337,8 @@ class RevINMultivariate(nn.Module):
         # Reverse the normalization
         if self.affine:
             x = x - self.affine_bias
-            x = x / self.affine_weight
+            denominator = _safe_affine_denominator(self.affine_weight, self.eps)
+            x = x / denominator
 
         x = x * self.batch_std
         x = x + self.batch_mean

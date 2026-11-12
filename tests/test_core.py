@@ -1793,6 +1793,29 @@ def test_val_df_equivalence_with_val_size(setup_airplane_data):
     np.testing.assert_allclose(losses_val_size, losses_val_df, atol=1e-4)
 
 
+# drop_last_loader only drops training batches: with fewer series than
+# valid_batch_size, validation must still run
+@pytest.mark.parametrize("model_cls, kwargs", [(MLP, {}), (TSMixer, {"n_series": 3})])
+def test_drop_last_loader_keeps_validation(model_cls, kwargs):
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    df = pd.concat(
+        [df, df[df["unique_id"] == "Airline1"].assign(unique_id="Airline3")]
+    )
+    model = model_cls(
+        h=12,
+        input_size=24,
+        max_steps=4,
+        val_check_steps=2,
+        batch_size=2,
+        valid_batch_size=4,
+        drop_last_loader=True,
+        **kwargs,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df, val_size=12)
+    assert nf.models[0].valid_trajectories
+
+
 @pytest.mark.parametrize("model,expected_error", [
     (NHITS(h=12, input_size=24, max_steps=50, hist_exog_list=["not_included"], scaler_type="robust"),
      "historical exogenous variables not found in input dataset"),
