@@ -218,6 +218,37 @@ def test_polars_integration(temporal_df):
     np.testing.assert_array_equal(dataset.indptr, dataset_pl.indptr)
 
 
+@pytest.mark.parametrize("frame", [pd.DataFrame, polars.DataFrame])
+def test_static_features_follow_the_series_in_df(frame):
+    df = frame(
+        {"unique_id": ["b", "b", "c", "c"], "ds": [1, 2, 1, 2], "y": [1.0, 2.0, 3.0, 4.0]}
+    )
+    # Holds an extra series that sorts first, and is itself out of order.
+    static_df = frame({"unique_id": ["c", "a", "b"], "group": [30.0, 10.0, 20.0]})
+
+    dataset, uids, *_ = TimeSeriesDataset.from_df(df=df, static_df=static_df)
+
+    assert uids.to_list() == ["b", "c"]
+    np.testing.assert_array_equal(dataset.static.numpy(), [[20.0], [30.0]])
+
+
+@pytest.mark.parametrize(
+    "static_ids",
+    [["b"], ["a", "b"], ["b", "c", "c"], ["b", "b"]],
+    ids=["short", "wrong", "dup", "dup_for_missing"],
+)
+def test_static_df_must_cover_each_series_once(static_ids):
+    df = pd.DataFrame(
+        {"unique_id": ["b", "b", "c", "c"], "ds": [1, 2, 1, 2], "y": [1.0, 2.0, 3.0, 4.0]}
+    )
+    static_df = pd.DataFrame(
+        {"unique_id": static_ids, "group": np.arange(len(static_ids), dtype=float)}
+    )
+
+    with pytest.raises(ValueError, match="exactly one row for each series"):
+        TimeSeriesDataset.from_df(df=df, static_df=static_df)
+
+
 def test_eq_same_values(setup_data):
     temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
     dataset, *_ = TimeSeriesDataset.from_df(df=unsorted_temporal_df)
