@@ -3206,7 +3206,8 @@ class NeuralForecast:
             elif quantiles_ is not None and isinstance(
                 model.loss, (IQLoss, HuberIQLoss)
             ):
-                # Predict each requested level directly; IQLoss levels can cross, so uncross_quantiles sorts them across levels
+                # Predict each requested level directly. IQLoss levels can
+                # cross, so uncross_quantiles sorts them across levels
                 fcsts_list_iqloss = []
                 for quantile in quantiles_:
                     model_fcsts = model.predict(

@@ -2897,10 +2897,13 @@ class BaseModel(pl.LightningModule):
             # Each f is (n_series * H, 1); stack along last axis and sort each
             # row, since the levels can cross
             iq_all = np.sort(np.concatenate(iq_fcsts, axis=-1), axis=-1)
-            # Interpolate each row at the requested quantiles
-            quantile_fcsts = np.apply_along_axis(
-                lambda row: np.interp(quantiles, iq_grid, row), -1, iq_all
-            )
+            # Interpolate every row at the requested quantiles; the grid is the
+            # same for all rows, so find the indices and weights once
+            grid = np.asarray(iq_grid)
+            q = np.asarray(quantiles, dtype=float)
+            i = np.clip(np.searchsorted(grid, q, side="right") - 1, 0, len(grid) - 2)
+            w = np.clip((q - grid[i]) / (grid[i + 1] - grid[i]), 0, 1)
+            quantile_fcsts = iq_all[:, i] * (1 - w) + iq_all[:, i + 1] * w
             n_quantiles = len(quantile_positions)
         else:
             fcsts = self.predict(

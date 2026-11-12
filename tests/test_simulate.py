@@ -6,37 +6,12 @@ import pytest
 import torch
 
 from neuralforecast.losses.pytorch import HuberIQLoss, IQLoss
+from tests.helpers.iqloss import calibrated_iqloss_nf
 
 
 def _get_model_cols(df):
     """Get model columns (everything except unique_id, ds, sample_id)."""
     return [c for c in df.columns if c not in ("unique_id", "ds", "sample_id")]
-
-
-def _calibrated_iqloss_nf(loss):
-    """IQLoss model whose q-quantile forecast is always 100 * q."""
-    from neuralforecast import NeuralForecast
-    from neuralforecast.models import MLP
-    from neuralforecast.utils import AirPassengersPanel
-
-    df = AirPassengersPanel[["unique_id", "ds", "y"]]
-    model = MLP(
-        h=12,
-        input_size=24,
-        loss=loss(),
-        max_steps=2,
-        accelerator="cpu",
-        devices=1,
-        enable_progress_bar=False,
-        logger=False,
-    )
-    nf = NeuralForecast(models=[model], freq="ME")
-    nf.fit(df)
-    n_rows = df.unique_id.nunique() * 12
-    nf.models[0].predict = lambda dataset, quantiles, **kw: np.full(
-        (n_rows, 1), 100 * quantiles[0]
-    )
-    return nf
 
 
 class TestSimulation:
@@ -509,13 +484,16 @@ class TestSimulation:
             assert not np.any(np.isinf(result[col].values))
 
     @pytest.mark.parametrize("loss", [IQLoss, HuberIQLoss])
-    def test_iqloss_follows_the_requested_quantiles(self, loss):
-        """IQLoss marginals match the model's quantile forecasts."""
-        sims = _calibrated_iqloss_nf(loss).simulate(n_paths=5000, seed=0)
+    @pytest.mark.parametrize("crossing", [False, True])
+    def test_iqloss_follows_the_requested_quantiles(self, loss, crossing):
+        """IQLoss marginals match the model's quantile forecasts, also when they cross."""
+        nf = calibrated_iqloss_nf(loss, crossing=crossing)
+        sims = nf.simulate(n_paths=5000, seed=0)
 
-        assert np.allclose(
-            np.percentile(sims["MLP"], [10, 50, 90]), [10, 50, 90], atol=2
-        )
+        for _, step in sims.groupby(["unique_id", "ds"]):
+            assert np.allclose(
+                np.percentile(step["MLP"], [10, 50, 90]), [10, 50, 90], atol=3
+            )
 
     # ------------------------------------------------------------------
     # MAE + conformal prediction
