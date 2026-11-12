@@ -3,11 +3,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 import sys
+import torch
 
 from neuralforecast import NeuralForecast
 from neuralforecast.common.enums import TimeSeriesDatasetEnum
-from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN
-from neuralforecast.losses.pytorch import IQLoss
+from neuralforecast.models import NBEATSx, NHITS, TSMixerx, LSTM, BiTCN, MLP
+from neuralforecast.losses.pytorch import IQLoss, HuberIQLoss
 from tests.helpers.data import air_passengers
 
 @pytest.mark.skipif(
@@ -129,3 +130,18 @@ def test_iqloss(show_plot=False):
         plt.legend()
         plt.grid()
         plt.show(block=True)
+
+
+# predict() fixes the quantile; a later fit must sample quantiles again
+@pytest.mark.parametrize("loss_cls", [IQLoss, HuberIQLoss])
+def test_iqloss_samples_quantiles_when_refit_after_predict(loss_cls):
+    Y_train_df, *_ = air_passengers(h=12)
+    model = MLP(h=12, input_size=24, loss=loss_cls(), max_steps=2)
+    nf = NeuralForecast(models=[model], freq="ME")
+
+    nf.fit(Y_train_df)
+    nf.predict(quantiles=[0.9])
+    nf.fit(Y_train_df, use_init_models=False)
+
+    loss = nf.models[0].loss
+    assert isinstance(loss.q, torch.Tensor) and loss.training

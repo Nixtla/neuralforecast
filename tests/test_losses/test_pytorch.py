@@ -18,6 +18,7 @@ from neuralforecast.losses.pytorch import (
     HuberIQLoss,
     IQLoss,
     QuantileLoss,
+    sCRPS,
     _divide_no_nan,
     _weighted_mean,
     weighted_average,
@@ -105,6 +106,24 @@ def test_HuberIQLoss_init_and_update():
 
     check.update_quantile([0.7])
     assert check.q == 0.7
+
+
+# Once predict() has fixed the quantile, eval mode keeps using it and
+# training mode samples quantiles again.
+@pytest.mark.parametrize("loss_cls", [IQLoss, HuberIQLoss])
+def test_IQLoss_samples_quantiles_in_train_mode_after_update_quantile(loss_cls):
+    check = loss_cls()
+    y_hat = torch.zeros(4, 3, 1)
+
+    check.update_quantile([0.7])
+    check.eval()
+    check.domain_map(y_hat)
+    assert check.q == 0.7
+
+    check.train()
+    check.domain_map(y_hat)
+    assert isinstance(check.q, torch.Tensor)
+    assert not check.has_predicted
 
 
 # Each 1 is an error, there are 6 datapoints.
@@ -393,3 +412,36 @@ def test_mape_gradient_is_finite_with_zero_targets():
 
     assert torch.isfinite(y_hat.grad).all()
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
+
+
+@pytest.mark.parametrize("shape", [(2, 4, 1), (3, 6, 3)])
+def test_scrps_without_mask_matches_all_ones_mask(shape):
+    torch.manual_seed(0)
+    y = torch.rand(*shape)
+    y_hat = torch.rand(*shape, 5)
+    loss = sCRPS(level=[80, 90])
+
+    no_mask = loss(y=y, y_hat=y_hat, y_insample=None)
+    ones_mask = loss(y=y, y_hat=y_hat, y_insample=None, mask=torch.ones_like(y))
+
+    assert torch.isfinite(no_mask)
+    assert torch.equal(no_mask, ones_mask)
+
+
+def test_scrps_norm_ignores_masked_points():
+    torch.manual_seed(0)
+    y = torch.rand(1, 4, 1)
+    y_hat = torch.rand(1, 4, 1, 5)
+    mask = torch.tensor([[[1.0], [1.0], [0.0], [0.0]]])
+    loss = sCRPS(level=[80, 90])
+
+    base = loss(y=y, y_hat=y_hat, y_insample=None, mask=mask)
+    y_big = y.clone()
+    y_big[:, 2:] = 1e6  # masked points must not inflate the normalisation
+    changed = loss(y=y_big, y_hat=y_hat, y_insample=None, mask=mask)
+
+    assert torch.isclose(base, changed)
+
+    # sCRPS on only the unmasked steps pins both the mask and the denominator
+    unmasked = loss(y=y[:, :2], y_hat=y_hat[:, :2], y_insample=None)
+    torch.testing.assert_close(base, unmasked)
