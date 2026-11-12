@@ -3275,14 +3275,12 @@ class NeuralForecast:
     @staticmethod
     def _get_column_name(model_name, quantile, has_level) -> str:
         if not has_level:
-            col_name = f"{model_name}_ql{quantile}"
-        elif quantile < 0.5:
-            level_lo = int(round(100 - 200 * quantile))
-            col_name = f"{model_name}-lo-{level_lo}"
-        elif quantile > 0.5:
-            level_hi = int(round(100 - 200 * (1 - quantile)))
-            col_name = f"{model_name}-hi-{level_hi}"
-        else:
-            col_name = f"{model_name}-median"
-
-        return col_name
+            return f"{model_name}_ql{quantile}"
+        if quantile == 0.5:
+            return f"{model_name}-median"
+        # Levels can be floats, so only round off the noise from the conversion,
+        # which reaches about 1e-5 when the level is a float32.
+        level = round(float(100 - 200 * min(quantile, 1 - quantile)), 4)
+        level = int(level) if level == int(level) else level
+        side = "lo" if quantile < 0.5 else "hi"
+        return f"{model_name}-{side}-{level}"
