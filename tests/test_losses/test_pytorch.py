@@ -12,6 +12,7 @@ from neuralforecast.losses.pytorch import (
     MSE,
     PMM,
     RMSE,
+    sCRPS,
     SMAPE,
     DistributionLoss,
     FreDF,
@@ -380,6 +381,49 @@ def test_mape_gradient_is_finite_with_zero_targets():
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
 
 
+# Multi-quantile normalization regression tests (PR #1731).
+
+
+def test_MQLoss_normalization_with_mask_and_horizon_weight():
+    quantiles = torch.tensor([0.1, 0.5, 0.9])
+    y = torch.tensor([[[2.0], [4.0], [8.0]]])
+    y_hat = torch.tensor(
+        [[[[1.0, 2.0, 3.0]], [[2.0, 4.0, 6.0]], [[6.0, 8.0, 10.0]]]]
+    )
+    mask = torch.tensor([[[1.0], [0.0], [1.0]]])
+    horizon_weight = torch.tensor([1.0, 2.0, 3.0])
+
+    actual = MQLoss(
+        quantiles=quantiles.tolist(), horizon_weight=horizon_weight
+    )(y=y, y_hat=y_hat, mask=mask)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(quantiles * error, (quantiles - 1) * error)
+    pointwise_mean = pinball.mean(dim=-1)
+    weights = mask * horizon_weight[None, :, None]
+    expected = (pointwise_mean * weights).sum() / weights.sum()
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_sCRPS_matches_mean_quantile_pinball_reference():
+    quantiles = [0.1, 0.5, 0.9]
+    y = torch.tensor([[[1.0], [2.0], [4.0]]])
+    y_hat = torch.tensor(
+        [[[[0.0, 1.0, 2.0]], [[1.0, 2.0, 3.0]], [[2.0, 4.0, 5.0]]]]
+    )
+    mask = torch.ones_like(y)
+    q = torch.tensor(quantiles)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(q * error, (q - 1) * error)
+    expected = 2 * pinball.mean(dim=-1).sum() / y.abs().sum()
+
+    actual = sCRPS(quantiles=quantiles)(
+        y=y, y_hat=y_hat, y_insample=torch.zeros_like(y), mask=mask
+    )
+
+    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
 @pytest.mark.parametrize("shape", [(2, 4, 1), (3, 6, 3)])
 def test_scrps_without_mask_matches_all_ones_mask(shape):
     torch.manual_seed(0)
