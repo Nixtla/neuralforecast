@@ -152,6 +152,16 @@ class BaseTimeSeriesDataset(Dataset):
         return static, static_cols
 
 
+def _exact_equal(a: torch.Tensor, b: torch.Tensor) -> bool:
+    """Bit-exact equality of two stored tensors, with NaN equal to NaN.
+
+    ``_as_torch_copy`` always stores float32 copies, so equal inputs hold
+    identical bits; a tolerance would let different datasets compare equal and
+    would break transitivity.
+    """
+    return a.shape == b.shape and torch.allclose(a, b, rtol=0, atol=0, equal_nan=True)
+
+
 class TimeSeriesDataset(BaseTimeSeriesDataset):
     """Time series dataset implementation.
 
@@ -218,11 +228,31 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         return f"TimeSeriesDataset(n_data={self.temporal.shape[0]:,}, n_groups={self.n_groups:,})"
 
     def __eq__(self, other):
-        if not hasattr(other, "data") or not hasattr(other, "indptr"):
+        if not isinstance(other, TimeSeriesDataset):
+            return NotImplemented
+        # The static checks are cheap and come before the full temporal scan:
+        # datasets that differ only there return without comparing every value.
+        if (
+            self.y_idx != other.y_idx
+            or not np.array_equal(self.indptr, other.indptr)
+            or not self.temporal_cols.equals(other.temporal_cols)
+            or (self.static is None) != (other.static is None)
+        ):
             return False
-        return np.allclose(self.data, other.data) and np.array_equal(
-            self.indptr, other.indptr
-        )
+        if self.static is not None and not (
+            pd.Index([] if self.static_cols is None else self.static_cols).equals(
+                pd.Index([] if other.static_cols is None else other.static_cols)
+            )
+            and _exact_equal(self.static, other.static)
+        ):
+            return False
+        return _exact_equal(self.temporal, other.temporal)
+
+    # The scalers modify a dataset in place, so it stays unhashable (#1712);
+    # state it explicitly so nobody later adds a hash based on the data.
+    # Assigning None is the documented way to disable hashing, but mypy sees
+    # object.__hash__ as a callable, hence the ignore.
+    __hash__ = None  # type: ignore[assignment]
 
     def align(
         self, df: DataFrame, id_col: str, time_col: str, target_col: str
@@ -617,7 +647,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         dataset (BaseTimeSeriesDataset): Time series dataset.
         batch_size (int, optional): Batch size for training. Defaults to 32.
         valid_batch_size (int, optional): Batch size for validation. Defaults to 1024.
-        drop_last (bool, optional): Whether to drop the last incomplete batch. Defaults to False.
+        drop_last (bool, optional): Whether to drop the last incomplete training batch. Defaults to False.
         shuffle_train (bool, optional): Whether to shuffle training data. Defaults to True.
         **dataloaders_kwargs: Additional keyword arguments for data loaders.
     """
@@ -654,7 +684,6 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             self.dataset,
             batch_size=self.valid_batch_size,
             shuffle=False,
-            drop_last=self.drop_last,
             **self.dataloaders_kwargs
         )
         return loader
