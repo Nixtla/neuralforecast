@@ -1032,6 +1032,8 @@ class NeuralForecast:
             val_dataset = self.dataset.align(
                 val_df, id_col=id_col, time_col=time_col, target_col=target_col
             )
+            # Scale the validation rows with the scalers fitted on the training data
+            self._scalers_transform(val_dataset)
             if val_dataset.min_size != val_dataset.max_size:
                 raise ValueError(
                     "All series in val_df must be of equal length. "
