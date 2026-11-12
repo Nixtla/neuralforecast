@@ -2747,7 +2747,7 @@ class NeuralForecast:
             series_spans.append((start, stop, forecast_size))
 
         # Combine all series forecasts DataFrames
-        fcsts_df = ufp.vertical_concat(fcsts_dfs)
+        fcsts_df = ufp.vertical_concat(fcsts_dfs, match_categories=False)
 
         h_backup = self.h
         fcst_list = []
