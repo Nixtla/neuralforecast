@@ -493,14 +493,28 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         self.indices = indices
         self.n_groups = len(files_ds)
 
+    def _read_series(self, path, columns):
+        # Chunks of a series are read in time order, not in filename order.
+        if not Path(path).is_dir():
+            return pd.read_parquet(path, columns=columns)
+        import pyarrow.parquet as pq
+
+        def first_time(file):
+            rg = pq.read_metadata(file).row_group(0)
+            pos = [rg.column(i).path_in_schema for i in range(rg.num_columns)].index(
+                self.time_col
+            )
+            return rg.column(pos).statistics.min
+
+        files = sorted(Path(path).glob("*.parquet"), key=first_time)
+        return pd.concat([pd.read_parquet(f, columns=columns) for f in files])
+
     def __getitem__(self, idx):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
         temporal_cols = self.temporal_cols.copy()
-        data = pd.read_parquet(
-            self.files_ds[idx], columns=temporal_cols.tolist()
-        ).to_numpy()
+        data = self._read_series(self.files_ds[idx], temporal_cols.tolist()).to_numpy()
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )

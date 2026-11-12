@@ -342,3 +342,21 @@ def test_eq_allows_static_without_column_names():
 
     assert left == same
     assert left != other
+
+
+def test_local_files_dataset_reads_chunks_in_time_order(tmp_path):
+    from neuralforecast.tsdataset import LocalFilesTimeSeriesDataset
+
+    series_dir = tmp_path / "unique_id=a"
+    series_dir.mkdir()
+    ds = pd.date_range("2024-01-01", periods=6, freq="D")
+    # each file is sorted by time, but "a.parquet" holds the later half
+    pd.DataFrame({"ds": ds[3:], "y": [3.0, 4.0, 5.0]}).to_parquet(
+        series_dir / "a.parquet"
+    )
+    pd.DataFrame({"ds": ds[:3], "y": [0.0, 1.0, 2.0]}).to_parquet(
+        series_dir / "b.parquet"
+    )
+    dataset = LocalFilesTimeSeriesDataset.from_data_directories([str(series_dir)])
+    assert dataset.last_times[0] == ds[-1]
+    assert dataset[0]["temporal"][0].tolist() == [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]
