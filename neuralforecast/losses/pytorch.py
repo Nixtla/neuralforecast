@@ -2029,6 +2029,8 @@ class DistributionLoss(_BaseLoss):
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
         self.has_predicted = False
+        self._init_quantiles = self.quantiles.detach().clone()
+        self._init_output_names = list(self.output_names)
 
     def _domain_map(self, input: torch.Tensor):
         """
@@ -2099,11 +2101,12 @@ class DistributionLoss(_BaseLoss):
                 + self.return_params * self.param_names
             )
             self.has_predicted = True
-        elif q is None and self.has_predicted:
+        else:
+            # Restore the quantiles that the loss was built with.
             self.quantiles = nn.Parameter(
-                torch.tensor([0.5], dtype=torch.float32), requires_grad=False
+                self._init_quantiles.clone(), requires_grad=False
             )
-            self.output_names = ["", "-median"] + self.return_params * self.param_names
+            self.output_names = list(self._init_output_names)
 
     def _compute_weights(self, y, mask):
         """
@@ -2234,6 +2237,8 @@ class PMM(_BaseLoss):
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
         self.has_predicted = False
+        self._init_quantiles = self.quantiles.detach().clone()
+        self._init_output_names = list(self.output_names)
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2343,11 +2348,12 @@ class PMM(_BaseLoss):
                 + self.return_params * self.param_names
             )
             self.has_predicted = True
-        elif q is None and self.has_predicted:
+        else:
+            # Restore the quantiles that the loss was built with.
             self.quantiles = nn.Parameter(
-                torch.tensor([0.5], dtype=torch.float32), requires_grad=False
+                self._init_quantiles.clone(), requires_grad=False
             )
-            self.output_names = ["", "-median"] + self.return_params * self.param_names
+            self.output_names = list(self._init_output_names)
 
     def __call__(
         self,
@@ -2469,6 +2475,8 @@ class GMM(_BaseLoss):
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
         self.has_predicted = False
+        self._init_quantiles = self.quantiles.detach().clone()
+        self._init_output_names = list(self.output_names)
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2578,11 +2586,12 @@ class GMM(_BaseLoss):
                 + self.return_params * self.param_names
             )
             self.has_predicted = True
-        elif q is None and self.has_predicted:
+        else:
+            # Restore the quantiles that the loss was built with.
             self.quantiles = nn.Parameter(
-                torch.tensor([0.5], dtype=torch.float32), requires_grad=False
+                self._init_quantiles.clone(), requires_grad=False
             )
-            self.output_names = ["", "-median"] + self.return_params * self.param_names
+            self.output_names = list(self._init_output_names)
 
     def __call__(
         self,
@@ -2700,6 +2709,8 @@ class NBMM(_BaseLoss):
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
         self.has_predicted = False
+        self._init_quantiles = self.quantiles.detach().clone()
+        self._init_output_names = list(self.output_names)
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2817,11 +2828,12 @@ class NBMM(_BaseLoss):
                 + self.return_params * self.param_names
             )
             self.has_predicted = True
-        elif q is None and self.has_predicted:
+        else:
+            # Restore the quantiles that the loss was built with.
             self.quantiles = nn.Parameter(
-                torch.tensor([0.5], dtype=torch.float32), requires_grad=False
+                self._init_quantiles.clone(), requires_grad=False
             )
-            self.output_names = ["", "-median"] + self.return_params * self.param_names
+            self.output_names = list(self._init_output_names)
 
     def __call__(
         self,
