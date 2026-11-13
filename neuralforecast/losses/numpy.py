@@ -256,9 +256,11 @@ def mase(
     Args:
         y (np.ndarray): Actual values.
         y_hat (np.ndarray): Predicted values.
-        y_insample (np.ndarray): Actual insample Seasonal Naive predictions.
+        y_train (np.ndarray): Actual insample values.
         seasonality (int): Main frequency of the time series; Hourly 24,  Daily 7, Weekly 52, Monthly 12, Quarterly 4, Yearly 1.
-        mask (np.ndarray, optional): Specifies date stamps per serie to consider in loss. Defaults to None.
+        weights (np.ndarray, optional): Weights for weighted average. Defaults to None.
+        axis (int, optional): Time axis for seasonal differencing and averaging.
+            If None, difference along axis 0 and average over all dimensions.
 
     Returns:
         float: MASE.
@@ -270,8 +272,9 @@ def mase(
     delta_y = np.abs(y - y_hat)
     delta_y = np.average(delta_y, weights=weights, axis=axis)
 
+    y_train = np.moveaxis(y_train, 0 if axis is None else axis, 0)
     scale = np.abs(y_train[:-seasonality] - y_train[seasonality:])
-    scale = np.average(scale, axis=axis)
+    scale = np.average(scale, axis=None if axis is None else 0)
 
     mase = delta_y / scale
 
