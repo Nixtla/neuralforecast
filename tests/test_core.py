@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import git
@@ -2451,6 +2452,43 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     # Should have level columns for conformal predictions
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
+
+
+SUPPORTED_EXPLAINERS = (
+    "IntegratedGradients",
+    "ShapleyValueSampling",
+    "InputXGradient",
+)
+
+
+@pytest.mark.parametrize("explainer", SUPPORTED_EXPLAINERS)
+def test_explain_accepts_supported_explainers_without_models(explainer):
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(**{name: object for name in SUPPORTED_EXPLAINERS})
+    nf = NeuralForecast(models=[], freq="D")
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(ValueError, match="No models support explanations"):
+            nf.explain(explainer=explainer)
+
+
+@pytest.mark.parametrize("explainer", ["Gradient", "Sampling", "Input", "Saliency"])
+def test_explain_rejects_unsupported_explainers(explainer):
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(
+        **{name: object for name in set(SUPPORTED_EXPLAINERS) | {explainer}}
+    )
+    nf = NeuralForecast(models=[], freq="D")
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(ValueError) as exc_info:
+            nf.explain(explainer=explainer)
+
+    assert str(exc_info.value) == (
+        f"Explainer {explainer} is not supported. Supported explainers are: "
+        "IntegratedGradients, ShapleyValueSampling, InputXGradient."
+    )
+
 
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])

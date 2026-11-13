@@ -12,5 +12,8 @@ class ExplainerEnum(str, Enum):
     ShapleyValueSampling = "ShapleyValueSampling"
     InputXGradient = "InputXGradient"
 
-    AdditiveExplainers = [IntegratedGradients, ShapleyValueSampling]
-    AllExplainers = [IntegratedGradients, ShapleyValueSampling, InputXGradient]
+
+ADDITIVE_EXPLAINERS = frozenset(
+    {ExplainerEnum.IntegratedGradients, ExplainerEnum.ShapleyValueSampling}
+)
+ALL_EXPLAINERS = tuple(ExplainerEnum)
