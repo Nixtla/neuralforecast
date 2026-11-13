@@ -92,8 +92,11 @@ class MixingLayer(nn.Module):
 
 
 class MixingLayerWithStaticExogenous(nn.Module):
-    """
-    MixingLayerWithStaticExogenous
+    """Mixing layer whose static branch is batch-independent.
+
+    The static feature mixer is evaluated once on ``[1, h, stat_input_size]``
+    and broadcast over the batch inside :meth:`forward`. During training, this
+    means dropout masks in the static branch are shared across the batch.
     """
 
     def __init__(self, h, dropout, ff_dim, stat_input_size):
@@ -120,7 +123,9 @@ class MixingLayerWithStaticExogenous(nn.Module):
 
     def forward(self, inputs):
         input, stat_exog = inputs
-        x_stat = self.feature_mixer_stat(stat_exog)  # [B, h, S] -> [B, h, ff_dim]
+        x_stat = self.feature_mixer_stat(stat_exog)  # [1, h, S] -> [1, h, ff_dim]
+        if x_stat.shape[0] != input.shape[0]:
+            x_stat = x_stat.expand(input.shape[0], -1, -1)
         x = torch.cat(
             (input, x_stat), dim=2
         )  # [B, h, ff_dim] + [B, h, ff_dim] -> [B, h, 2 * ff_dim]
@@ -441,15 +446,13 @@ class TSMixerx(BaseModel):
                 (x, x_futr), dim=2
             )  #   [B, h, ff_dim] + [B, h, ff_dim] -> [B, h, 2 * ff_dim]
 
-        # Concatenate x with static exogenous
+        # static covariates are batch-independent: compute once, broadcast over B
         if self.stat_exog_size > 0:
-            stat_exog = stat_exog.reshape(-1)  #   [N, S] -> [N * S]
-            stat_exog = (
-                stat_exog.unsqueeze(0).unsqueeze(1).repeat(batch_size, self.h, 1)
-            )  #   [N * S] -> [B, h, N * S]
+            stat_exog = stat_exog.reshape(1, 1, -1).expand(1, self.h, -1)
             x_stat = self.feature_mixer_stat(
                 stat_exog
-            )  #   [B, h, N * S] -> [B, h, ff_dim]
+            )  #   [1, h, N * S] -> [1, h, ff_dim]
+            x_stat = x_stat.expand(batch_size, -1, -1)
             x = torch.cat(
                 (x, x_stat), dim=2
             )  #   [B, h, 2 * ff_dim] + [B, h, ff_dim] -> [B, h, 3 * ff_dim]
