@@ -2734,8 +2734,10 @@ class NBMM(_BaseLoss):
             if loc.ndim == 3:
                 loc = loc.unsqueeze(-1)
                 scale = scale.unsqueeze(-1)
-            mu *= loc
-            alpha /= loc + 1.0
+            # Anchor like nbinomial_scale_decouple. softplus keeps mu positive
+            # and differentiable when loc <= 0.
+            mu = F.softplus(mu * scale + loc) + 1e-8
+            alpha = alpha / (scale + 1.0)
 
         # mu = total_count * (probs/(1-probs))
         # => probs = mu / (total_count + mu)
