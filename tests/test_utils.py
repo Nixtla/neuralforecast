@@ -67,6 +67,21 @@ def test_augment_calendar_df_weekly():
     np.testing.assert_allclose(out["yearweek"], np.arange(4) / 52.0 - 0.5)
 
 
+def test_augment_calendar_df_non_range_index():
+    df = pd.DataFrame(
+        {
+            "unique_id": "a",
+            "ds": pd.date_range("2024-01-01", periods=3, freq="D"),
+            "y": range(3),
+        }
+    )
+    df.index = [10, 11, 12]
+    out, cols = augment_calendar_df(df, freq="D")
+    assert len(out) == 3
+    assert out.index.tolist() == [10, 11, 12]
+    assert not out[cols].isna().any().any()
+
+
 @pytest.mark.skipif(
     not hasattr(pd.errors, "Pandas4Warning"),
     reason="Pandas4Warning only exists in pandas>=3.1",
