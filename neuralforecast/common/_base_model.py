@@ -928,7 +928,13 @@ class BaseModel(pl.LightningModule):
             num_tasks = distributed_config.num_nodes * distributed_config.devices
             num_proc_per_task = 1  # number of GPUs per task
         num_proc = num_tasks * num_proc_per_task
-        use_gpu = _is_gpu_accelerator(self.trainer_kwargs["accelerator"])
+        accelerator = self.trainer_kwargs.get("accelerator", "auto")
+        use_gpu = _is_gpu_accelerator(accelerator)
+        # resolve "auto" once on the driver so the workers use the same accelerator
+        # (otherwise Lightning resolves it again on each worker, e.g. to MPS)
+        trainer_kwargs = dict(self.trainer_kwargs)
+        if accelerator == "auto":
+            trainer_kwargs["accelerator"] = "gpu" if use_gpu else "cpu"
         distributor = TorchDistributor(
             num_processes=num_proc,
             local_mode=local_mode,
@@ -940,7 +946,7 @@ class BaseModel(pl.LightningModule):
                 model_cls=type(self),
                 model_params=self.hparams,
                 datamodule=datamodule,
-                trainer_kwargs=self.trainer_kwargs,
+                trainer_kwargs=trainer_kwargs,
                 num_tasks=num_tasks,
                 num_proc_per_task=num_proc_per_task,
                 val_size=val_size,
