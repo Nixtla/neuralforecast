@@ -12,6 +12,7 @@ from neuralforecast.utils import (
     augment_calendar_df,
     level_to_quantiles,
     quantiles_to_level,
+    uncross_quantiles,
 )
 
 
@@ -96,3 +97,10 @@ def test_augment_calendar_df_no_pandas4_warnings(freq, pd_freq):
     with warnings.catch_warnings():
         warnings.simplefilter("error", pd.errors.Pandas4Warning)
         augment_calendar_df(df, freq=freq)
+
+
+def test_uncross_quantiles_keeps_the_column_order():
+    fcsts = np.array([[5.0, 1.0, 9.0]])
+
+    assert uncross_quantiles(fcsts, [0.5, 0.1, 0.9]).tolist() == [[5.0, 1.0, 9.0]]
+    assert uncross_quantiles(fcsts, [0.1, 0.5, 0.9]).tolist() == [[1.0, 5.0, 9.0]]
