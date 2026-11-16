@@ -416,7 +416,6 @@ def test_mape_gradient_is_finite_with_zero_targets():
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
 
 
-
 @pytest.mark.parametrize("num_quantiles", [1, 3, 5])
 def test_mqloss_matches_average_pinball_loss(num_quantiles):
     quantiles = (
