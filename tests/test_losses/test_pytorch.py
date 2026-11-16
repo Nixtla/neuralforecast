@@ -370,6 +370,40 @@ def test_mase_skips_zero_scale():
     assert loss == 0.0, "a flat insample series must not give inf"
 
 
+def test_mase_scales_each_series_by_its_own_insample_errors():
+    # Models pass y_insample as [B, L, N]. The scales are 1 and 100, and the
+    # forecast errors are 1 and 100, so every scaled error is exactly 1.
+    y_insample = torch.tensor([[1.0, 2.0, 3.0], [100.0, 200.0, 300.0]]).unsqueeze(-1)
+    y = torch.tensor([[4.0, 5.0], [400.0, 500.0]]).unsqueeze(-1)
+    y_hat = y + torch.tensor([[1.0, 1.0], [100.0, 100.0]]).unsqueeze(-1)
+
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+    mask = torch.tensor([[1.0, 0.0], [1.0, 1.0]]).unsqueeze(-1)
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample, mask=mask)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+
+def test_mase_scales_each_series_in_multivariate_batches():
+    # [B=2, L=3, N=2], with a different scale per window and series.
+    y_insample = torch.tensor(
+        [
+            [[1.0, 10.0], [2.0, 20.0], [3.0, 30.0]],
+            [[2.0, 20.0], [4.0, 40.0], [6.0, 60.0]],
+        ]
+    )
+    scale = torch.tensor([[[1.0, 10.0]], [[2.0, 20.0]]])
+    y = torch.zeros(2, 4, 2)
+    y_hat = y + scale
+
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+
 def test_mape_gradient_is_finite_with_zero_targets():
     y = torch.tensor([[[0.0], [20.0]]])
     y_hat = torch.tensor([[[1.0], [22.0]]], requires_grad=True)
