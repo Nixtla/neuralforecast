@@ -12,7 +12,7 @@ import torch.nn.functional as F
 
 from ..common._base_model import BaseModel
 from ..common._modules import RevINMultivariate
-from ..losses.pytorch import MAE
+from ..losses.pytorch import MAE, DistributionLoss
 
 
 class TemporalMixing(nn.Module):
@@ -198,7 +198,7 @@ class TSMixerx(BaseModel):
         step_size (int): step size between each window of temporal data.
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): random_seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): optional,  Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
@@ -470,12 +470,15 @@ class TSMixerx(BaseModel):
 
         # Reverse Instance Normalization on output
         if self.revin:
+            # DistributionLoss keeps parameter-major blocks; other losses group by series.
+            if not isinstance(self.loss, DistributionLoss):
+                forecast = forecast.reshape(
+                    batch_size, self.h, self.n_series, self.loss.outputsize_multiplier
+                ).transpose(2, 3)
             forecast = forecast.reshape(
-                batch_size, self.h * self.loss.outputsize_multiplier, -1
-            )  #   [B, h, N * n_outputs] -> [B, h * n_outputs, N]
+                batch_size, self.h * self.loss.outputsize_multiplier, self.n_series
+            )
             forecast = self.norm(forecast, "denorm")
-            forecast = forecast.reshape(
-                batch_size, self.h, -1
-            )  #   [B, h * n_outputs, N] -> [B, h, n_outputs * N]
+            forecast = self._group_outputs_by_series(forecast, batch_size)
 
         return forecast

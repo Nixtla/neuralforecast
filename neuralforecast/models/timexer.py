@@ -173,7 +173,7 @@ class TimeXer(BaseModel):
         step_size (int): step size between each window of temporal data.
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): random_seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): optional,  Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
@@ -415,5 +415,5 @@ class TimeXer(BaseModel):
             x_mark_enc = stat_exog_expanded.repeat(B, L, 1)
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred.reshape(B, self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, B)
         return y_pred
