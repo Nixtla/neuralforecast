@@ -1047,9 +1047,22 @@ class NeuralForecast:
                     f"{val_dataset.min_size} to {val_dataset.max_size}"
                 )
             val_size = val_dataset.min_size
+            train_indptr = self.dataset.indptr
             self.dataset = self.dataset.append(val_dataset)
-            _, _, self.last_dates, _ = TimeSeriesDataset.from_df(
+            _, _, self.last_dates, val_ds = TimeSeriesDataset.from_df(
                 df=val_df, id_col=id_col, time_col=time_col, target_col=target_col
+            )
+            # Match append's per-series order: training followed by validation.
+            self.ds = np.concatenate(
+                [
+                    np.concatenate(
+                        (
+                            self.ds[train_indptr[i] : train_indptr[i + 1]],
+                            val_ds[val_dataset.indptr[i] : val_dataset.indptr[i + 1]],
+                        )
+                    )
+                    for i in range(self.dataset.n_groups)
+                ]
             )
 
         if val_size is not None:
