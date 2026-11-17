@@ -922,15 +922,38 @@ def test_predict_insample_with_polars_categorical_ids(n_series):
     assert insample["unique_id"].dtype == pl.Categorical
 
 
-@pytest.mark.parametrize("values,expected", [
-    (["paris", "london", "paris"], [1, 2, 1]),
-    (["paris", "rome", "london"], [1, 0, 2]),  # unseen -> 0
-])
-def test_encode_categoricals_pandas_categorical_dtype(values, expected):
-    # pandas Categorical columns used to fail in map(...).fillna(0)
-    nf = NeuralForecast.__new__(NeuralForecast)
-    nf.categorical_vocab_ = {"city": {"paris": 1, "london": 2}}
-    df = pd.DataFrame({"city": pd.Categorical(values)})
-    out = nf._encode_categoricals(df)
-    assert out["city"].tolist() == expected
-    assert out["city"].dtype == np.int64
+@pytest.mark.parametrize(
+    "stream", ["hist", "futr", "stat"], ids=["historical", "future", "static"]
+)
+def test_pandas_categorical_predictions_match_object(stream):
+    col = "dow" if stream == "futr" else "city"
+    categories = DOWS if stream == "futr" else CITIES
+    df = _panel(cols=() if stream == "stat" else (col,))
+    static_df = (
+        pd.DataFrame({"unique_id": [f"s{u}" for u in range(4)], col: CITIES})
+        if stream == "stat"
+        else None
+    )
+    futr_df = _futr_df() if stream == "futr" else None
+    predictions = []
+    for categorical in (False, True):
+        train = df.copy()
+        static = static_df.copy() if static_df is not None else None
+        future = futr_df.copy() if futr_df is not None else None
+        if categorical:
+            target = static if stream == "stat" else train
+            target[col] = pd.Categorical(target[col], categories=categories)
+            if future is not None:
+                future[col] = pd.Categorical(
+                    future[col], categories=list(reversed(categories))
+                )
+        model = _model(
+            MLP,
+            **{f"{stream}_exog_list": [col]},
+            cat_exog_list=[col],
+            categorical_cardinalities={col: len(categories)},
+        )
+        nf = NeuralForecast(models=[model], freq=1)
+        nf.fit(train, static_df=static)
+        predictions.append(nf.predict(futr_df=future))
+    pd.testing.assert_frame_equal(predictions[0], predictions[1], check_exact=True)

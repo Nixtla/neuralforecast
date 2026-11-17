@@ -652,8 +652,14 @@ class NeuralForecast:
             )
         df = ufp.copy_if_pandas(df, deep=False)
         for col in cols:
-            # categorical dtype can't take the fill value 0 (pandas 2.x), so map from object
-            df[col] = df[col].astype(object).map(self.categorical_vocab_[col]).fillna(0).astype(np.int64)
+            # map from object: a category dtype can't take the fill value 0
+            df[col] = (
+                df[col]
+                .astype(object)
+                .map(self.categorical_vocab_[col])
+                .fillna(0)
+                .astype(np.int64)
+            )
         return df
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
