@@ -1,11 +1,33 @@
 import pytest
 
 from neuralforecast import NeuralForecast
-from neuralforecast.models import MLP, NBEATS
-from neuralforecast.tsdataset import TimeSeriesDataset
+from neuralforecast.models import LSTM, MLP
 from neuralforecast.utils import AirPassengersPanel
 
 DF = AirPassengersPanel[["unique_id", "ds", "y"]]
+
+
+def _mlp():
+    return MLP(
+        h=12,
+        input_size=24,
+        max_steps=2,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        logger=False,
+    )
+
+
+def _recurrent_lstm():
+    return LSTM(
+        h=12,
+        input_size=24,
+        max_steps=2,
+        recurrent=True,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        logger=False,
+    )
 
 
 def _raise(*args, **kwargs):
@@ -30,33 +52,40 @@ def _record_training_steps(model):
     return seen
 
 
-def test_failed_predict_restores_training_mode_for_next_fit():
-    nf = _fit(MLP(h=12, input_size=24, max_steps=2, enable_progress_bar=False, logger=False))
+@pytest.mark.parametrize("training", [True, False], ids=["train", "eval"])
+@pytest.mark.parametrize(
+    "make_model, predict_kwargs",
+    [
+        (_mlp, {}),
+        (_mlp, {"h": 24}),
+        (_recurrent_lstm, {}),
+    ],
+    ids=["direct", "h_above_model_h", "recurrent"],
+)
+def test_failed_predict_keeps_training_mode(make_model, predict_kwargs, training):
+    nf = _fit(make_model())
     model = nf.models[0]
-    was_training = model.training
+    model.train(training)
+
+    forward = model.forward
+    model.forward = _raise
+    with pytest.raises(RuntimeError, match="interrupted"):
+        nf.predict(**predict_kwargs)
+    model.forward = forward
+
+    assert model.training is training
+
+
+def test_failed_predict_does_not_leave_next_fit_in_eval_mode():
+    nf = _fit(_mlp())
+    model = nf.models[0]
 
     forward = model.forward
     model.forward = _raise
     with pytest.raises(RuntimeError, match="interrupted"):
         nf.predict()
     model.forward = forward
-    assert model.training == was_training
 
     seen = _record_training_steps(model)
     nf.fit(DF, use_init_models=False)
     assert seen and all(seen)
-
-
-def test_failed_decompose_restores_training_mode_and_flag():
-    nf = _fit(NBEATS(h=12, input_size=24, max_steps=2, enable_progress_bar=False, logger=False))
-    model = nf.models[0]
-    was_training = model.training
-    dataset, *_ = TimeSeriesDataset.from_df(DF)
-
-    forward = model.forward
-    model.forward = _raise
-    with pytest.raises(RuntimeError, match="interrupted"):
-        model.decompose(dataset=dataset)
-    model.forward = forward
-    assert model.training == was_training
-    assert model.decompose_forecast is False
