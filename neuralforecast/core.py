@@ -2128,7 +2128,7 @@ class NeuralForecast:
             error_msg = "No models support explanations with the current configuration. "
             if any(model.RECURRENT for model in self.models) and explainer == ExplainerEnum.IntegratedGradients:
                 error_msg += (
-                    f"{ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
+                    f"{ExplainerEnum.IntegratedGradients.value} is not compatible with recurrent models. "
                     "Either set recurrent=False or use a different explainer. "
                 )
             error_msg += (

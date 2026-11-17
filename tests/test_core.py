@@ -2438,33 +2438,58 @@ SUPPORTED_EXPLAINERS = (
 )
 
 
+@pytest.fixture(scope="module")
+def explain_validation_nf():
+    return NeuralForecast(
+        models=[MLP(h=2, input_size=4, loss=DistributionLoss("Normal"))],
+        freq="D",
+    )
+
+
 @pytest.mark.parametrize("explainer", SUPPORTED_EXPLAINERS)
-def test_explain_accepts_supported_explainers_without_models(explainer):
+def test_explain_accepts_supported_explainers_without_models(
+    explainer, explain_validation_nf
+):
     captum = ModuleType("captum")
     captum.attr = SimpleNamespace(**{name: object for name in SUPPORTED_EXPLAINERS})
-    nf = NeuralForecast(models=[], freq="D")
 
     with patch.dict(sys.modules, {"captum": captum}):
         with pytest.raises(ValueError, match="No models support explanations"):
-            nf.explain(explainer=explainer)
+            explain_validation_nf.explain(explainer=explainer)
 
 
 @pytest.mark.parametrize("explainer", ["Gradient", "Sampling", "Input", "Saliency"])
-def test_explain_rejects_unsupported_explainers(explainer):
+def test_explain_rejects_unsupported_explainers(explainer, explain_validation_nf):
     captum = ModuleType("captum")
     captum.attr = SimpleNamespace(
         **{name: object for name in set(SUPPORTED_EXPLAINERS) | {explainer}}
     )
-    nf = NeuralForecast(models=[], freq="D")
 
     with patch.dict(sys.modules, {"captum": captum}):
         with pytest.raises(ValueError) as exc_info:
-            nf.explain(explainer=explainer)
+            explain_validation_nf.explain(explainer=explainer)
 
     assert str(exc_info.value) == (
         f"Explainer {explainer} is not supported. Supported explainers are: "
         "IntegratedGradients, ShapleyValueSampling, InputXGradient."
     )
+
+
+def test_explain_recurrent_model_error_uses_explainer_value():
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(**{name: object for name in SUPPORTED_EXPLAINERS})
+    nf = NeuralForecast(
+        models=[RNN(h=2, input_size=4, recurrent=True)],
+        freq="D",
+    )
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(
+            ValueError, match="IntegratedGradients is not compatible"
+        ) as exc_info:
+            nf.explain(explainer="IntegratedGradients")
+
+    assert "ExplainerEnum.IntegratedGradients" not in str(exc_info.value)
 
 
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
