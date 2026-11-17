@@ -464,10 +464,8 @@ class BaseAuto(pl.LightningModule):
             for k, v in ray_config.items():
                 if hasattr(v, "sampler"):
                     sampler = v.sampler
-                    if isinstance(
-                        sampler, tune.search.sample.Integer.default_sampler_cls
-                    ):
-                        v = trial.suggest_int(k, v.lower, v.upper)
+                    if isinstance(v, tune.search.sample.Integer):
+                        v = BaseAuto._suggest_ray_int(trial, k, v)
                     elif isinstance(
                         sampler, tune.search.sample.Categorical.default_sampler_cls
                     ):
@@ -480,6 +478,12 @@ class BaseAuto(pl.LightningModule):
                         if isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._LogUniform
                         ):
+                            warnings.warn(
+                                f"Optuna doesn't support quantized log-uniform floats, "
+                                f"so the quantization (q={sampler.q}) of {k!r} is "
+                                "dropped.",
+                                stacklevel=2,
+                            )
                             v = trial.suggest_float(k, v.lower, v.upper, log=True)
                         elif isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._Uniform
@@ -491,6 +495,25 @@ class BaseAuto(pl.LightningModule):
             return out
 
         return optuna_config
+
+    @staticmethod
+    def _suggest_ray_int(trial, name, domain):
+        # Ray's `randint`/`lograndint` exclude `upper`, while the quantized
+        # `qrandint` includes it. Optuna's `suggest_int` always includes `high`.
+        sampler = domain.get_sampler()
+        if not isinstance(sampler, tune.search.sample.Quantized):
+            log = isinstance(sampler, tune.search.sample.LogUniform)
+            return trial.suggest_int(name, domain.lower, domain.upper - 1, log=log)
+        q = sampler.q
+        if isinstance(sampler.get_sampler(), tune.search.sample.LogUniform):
+            raise ValueError(
+                f"Couldn't translate {name!r} to optuna: optuna doesn't support "
+                "quantized log-uniform integers (`tune.qlograndint`)."
+            )
+        # like Ray, only sample multiples of `q` within [lower, upper]
+        lower = -(-domain.lower // q) * q
+        upper = domain.upper // q * q
+        return trial.suggest_int(name, lower, upper, step=q)
 
     def _optuna_tune_model(
         self,
