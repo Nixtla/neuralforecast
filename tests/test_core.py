@@ -1793,6 +1793,54 @@ def test_val_df_equivalence_with_val_size(setup_airplane_data):
     np.testing.assert_allclose(losses_val_size, losses_val_df, atol=1e-4)
 
 
+@pytest.mark.parametrize("backend", ["pandas", "polars"])
+@pytest.mark.parametrize("ragged", [False, True])
+def test_val_df_predict_insample(backend, ragged):
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    train = df.groupby("unique_id", observed=True).head(120)
+    if ragged:
+        train = train.drop(train[train.unique_id == "Airline2"].head(12).index)
+    val = df.groupby("unique_id", observed=True).tail(24)
+    expected = pd.concat([train, val]).sort_values(["unique_id", "ds"])
+    # Validation rows need not arrive in series/time order.
+    val = val.sample(frac=1, random_state=42)
+    if backend == "polars":
+        train, val = polars.from_pandas(train), polars.from_pandas(val)
+
+    nf = NeuralForecast(
+        models=[
+            NHITS(
+                h=12,
+                input_size=24,
+                max_steps=2,
+                accelerator="cpu",
+                enable_progress_bar=False,
+                logger=False,
+            )
+        ],
+        freq="ME" if backend == "pandas" else "1mo",
+    )
+    nf.fit(train, val_df=val)
+    predictions = nf.predict_insample()
+    np.testing.assert_array_equal(nf.ds, expected.ds.to_numpy())
+    np.testing.assert_array_equal(
+        nf.last_dates, expected.groupby("unique_id", observed=True).ds.max()
+    )
+    if backend == "polars":
+        predictions = predictions.to_pandas()
+    actuals = predictions[["unique_id", "ds", "y"]].drop_duplicates()
+    pd.testing.assert_frame_equal(
+        actuals.sort_values(["unique_id", "ds"]).reset_index(drop=True),
+        expected.reset_index(drop=True),
+        check_dtype=False,
+    )
+    # cross_validation(df=None) also pairs self.ds with the stored dataset.
+    cv = nf.cross_validation(df=None, n_windows=1, step_size=12)
+    if backend == "polars":
+        cv = cv.to_pandas()
+    assert len(cv) == expected.unique_id.nunique() * 12
+
+
 # drop_last_loader only drops training batches: with fewer series than
 # valid_batch_size, validation must still run
 @pytest.mark.parametrize("model_cls, kwargs", [(MLP, {}), (TSMixer, {"n_series": 3})])
