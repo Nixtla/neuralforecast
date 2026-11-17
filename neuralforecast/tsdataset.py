@@ -493,10 +493,10 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             import pyarrow.parquet as pq
 
             series_files = []
-            for dir in files_ds:
+            for series_dir in files_ds:
                 bounds = {
                     str(file): self._file_bounds(pq.read_metadata(file), time_col)
-                    for file in Path(dir).glob("*.parquet")
+                    for file in Path(series_dir).glob("*.parquet")
                 }
                 series_files.append(self._sort_files(bounds))
         self.series_files = series_files
@@ -514,9 +514,10 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         pos = [rg.column(i).path_in_schema for i in range(rg.num_columns)].index(
             time_col
         )
-        first = rg.column(pos).statistics.min
-        last = meta.row_group(meta.num_row_groups - 1).column(pos).statistics.max
-        return first, last
+        stats = [
+            meta.row_group(i).column(pos).statistics for i in range(meta.num_row_groups)
+        ]
+        return min(s.min for s in stats), max(s.max for s in stats)
 
     @staticmethod
     def _sort_files(bounds):
