@@ -448,6 +448,13 @@ def augment_calendar_df(df, freq="H"):
         ],
     }
 
+    clashing = [col for col in freq_map[freq] if col in df.columns]
+    if clashing:
+        raise ValueError(
+            f"df already has columns named {clashing}, which augment_calendar_df "
+            "adds as calendar features. Rename or drop them first."
+        )
+
     ds_col = pd.to_datetime(df.ds.values)
     ds_data = np.vstack(
         [feat(ds_col) for feat in time_features_from_frequency_str(freq)]
