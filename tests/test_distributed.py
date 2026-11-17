@@ -3,8 +3,11 @@ from types import SimpleNamespace
 
 import fugue.api as fa
 import pandas as pd
+import pytest
+import torch
 
 from neuralforecast import NeuralForecast
+from neuralforecast.common._base_model import DistributedConfig
 from neuralforecast.models import NHITS
 
 
@@ -87,3 +90,54 @@ def test_local_rendezvous_addr_respects_user_value():
         assert os.environ["PET_LOCAL_ADDR"] == "10.0.0.1"
     finally:
         os.environ.pop("PET_LOCAL_ADDR", None)
+
+
+@pytest.mark.parametrize("cuda_available", [False, True])
+@pytest.mark.parametrize(
+    "accelerator, expected",
+    [
+        (None, "auto-resolved"),  # __init__ sets "gpu" only when CUDA is available
+        ("auto", "auto-resolved"),
+        ("cpu", "cpu"),
+        ("gpu", "gpu"),
+        ("cuda", "cuda"),
+    ],
+)
+def test_fit_distributed_pins_accelerator(
+    monkeypatch, accelerator, expected, cuda_available
+):
+    pytest.importorskip("pyspark")
+    from pytorch_lightning.accelerators.cuda import CUDAAccelerator
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: cuda_available)
+    monkeypatch.setattr(
+        CUDAAccelerator, "is_available", staticmethod(lambda: cuda_available)
+    )
+    captured = {}
+
+    class FakeTorchDistributor:
+        def __init__(self, num_processes, local_mode, use_gpu):
+            captured["use_gpu"] = use_gpu
+
+        def run(self, *args, **kwargs):
+            captured["trainer_kwargs"] = kwargs["trainer_kwargs"]
+            return "trained"
+
+    monkeypatch.setattr(
+        "pyspark.ml.torch.distributor.TorchDistributor", FakeTorchDistributor
+    )
+
+    kwargs = {} if accelerator is None else {"accelerator": accelerator}
+    model = NHITS(h=7, input_size=14, max_steps=1, **kwargs)
+    config = DistributedConfig(partitions_path="unused", num_nodes=2, devices=1)
+
+    result = model._fit_distributed(config, datamodule=None, val_size=0, test_size=0)
+
+    resolved = "gpu" if cuda_available else "cpu"
+    if expected == "auto-resolved":
+        expected = resolved
+    use_gpu = expected in ("gpu", "cuda")
+    assert result == "trained"
+    assert captured["use_gpu"] is use_gpu
+    # the workers get the same accelerator the driver decided on
+    assert captured["trainer_kwargs"]["accelerator"] == expected
