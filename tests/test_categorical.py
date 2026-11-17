@@ -920,3 +920,17 @@ def test_predict_insample_with_polars_categorical_ids(n_series):
         insample.with_columns(pl.col("unique_id").cast(pl.String)), expected
     )
     assert insample["unique_id"].dtype == pl.Categorical
+
+
+@pytest.mark.parametrize("values,expected", [
+    (["paris", "london", "paris"], [1, 2, 1]),
+    (["paris", "rome", "london"], [1, 0, 2]),  # unseen -> 0
+])
+def test_encode_categoricals_pandas_categorical_dtype(values, expected):
+    # pandas Categorical columns used to fail in map(...).fillna(0)
+    nf = NeuralForecast.__new__(NeuralForecast)
+    nf.categorical_vocab_ = {"city": {"paris": 1, "london": 2}}
+    df = pd.DataFrame({"city": pd.Categorical(values)})
+    out = nf._encode_categoricals(df)
+    assert out["city"].tolist() == expected
+    assert out["city"].dtype == np.int64
