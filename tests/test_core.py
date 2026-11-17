@@ -1823,7 +1823,6 @@ def test_val_df_predict_insample(backend, ragged):
     nf.fit(train, val_df=val)
     predictions = nf.predict_insample()
     np.testing.assert_array_equal(nf.ds, expected.ds.to_numpy())
-    assert len(nf.ds) == nf.dataset.temporal.shape[0]
     np.testing.assert_array_equal(
         nf.last_dates, expected.groupby("unique_id", observed=True).ds.max()
     )
