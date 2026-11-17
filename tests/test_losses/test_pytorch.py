@@ -15,6 +15,7 @@ from neuralforecast.losses.pytorch import (
     SMAPE,
     DistributionLoss,
     FreDF,
+    HuberMQLoss,
     HuberIQLoss,
     IQLoss,
     QuantileLoss,
@@ -412,6 +413,97 @@ def test_mape_gradient_is_finite_with_zero_targets():
 
     assert torch.isfinite(y_hat.grad).all()
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
+
+
+@pytest.mark.parametrize("num_quantiles", [1, 3, 5])
+def test_mqloss_matches_average_pinball_loss(num_quantiles):
+    quantiles = (
+        [0.5]
+        if num_quantiles == 1
+        else torch.linspace(0.1, 0.9, steps=num_quantiles).tolist()
+    )
+    q = torch.tensor(quantiles)[None, None, None, :]
+    y = torch.tensor([[[1.0], [2.0]]])
+    y_hat = torch.linspace(0.0, 3.0, steps=2 * num_quantiles).reshape(
+        1, 2, 1, num_quantiles
+    )
+
+    actual = MQLoss(quantiles=quantiles)(y=y, y_hat=y_hat)
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(q * error, (q - 1) * error)
+    expected = pinball.mean()
+
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize("num_quantiles", [1, 3, 5])
+def test_huber_mqloss_matches_average_quantile_loss(num_quantiles):
+    quantiles = (
+        [0.5]
+        if num_quantiles == 1
+        else torch.linspace(0.1, 0.9, steps=num_quantiles).tolist()
+    )
+    q = torch.tensor(quantiles)[None, None, None, :]
+    y = torch.tensor([[[1.0], [2.0]]])
+    y_hat = torch.linspace(0.0, 3.0, steps=2 * num_quantiles).reshape(
+        1, 2, 1, num_quantiles
+    )
+
+    actual = HuberMQLoss(quantiles=quantiles)(y=y, y_hat=y_hat)
+    error = y_hat - y.unsqueeze(-1)
+    lower = torch.maximum(-error, torch.zeros_like(error))
+    upper = torch.maximum(error, torch.zeros_like(error))
+    zero = torch.zeros_like(error)
+    losses = torch.nn.functional.huber_loss(
+        q * lower, zero, reduction="none"
+    ) + torch.nn.functional.huber_loss(
+        (1 - q) * upper, zero, reduction="none"
+    )
+    expected = losses.mean()
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_MQLoss_normalization_with_mask_and_horizon_weight():
+    quantiles = torch.tensor([0.1, 0.5, 0.9])
+    y = torch.tensor([[[2.0], [4.0], [8.0]]])
+    y_hat = torch.tensor(
+        [[[[1.0, 2.0, 3.0]], [[2.0, 4.0, 6.0]], [[6.0, 8.0, 10.0]]]]
+    )
+    mask = torch.tensor([[[1.0], [0.0], [1.0]]])
+    horizon_weight = torch.tensor([1.0, 2.0, 3.0])
+
+    actual = MQLoss(
+        quantiles=quantiles.tolist(), horizon_weight=horizon_weight
+    )(y=y, y_hat=y_hat, mask=mask)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(quantiles * error, (quantiles - 1) * error)
+    pointwise_mean = pinball.mean(dim=-1)
+    weights = mask * horizon_weight[None, :, None]
+    expected = (pointwise_mean * weights).sum() / weights.sum()
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_sCRPS_matches_mean_quantile_pinball_reference():
+    quantiles = [0.1, 0.5, 0.9]
+    y = torch.tensor([[[1.0], [2.0], [4.0]]])
+    y_hat = torch.tensor(
+        [[[[0.0, 1.0, 2.0]], [[1.0, 2.0, 3.0]], [[2.0, 4.0, 5.0]]]]
+    )
+    mask = torch.ones_like(y)
+    q = torch.tensor(quantiles)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(q * error, (q - 1) * error)
+    expected = 2 * pinball.mean(dim=-1).sum() / y.abs().sum()
+
+    actual = sCRPS(quantiles=quantiles)(
+        y=y, y_hat=y_hat, y_insample=torch.zeros_like(y), mask=mask
+    )
+
+    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
 
 
 @pytest.mark.parametrize("shape", [(2, 4, 1), (3, 6, 3)])
