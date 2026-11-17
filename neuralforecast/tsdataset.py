@@ -260,15 +260,14 @@ class TimeSeriesDataset(BaseTimeSeriesDataset):
         # Protect consistency
         df = ufp.copy_if_pandas(df, deep=False)
 
-        # Add Nones to missing columns (and mark all rows as available
-        # if `available_mask` is missing, while keeping a user-provided mask)
+        # Fill missing columns with NaN, or 1.0 for a missing available_mask
         temporal_cols = self.temporal_cols.copy()
         for col in temporal_cols:
             if col not in df.columns:
                 fill_value = 1.0 if col == "available_mask" else np.nan
                 df = ufp.assign_columns(df, col, fill_value)
 
-        # Sort columns to match self.temporal_cols (without available_mask)
+        # Sort columns to match self.temporal_cols
         df = df[[id_col, time_col] + temporal_cols.tolist()]
 
         # Process future_df

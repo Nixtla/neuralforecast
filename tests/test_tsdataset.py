@@ -344,7 +344,11 @@ def test_eq_allows_static_without_column_names():
     assert left != other
 
 
-def _align_mask(val_df, df_cls=pd.DataFrame):
+def _to_df_cls(df, df_cls):
+    return polars.from_pandas(df) if df_cls is polars.DataFrame else df
+
+
+def _align_mask(new_df, df_cls):
     df = pd.DataFrame(
         {
             "unique_id": "a",
@@ -353,15 +357,17 @@ def _align_mask(val_df, df_cls=pd.DataFrame):
             "available_mask": 1.0,
         }
     )
-    dataset, *_ = TimeSeriesDataset.from_df(df)
-    if df_cls is polars.DataFrame:
-        val_df = polars.from_pandas(val_df)
-    aligned = dataset.align(val_df, id_col="unique_id", time_col="ds", target_col="y")
+    dataset, *_ = TimeSeriesDataset.from_df(_to_df_cls(df, df_cls))
+    aligned = dataset.align(
+        _to_df_cls(new_df, df_cls), id_col="unique_id", time_col="ds", target_col="y"
+    )
     mask_idx = aligned.temporal_cols.get_loc("available_mask")
     return aligned.temporal[:, mask_idx].tolist()
 
 
-@pytest.mark.parametrize("df_cls", [pd.DataFrame, polars.DataFrame])
+@pytest.mark.parametrize(
+    "df_cls", [pd.DataFrame, polars.DataFrame], ids=["pandas", "polars"]
+)
 def test_align_keeps_user_available_mask(df_cls):
     val_df = pd.DataFrame(
         {
@@ -374,7 +380,9 @@ def test_align_keeps_user_available_mask(df_cls):
     assert _align_mask(val_df, df_cls) == [0.0, 1.0, 0.0, 1.0]
 
 
-@pytest.mark.parametrize("df_cls", [pd.DataFrame, polars.DataFrame])
+@pytest.mark.parametrize(
+    "df_cls", [pd.DataFrame, polars.DataFrame], ids=["pandas", "polars"]
+)
 def test_align_fills_missing_available_mask(df_cls):
     futr_df = pd.DataFrame(
         {
