@@ -1,7 +1,7 @@
 
 
 
-__all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoBiTCN', 'AutoxLSTM', 'AutoMLP',
+__all__ = ['AutoRNN', 'AutoLSTM', 'AutoGRU', 'AutoTCN', 'AutoDeepAR', 'AutoDilatedRNN', 'AutoESRNN', 'AutoBiTCN', 'AutoxLSTM', 'AutoMLP',
            'AutoNBEATS', 'AutoNBEATSx', 'AutoNHITS', 'AutoDLinear', 'AutoNLinear', 'AutoTiDE', 'AutoDeepNPTS',
            'AutoKAN', 'AutoTFT', 'AutoVanillaTransformer', 'AutoInformer', 'AutoAutoformer', 'AutoFEDformer',
            'AutoPatchTST', 'AutoiTransformer', 'AutoTimeXer', 'AutoTimesNet', 'AutoStemGNN', 'AutoHINT', 'AutoTSMixer',
@@ -15,13 +15,14 @@ from ray import tune
 from ray.tune.search.basic_variant import BasicVariantGenerator
 
 from .common._base_auto import BaseAuto, MockTrial, OptunaOptions, RayOptions
-from .losses.pytorch import MAE, DistributionLoss, MQLoss
+from .losses.pytorch import MAE, DistributionLoss, MQLoss, QuantileLoss
 from .models.autoformer import Autoformer
 from .models.bitcn import BiTCN
 from .models.deepar import DeepAR
 from .models.deepnpts import DeepNPTS
 from .models.dilated_rnn import DilatedRNN
 from .models.dlinear import DLinear
+from .models.esrnn import ESRNN
 from .models.fedformer import FEDformer
 from .models.gru import GRU
 from .models.hint import HINT
@@ -512,6 +513,141 @@ class AutoDilatedRNN(BaseAuto):
             config = cls._ray_config_to_optuna(config)
 
         return config
+
+
+class AutoESRNN(BaseAuto):
+    """Tune ES-RNN using validation loss through Optuna or Ray Tune.
+
+    The default search explores input windows, shared recurrent architecture,
+    learning rate, local level regularization, and training batch sizes. Seasonal
+    periods are frequency-specific: the default is no seasonality. Set
+    ``season_length`` in the configuration (for example, 7 for daily weekly
+    seasonality). Identity scaling and single-device execution remain required.
+
+    Args:
+        h (int): Forecast horizon.
+        loss (torch.nn.Module, optional): Normalized training objective. Defaults
+            to QuantileLoss(0.5), as in ESRNN.
+        valid_loss (torch.nn.Module, optional): Original-scale tuning objective.
+            Defaults to MAE, independently of the training loss.
+        config (dict or callable, optional): Ray search space or Optuna function
+            mapping a trial to an ESRNN configuration.
+        search_alg: Ray search algorithm or Optuna sampler.
+        num_samples (int): Number of tuning trials.
+        refit_with_val (bool): Preserve the validation partition in the final
+            refit, following BaseAuto's convention. False trains the final
+            selected configuration on all history before the test partition.
+        time_budget (float, optional): Maximum tuning time in seconds.
+        ray_options (RayOptions, optional): Ray resources and scheduling options.
+            Reserve at most one GPU per trial.
+        optuna_options (OptunaOptions, optional): Study and optimization options.
+        cpus: Deprecated; use ray_options instead, following BaseAuto.
+        gpus: Deprecated; use ray_options instead, following BaseAuto.
+        verbose (bool): Show tuning progress.
+        alias (str, optional): Forecast column alias.
+        backend (str): 'ray' or 'optuna'.
+        callbacks (list, optional): Tuning callbacks for the selected backend.
+
+    Notes:
+        The positivity, full-history, known-series and forecasting restrictions
+        of ESRNN also apply to every trial and the selected model. This wrapper
+        optimizes validation scores; it makes no benchmark accuracy guarantee.
+    """
+
+    default_config = {
+        "input_size_multiplier": [1, 2, 3],
+        "h": None,
+        "season_length": (),
+        "encoder_hidden_size": tune.choice([16, 32, 64]),
+        "dilations": tune.choice([[[1, 2], [4, 8]], [[1, 2, 4, 8]]]),
+        "learning_rate": tune.loguniform(1e-4, 1e-2),
+        "level_variability_penalty": tune.choice([0.0, 10.0, 50.0]),
+        "max_steps": tune.choice([100, 300, 500]),
+        "batch_size": tune.choice([4, 8]),
+        "windows_batch_size": tune.choice([32, 64]),
+        "scaler_type": "identity",
+        "devices": 1,
+        "loss": None,
+        "random_seed": tune.randint(1, 20),
+    }
+
+    def __init__(
+        self,
+        h,
+        loss=None,
+        valid_loss=None,
+        config=None,
+        search_alg=BasicVariantGenerator(random_state=1),
+        num_samples=10,
+        time_budget=None,
+        refit_with_val=False,
+        cpus=None,
+        gpus=None,
+        verbose=False,
+        alias=None,
+        backend="ray",
+        callbacks=None,
+        ray_options=None,
+        optuna_options=None,
+    ):
+        reserved_gpus = None if ray_options is None else ray_options.gpus
+        if (
+            backend == "ray"
+            and reserved_gpus is not None
+            and not 0 <= reserved_gpus <= 1
+        ):
+            raise ValueError("AutoESRNN supports at most one GPU per trial.")
+        if config is None:
+            config = self.get_default_config(h=h, backend=backend)
+        super().__init__(
+            cls_model=ESRNN,
+            h=h,
+            loss=QuantileLoss(q=0.5) if loss is None else loss,
+            valid_loss=MAE() if valid_loss is None else valid_loss,
+            config=config,
+            search_alg=search_alg,
+            num_samples=num_samples,
+            time_budget=time_budget,
+            refit_with_val=refit_with_val,
+            cpus=cpus,
+            gpus=gpus,
+            verbose=verbose,
+            alias=alias,
+            backend=backend,
+            callbacks=callbacks,
+            ray_options=ray_options,
+            optuna_options=optuna_options,
+        )
+
+    @classmethod
+    def get_default_config(cls, h, backend, n_series=None):
+        config = cls.default_config.copy()
+        config["input_size"] = tune.choice(
+            [h * multiplier for multiplier in config.pop("input_size_multiplier")]
+        )
+        if backend == "optuna":
+            return cls._ray_config_to_optuna(config)
+        if backend != "ray":
+            raise ValueError("AutoESRNN backend must be 'ray' or 'optuna'.")
+        return config
+
+    def fit(
+        self,
+        dataset,
+        val_size=0,
+        test_size=0,
+        random_seed=None,
+        distributed_config=None,
+    ):
+        if distributed_config is not None:
+            raise ValueError("AutoESRNN does not support distributed training.")
+        return super().fit(
+            dataset,
+            val_size=val_size,
+            test_size=test_size,
+            random_seed=random_seed,
+            distributed_config=None,
+        )
 
 
 class AutoBiTCN(BaseAuto):
