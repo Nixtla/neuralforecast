@@ -41,6 +41,7 @@ from neuralforecast.auto import (
     TSMixerx,
     VanillaTransformer,
 )
+import neuralforecast.common._base_model as _base_model
 from neuralforecast.common.enums import ExplainerEnum
 from neuralforecast.core import (
     LSTM,
@@ -1844,7 +1845,14 @@ def test_val_df_predict_insample(backend, ragged):
 # drop_last_loader only drops training batches: with fewer series than
 # valid_batch_size, validation must still run
 @pytest.mark.parametrize("model_cls, kwargs", [(MLP, {}), (TSMixer, {"n_series": 3})])
-def test_drop_last_loader_keeps_validation(model_cls, kwargs):
+@pytest.mark.parametrize(
+    "loader_kwargs",
+    [
+        {"drop_last_loader": True},
+        {"dataloader_kwargs": {"drop_last": True}},
+    ],
+)
+def test_drop_last_loader_keeps_validation(model_cls, kwargs, loader_kwargs):
     df = AirPassengersPanel[["unique_id", "ds", "y"]]
     df = pd.concat(
         [df, df[df["unique_id"] == "Airline1"].assign(unique_id="Airline3")]
@@ -1856,12 +1864,48 @@ def test_drop_last_loader_keeps_validation(model_cls, kwargs):
         val_check_steps=2,
         batch_size=2,
         valid_batch_size=4,
-        drop_last_loader=True,
+        **loader_kwargs,
         **kwargs,
     )
     nf = NeuralForecast(models=[model], freq="ME")
     nf.fit(df, val_size=12)
     assert nf.models[0].valid_trajectories
+
+
+@pytest.mark.parametrize("explicit_drop_last", [True, False])
+def test_fit_accepts_drop_last_in_dataloader_kwargs(explicit_drop_last):
+    # A dataloader kwarg that is also a named argument must not be passed twice.
+    recorded = {}
+    real_datamodule = _base_model.TimeSeriesDataModule
+
+    class _RecordingDataModule(real_datamodule):
+        def __init__(self, *args, **kwargs):
+            recorded["drop_last"] = kwargs.get("drop_last")
+            super().__init__(*args, **kwargs)
+
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    model = MLP(
+        h=12,
+        input_size=24,
+        max_steps=2,
+        drop_last_loader=not explicit_drop_last,
+        dataloader_kwargs={"drop_last": explicit_drop_last, "pin_memory": False},
+        enable_progress_bar=False,
+        logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    with patch.object(
+        _base_model, "TimeSeriesDataModule", _RecordingDataModule, create=True
+    ):
+        nf.fit(df)
+
+    # `NeuralForecast` fits a copy, so assert on the fitted model, not on `model`.
+    assert nf.models[0].dataloader_kwargs == {
+        "drop_last": explicit_drop_last,
+        "pin_memory": False,
+    }
+    # and pin the direction of the override on the loader the model actually built
+    assert recorded["drop_last"] is explicit_drop_last
 
 
 @pytest.mark.parametrize("model,expected_error", [
