@@ -87,6 +87,7 @@ from neuralforecast.utils import (
     level_to_quantiles,
     quantiles_to_level,
     sample_from_quantiles,
+    uncross_quantiles,
 )
 
 from .common._base_auto import BaseAuto, MockTrial
@@ -651,7 +652,14 @@ class NeuralForecast:
             )
         df = ufp.copy_if_pandas(df, deep=False)
         for col in cols:
-            df[col] = df[col].map(self.categorical_vocab_[col]).fillna(0).astype(np.int64)
+            # map from object: a category dtype can't take the fill value 0
+            df[col] = (
+                df[col]
+                .astype(object)
+                .map(self.categorical_vocab_[col])
+                .fillna(0)
+                .astype(np.int64)
+            )
         return df
 
     def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
@@ -1039,9 +1047,22 @@ class NeuralForecast:
                     f"{val_dataset.min_size} to {val_dataset.max_size}"
                 )
             val_size = val_dataset.min_size
+            train_indptr = self.dataset.indptr
             self.dataset = self.dataset.append(val_dataset)
-            _, _, self.last_dates, _ = TimeSeriesDataset.from_df(
+            _, _, self.last_dates, val_ds = TimeSeriesDataset.from_df(
                 df=val_df, id_col=id_col, time_col=time_col, target_col=target_col
+            )
+            # Match append's per-series order: training followed by validation.
+            self.ds = np.concatenate(
+                [
+                    np.concatenate(
+                        (
+                            self.ds[train_indptr[i] : train_indptr[i + 1]],
+                            val_ds[val_dataset.indptr[i] : val_dataset.indptr[i + 1]],
+                        )
+                    )
+                    for i in range(self.dataset.n_groups)
+                ]
             )
 
         if val_size is not None:
@@ -2747,7 +2768,7 @@ class NeuralForecast:
             series_spans.append((start, stop, forecast_size))
 
         # Combine all series forecasts DataFrames
-        fcsts_df = ufp.vertical_concat(fcsts_dfs)
+        fcsts_df = ufp.vertical_concat(fcsts_dfs, match_categories=False)
 
         h_backup = self.h
         fcst_list = []
@@ -3205,30 +3226,17 @@ class NeuralForecast:
             elif quantiles_ is not None and isinstance(
                 model.loss, (IQLoss, HuberIQLoss)
             ):
-                # IQLoss does not give monotonically increasing quantiles, so we apply a hack: compute all quantiles, and take the quantile over the quantiles
-                quantiles_iqloss = [
-                    0.01,
-                    0.05,
-                    0.1,
-                    0.2,
-                    0.3,
-                    0.5,
-                    0.7,
-                    0.8,
-                    0.9,
-                    0.95,
-                    0.99,
-                ]
+                # Predict each requested level directly. IQLoss levels can
+                # cross, so uncross_quantiles sorts them across levels
                 fcsts_list_iqloss = []
-                for i, quantile in enumerate(quantiles_iqloss):
+                for quantile in quantiles_:
                     model_fcsts = model.predict(
                         dataset=dataset, quantiles=[quantile], h=h, **data_kwargs
                     )
                     fcsts_list_iqloss.append(model_fcsts)
-                fcsts_iqloss = np.concatenate(fcsts_list_iqloss, axis=-1)
-
-                # Get the actual requested quantiles
-                model_fcsts = np.quantile(fcsts_iqloss, quantiles_, axis=-1).T
+                model_fcsts = uncross_quantiles(
+                    np.concatenate(fcsts_list_iqloss, axis=-1), quantiles_
+                )
                 fcsts_list.append(model_fcsts)
 
                 # Get the right column names
