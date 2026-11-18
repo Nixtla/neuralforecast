@@ -10,6 +10,7 @@ from neuralforecast.losses.pytorch import (
     MASE,
     MQLoss,
     MSE,
+    NBMM,
     PMM,
     RMSE,
     SMAPE,
@@ -31,6 +32,7 @@ from neuralforecast.losses.pytorch import (
 def test_MQLoss_level():
     check = MQLoss(level=[80, 90])
     assert len(check.quantiles) == 5
+
 
 def test_MQLoss_quantiles():
     check = MQLoss(quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
@@ -56,6 +58,7 @@ def test_DistributionLoss_level():
     check = DistributionLoss(distribution="Normal", level=[80, 90])
     assert len(check.quantiles), 5
 
+
 def test_DistributionLoss_quantiles():
     check = DistributionLoss(
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900]
@@ -66,6 +69,7 @@ def test_DistributionLoss_quantiles():
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.9000, 0.9900]
     )
     assert len(check.quantiles) == 4
+
 
 # Unit tests to check DistributionLoss' horizon weight
 def test_DistributionLoss_horizon_weight():
@@ -92,12 +96,60 @@ def test_PMM_level():
     check = PMM(n_components=2, level=[80, 90])
     assert len(check.quantiles) == 5
 
+
 def test_PMM_quantiles():
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
     assert len(check.quantiles) == 5
 
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.9000, 0.9900])
     assert len(check.quantiles) == 4
+
+
+# Unit tests to check NBMM anchors its mean on loc and scale
+def _NBMM_distr_args(weighted, raw_mu, raw_alpha, loc, scale):
+    loss = NBMM(n_components=1, weighted=weighted)
+    raw = [raw_mu, raw_alpha] + ([0.0] if weighted else [])
+    out = torch.tensor(raw).repeat(1, 3, 1).requires_grad_()
+    distr_args = loss.scale_decouple(
+        loss.domain_map(out),
+        loc=torch.full((1, 3, 1), loc),
+        scale=torch.full((1, 3, 1), scale),
+    )
+    return loss, out, distr_args
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("scale", [1.0, 4.0])
+@pytest.mark.parametrize("loc", [100.0, 0.0, -5.0])
+def test_NBMM_mean_and_total_count_anchored_on_loc_and_scale(loc, scale, weighted):
+    raw_mu, raw_alpha = 3.0, 0.5
+    loss, out, distr_args = _NBMM_distr_args(weighted, raw_mu, raw_alpha, loc, scale)
+    distr = loss.get_distribution(distr_args)
+
+    softplus = torch.nn.functional.softplus
+    expected_mean = softplus(torch.tensor(raw_mu * scale + loc)).item()
+    expected_total_count = (
+        (softplus(torch.tensor(raw_alpha)) + 1e-8) / (scale + 1)
+    ) ** -1
+    total_count = distr_args[0]
+    assert distr.mean.flatten()[0].item() == pytest.approx(expected_mean, rel=1e-4)
+    assert total_count.flatten()[0].item() == pytest.approx(
+        expected_total_count.item(), rel=1e-5
+    )
+
+    # loc = 0 comes from the identity scaler, negative loc from a standard
+    # scaler on negative data; the mean must stay learnable in both cases.
+    y = torch.full((1, 3, 1), 50.0)
+    (grad,) = torch.autograd.grad(loss(y=y, distr_args=distr_args), out)
+    assert grad[0, 0, 0].item() != 0.0
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+def test_NBMM_mean_has_no_floor(weighted):
+    loss, _, distr_args = _NBMM_distr_args(weighted, -30.0, 0.0, loc=0.0, scale=1.0)
+
+    assert loss.get_distribution(distr_args).mean.flatten()[0].item() < 1e-6
+
 
 # Unit tests
 # Check that default quantile is set to 0.5 at initialization
@@ -198,22 +250,23 @@ def test_fredf_alpha0_equals_mse():
     """When alpha=0, FreDF should reduce to pure time-domain MSE."""
     loss_fn = FreDF(alpha=0.0)
 
-    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
 
     # MSE = mean((1-2)^2, (2-2)^2, (3-2)^2) = mean(1, 0, 1) = 2/3
     expected = torch.tensor(2.0 / 3.0)
-    assert torch.isclose(loss, expected, atol=1e-5), \
+    assert torch.isclose(loss, expected, atol=1e-5), (
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
+    )
 
 
 def test_fredf_alpha1_equals_freq_mae():
     """When alpha=1, FreDF should reduce to pure frequency-domain MAE."""
     loss_fn = FreDF(alpha=1.0)
 
-    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
@@ -223,8 +276,9 @@ def test_fredf_alpha1_equals_freq_mae():
     # |diff|      = [0.0, 1.732]
     # MAE         = mean(0.0, 1.732) = 0.866
     expected = torch.tensor(0.866025)
-    assert torch.isclose(loss, expected, atol=1e-4), \
+    assert torch.isclose(loss, expected, atol=1e-4), (
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
+    )
 
 
 def test_fredf_perfect_forecast_zero_loss():
@@ -234,8 +288,9 @@ def test_fredf_perfect_forecast_zero_loss():
     for alpha in [0.0, 0.5, 1.0]:
         loss_fn = FreDF(alpha=alpha)
         loss = loss_fn(y, y)
-        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), \
+        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), (
             f"alpha={alpha}: expected 0.0, got {loss.item():.6f}"
+        )
 
 
 # ---------------------------------------------------------------------------

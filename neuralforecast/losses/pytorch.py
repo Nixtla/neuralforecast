@@ -2728,14 +2728,16 @@ class NBMM(_BaseLoss):
         else:
             mu, alpha = output
 
-        mu = F.softplus(mu) + 1e-8
         alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
                 loc = loc.unsqueeze(-1)
                 scale = scale.unsqueeze(-1)
-            mu *= loc
-            alpha /= loc + 1.0
+            # Anchor the raw output once, as PMM.scale_decouple does. The softplus
+            # below keeps mu positive and differentiable for any loc.
+            mu = mu * scale + loc
+            alpha = alpha / (scale + 1.0)
+        mu = F.softplus(mu) + 1e-8
 
         # mu = total_count * (probs/(1-probs))
         # => probs = mu / (total_count + mu)
