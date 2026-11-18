@@ -68,6 +68,35 @@ def test_augment_calendar_df_weekly():
     np.testing.assert_allclose(out["yearweek"], np.arange(4) / 52.0 - 0.5)
 
 
+def _calendar_df():
+    return pd.DataFrame(
+        {
+            "unique_id": "a",
+            "ds": pd.date_range("2024-01-01", periods=3, freq="D"),
+            "y": range(3),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "make_index",
+    [
+        lambda df: pd.Index([10, 11, 12]),
+        lambda df: df.sample(frac=1, random_state=0).index,
+        lambda df: pd.Index([0, 0, 1]),
+        lambda df: pd.Index(["x", "y", "z"]),
+    ],
+    ids=["offset", "shuffled", "duplicated", "string"],
+)
+def test_augment_calendar_df_non_range_index(make_index):
+    df = _calendar_df()
+    df.index = make_index(df)
+    out, cols = augment_calendar_df(df, freq="D")
+    expected, _ = augment_calendar_df(df.reset_index(drop=True), freq="D")
+    assert out.index.equals(df.index)
+    np.testing.assert_allclose(out[cols].to_numpy(), expected[cols].to_numpy())
+
+
 @pytest.mark.skipif(
     not hasattr(pd.errors, "Pandas4Warning"),
     reason="Pandas4Warning only exists in pandas>=3.1",
