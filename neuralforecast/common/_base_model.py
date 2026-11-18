@@ -2807,9 +2807,13 @@ class BaseModel(pl.LightningModule):
         return fcsts
 
     def _predict_with_trainer(self, trainer, datamodule):
+        # Lightning doesn't restore train mode if predict raises, and doesn't force
+        # it at the start of the next fit.
+        was_training = self.training
         try:
             return trainer.predict(self, datamodule=datamodule)
         finally:
+            self.train(was_training)
             self.n_predicts = 1
             self.h = self.horizon_backup
             self.predict_horizon = self.horizon_backup
@@ -2974,6 +2978,7 @@ class BaseModel(pl.LightningModule):
 
         self.predict_step_size = step_size
         self.decompose_forecast = True
+        was_training = self.training
         try:
             datamodule = TimeSeriesDataModule(
                 dataset=dataset,
@@ -2987,6 +2992,7 @@ class BaseModel(pl.LightningModule):
         finally:
             # Forecast mode again even when predict raises.
             self.decompose_forecast = False
+            self.train(was_training)
 
     def _predict_step_wrapper(
         self,
