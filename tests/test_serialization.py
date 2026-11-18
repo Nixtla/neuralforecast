@@ -189,7 +189,9 @@ def test_primitives_and_containers_pass_through():
 
 def test_optimizer_and_scheduler_classes():
     assert roundtrip(torch.optim.Adam) is torch.optim.Adam
-    assert roundtrip(torch.optim.lr_scheduler.StepLR) is torch.optim.lr_scheduler.StepLR
+    assert (
+        roundtrip(torch.optim.lr_scheduler.StepLR) is torch.optim.lr_scheduler.StepLR
+    )
 
 
 def test_numpy_scalars_become_primitives():
@@ -241,12 +243,7 @@ def test_unencodable_value_names_the_key():
 
 @pytest.mark.parametrize(
     "vocab",
-    [
-        {"city": {0: 0, 1: 1}},
-        {"city": {1.5: 0}},
-        {"city": {True: 0}},
-        {"city": {"a": 0}},
-    ],
+    [{"city": {0: 0, 1: 1}}, {"city": {1.5: 0}}, {"city": {True: 0}}, {"city": {"a": 0}}],
     ids=["int", "float", "bool", "str"],
 )
 def test_mappings_with_non_string_keys_roundtrip(vocab):
@@ -481,9 +478,7 @@ def test_kwargs_kept_only_in_a_partial_are_recovered(loss):
 def test_droppable_keys_keep_the_entries_that_do_encode():
     import numpy as np
 
-    mapping = {
-        "dataloader_kwargs": {"drop_last": True, "worker_init_fn": np.random.seed}
-    }
+    mapping = {"dataloader_kwargs": {"drop_last": True, "worker_init_fn": np.random.seed}}
     encoded, _, dropped = encode_mapping(mapping, droppable={"dataloader_kwargs"})
     assert encoded["dataloader_kwargs"] == {"drop_last": True}
     assert dropped == ["dataloader_kwargs.worker_init_fn"]
@@ -552,15 +547,7 @@ def test_every_registered_loss_round_trips(cls, legacy):
 
 @pytest.mark.parametrize(
     "distribution",
-    [
-        "Bernoulli",
-        "Normal",
-        "Poisson",
-        "StudentT",
-        "NegativeBinomial",
-        "Tweedie",
-        "ISQF",
-    ],
+    ["Bernoulli", "Normal", "Poisson", "StudentT", "NegativeBinomial", "Tweedie", "ISQF"],
 )
 @pytest.mark.parametrize("legacy", [False, True], ids=["fresh", "legacy"])
 def test_every_distribution_round_trips(distribution, legacy):
@@ -574,9 +561,7 @@ def test_every_distribution_round_trips(distribution, legacy):
     assert decoded.outputsize_multiplier == loss.outputsize_multiplier
 
 
-@pytest.mark.parametrize(
-    "scaler_type", ["standard", "robust", "robust-iqr", "minmax", "boxcox"]
-)
+@pytest.mark.parametrize("scaler_type", ["standard", "robust", "robust-iqr", "minmax", "boxcox"])
 def test_every_scaler_type_round_trips(scaler_type):
     from neuralforecast._serialization import _scaler_type_name
     from neuralforecast.core import _type2scaler

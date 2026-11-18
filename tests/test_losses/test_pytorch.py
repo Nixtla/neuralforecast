@@ -10,12 +10,12 @@ from neuralforecast.losses.pytorch import (
     MASE,
     MQLoss,
     MSE,
+    NBMM,
     PMM,
     RMSE,
     SMAPE,
     DistributionLoss,
     GMM,
-    NBMM,
     FreDF,
     HuberMQLoss,
     HuberIQLoss,
@@ -33,7 +33,6 @@ from neuralforecast.losses.pytorch import (
 def test_MQLoss_level():
     check = MQLoss(level=[80, 90])
     assert len(check.quantiles) == 5
-
 
 def test_MQLoss_quantiles():
     check = MQLoss(quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
@@ -58,7 +57,6 @@ def test_IQLoss_default_and_update_quantile():
 def test_DistributionLoss_level():
     check = DistributionLoss(distribution="Normal", level=[80, 90])
     assert len(check.quantiles), 5
-
 
 @pytest.mark.parametrize(
     "loss",
@@ -94,7 +92,6 @@ def test_DistributionLoss_quantiles():
     )
     assert len(check.quantiles) == 4
 
-
 # Unit tests to check DistributionLoss' horizon weight
 def test_DistributionLoss_horizon_weight():
     batch_size, horizon, n_outputs = 10, 3, 2
@@ -120,14 +117,12 @@ def test_PMM_level():
     check = PMM(n_components=2, level=[80, 90])
     assert len(check.quantiles) == 5
 
-
 def test_PMM_quantiles():
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
     assert len(check.quantiles) == 5
 
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.9000, 0.9900])
     assert len(check.quantiles) == 4
-
 
 # Unit tests
 # Check that default quantile is set to 0.5 at initialization
@@ -228,23 +223,22 @@ def test_fredf_alpha0_equals_mse():
     """When alpha=0, FreDF should reduce to pure time-domain MSE."""
     loss_fn = FreDF(alpha=0.0)
 
-    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
 
     # MSE = mean((1-2)^2, (2-2)^2, (3-2)^2) = mean(1, 0, 1) = 2/3
     expected = torch.tensor(2.0 / 3.0)
-    assert torch.isclose(loss, expected, atol=1e-5), (
+    assert torch.isclose(loss, expected, atol=1e-5), \
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
-    )
 
 
 def test_fredf_alpha1_equals_freq_mae():
     """When alpha=1, FreDF should reduce to pure frequency-domain MAE."""
     loss_fn = FreDF(alpha=1.0)
 
-    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
@@ -254,9 +248,8 @@ def test_fredf_alpha1_equals_freq_mae():
     # |diff|      = [0.0, 1.732]
     # MAE         = mean(0.0, 1.732) = 0.866
     expected = torch.tensor(0.866025)
-    assert torch.isclose(loss, expected, atol=1e-4), (
+    assert torch.isclose(loss, expected, atol=1e-4), \
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
-    )
 
 
 def test_fredf_perfect_forecast_zero_loss():
@@ -266,9 +259,8 @@ def test_fredf_perfect_forecast_zero_loss():
     for alpha in [0.0, 0.5, 1.0]:
         loss_fn = FreDF(alpha=alpha)
         loss = loss_fn(y, y)
-        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), (
+        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), \
             f"alpha={alpha}: expected 0.0, got {loss.item():.6f}"
-        )
 
 
 # ---------------------------------------------------------------------------
