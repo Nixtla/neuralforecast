@@ -6,6 +6,7 @@ import tempfile
 import warnings
 from datetime import date
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import git
@@ -2499,6 +2500,68 @@ def test_neuralforecast_quantile_level_prediction(setup_airplane_data, model):
     # Should have level columns for conformal predictions
     level_cols = [col for col in preds_level.columns if "-lo-" in col or "-hi-" in col]
     assert len(level_cols) > 0
+
+
+SUPPORTED_EXPLAINERS = (
+    "IntegratedGradients",
+    "ShapleyValueSampling",
+    "InputXGradient",
+)
+
+
+@pytest.fixture(scope="module")
+def explain_validation_nf():
+    return NeuralForecast(
+        models=[MLP(h=2, input_size=4, loss=DistributionLoss("Normal"))],
+        freq="D",
+    )
+
+
+@pytest.mark.parametrize("explainer", SUPPORTED_EXPLAINERS)
+def test_explain_accepts_supported_explainers_without_models(
+    explainer, explain_validation_nf
+):
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(**{name: object for name in SUPPORTED_EXPLAINERS})
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(ValueError, match="No models support explanations"):
+            explain_validation_nf.explain(explainer=explainer)
+
+
+@pytest.mark.parametrize("explainer", ["Gradient", "Sampling", "Input", "Saliency"])
+def test_explain_rejects_unsupported_explainers(explainer, explain_validation_nf):
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(
+        **{name: object for name in set(SUPPORTED_EXPLAINERS) | {explainer}}
+    )
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(ValueError) as exc_info:
+            explain_validation_nf.explain(explainer=explainer)
+
+    assert str(exc_info.value) == (
+        f"Explainer {explainer} is not supported. Supported explainers are: "
+        "IntegratedGradients, ShapleyValueSampling, InputXGradient."
+    )
+
+
+def test_explain_recurrent_model_error_uses_explainer_value():
+    captum = ModuleType("captum")
+    captum.attr = SimpleNamespace(**{name: object for name in SUPPORTED_EXPLAINERS})
+    nf = NeuralForecast(
+        models=[RNN(h=2, input_size=4, recurrent=True)],
+        freq="D",
+    )
+
+    with patch.dict(sys.modules, {"captum": captum}):
+        with pytest.raises(
+            ValueError, match="IntegratedGradients is not compatible"
+        ) as exc_info:
+            nf.explain(explainer="IntegratedGradients")
+
+    assert "ExplainerEnum.IntegratedGradients" not in str(exc_info.value)
+
 
 @pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
 @pytest.mark.parametrize("use_polars", [True, False])
