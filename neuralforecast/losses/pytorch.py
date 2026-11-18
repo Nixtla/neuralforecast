@@ -60,6 +60,32 @@ def _weighted_mean(losses, weights):
 class _BaseLoss(_SerializableLoss, torch.nn.Module):
     """Base for every neuralforecast loss: an nn.Module that records its init kwargs."""
 
+    def _store_init_quantiles(self):
+        """Remember the quantiles and output names set by the constructor."""
+        self._init_quantiles = self.quantiles.detach().clone()
+        self._init_output_names = list(self.output_names)
+
+    def _update_distribution_quantile(self, q: Optional[List[float]] = None):
+        """Use the quantiles ``q`` for prediction, or the constructor's if ``None``.
+
+        Shared by the distribution losses (`DistributionLoss`, `PMM`, `GMM` and
+        `NBMM`), which call `_store_init_quantiles` in their constructor.
+        """
+        if q is not None:
+            self.quantiles = nn.Parameter(
+                torch.tensor(q, dtype=torch.float32), requires_grad=False
+            )
+            self.output_names = (
+                [""]
+                + [f"_ql{q_i}" for q_i in q]
+                + self.return_params * self.param_names
+            )
+        else:
+            self.quantiles = nn.Parameter(
+                self._init_quantiles.clone(), requires_grad=False
+            )
+            self.output_names = list(self._init_output_names)
+
 
 class BasePointLoss(_BaseLoss):
     """Base class for point loss functions.
@@ -2028,9 +2054,7 @@ class DistributionLoss(_BaseLoss):
 
         self.outputsize_multiplier = len(self.param_names)
         self.is_distribution_output = True
-        self.has_predicted = False
-        self._init_quantiles = self.quantiles.detach().clone()
-        self._init_output_names = list(self.output_names)
+        self._store_init_quantiles()
 
     def _domain_map(self, input: torch.Tensor):
         """
@@ -2091,22 +2115,7 @@ class DistributionLoss(_BaseLoss):
         return samples, sample_mean, quants
 
     def update_quantile(self, q: Optional[List[float]] = None):
-        if q is not None:
-            self.quantiles = nn.Parameter(
-                torch.tensor(q, dtype=torch.float32), requires_grad=False
-            )
-            self.output_names = (
-                [""]
-                + [f"_ql{q_i}" for q_i in q]
-                + self.return_params * self.param_names
-            )
-            self.has_predicted = True
-        else:
-            # Restore the quantiles that the loss was built with.
-            self.quantiles = nn.Parameter(
-                self._init_quantiles.clone(), requires_grad=False
-            )
-            self.output_names = list(self._init_output_names)
+        self._update_distribution_quantile(q)
 
     def _compute_weights(self, y, mask):
         """
@@ -2236,9 +2245,7 @@ class PMM(_BaseLoss):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.has_predicted = False
-        self._init_quantiles = self.quantiles.detach().clone()
-        self._init_output_names = list(self.output_names)
+        self._store_init_quantiles()
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2338,22 +2345,7 @@ class PMM(_BaseLoss):
         return samples, sample_mean, quants
 
     def update_quantile(self, q: Optional[List[float]] = None):
-        if q is not None:
-            self.quantiles = nn.Parameter(
-                torch.tensor(q, dtype=torch.float32), requires_grad=False
-            )
-            self.output_names = (
-                [""]
-                + [f"_ql{q_i}" for q_i in q]
-                + self.return_params * self.param_names
-            )
-            self.has_predicted = True
-        else:
-            # Restore the quantiles that the loss was built with.
-            self.quantiles = nn.Parameter(
-                self._init_quantiles.clone(), requires_grad=False
-            )
-            self.output_names = list(self._init_output_names)
+        self._update_distribution_quantile(q)
 
     def __call__(
         self,
@@ -2474,9 +2466,7 @@ class GMM(_BaseLoss):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.has_predicted = False
-        self._init_quantiles = self.quantiles.detach().clone()
-        self._init_output_names = list(self.output_names)
+        self._store_init_quantiles()
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2576,22 +2566,7 @@ class GMM(_BaseLoss):
         return samples, sample_mean, quants
 
     def update_quantile(self, q: Optional[List[float]] = None):
-        if q is not None:
-            self.quantiles = nn.Parameter(
-                torch.tensor(q, dtype=torch.float32), requires_grad=False
-            )
-            self.output_names = (
-                [""]
-                + [f"_ql{q_i}" for q_i in q]
-                + self.return_params * self.param_names
-            )
-            self.has_predicted = True
-        else:
-            # Restore the quantiles that the loss was built with.
-            self.quantiles = nn.Parameter(
-                self._init_quantiles.clone(), requires_grad=False
-            )
-            self.output_names = list(self._init_output_names)
+        self._update_distribution_quantile(q)
 
     def __call__(
         self,
@@ -2708,9 +2683,7 @@ class NBMM(_BaseLoss):
         self.n_components = n_components
         self.outputsize_multiplier = self.n_outputs * n_components
         self.is_distribution_output = True
-        self.has_predicted = False
-        self._init_quantiles = self.quantiles.detach().clone()
-        self._init_output_names = list(self.output_names)
+        self._store_init_quantiles()
 
     def domain_map(self, output: torch.Tensor):
         output = output.reshape(
@@ -2818,22 +2791,7 @@ class NBMM(_BaseLoss):
         return samples, sample_mean, quants
 
     def update_quantile(self, q: Optional[List[float]] = None):
-        if q is not None:
-            self.quantiles = nn.Parameter(
-                torch.tensor(q, dtype=torch.float32), requires_grad=False
-            )
-            self.output_names = (
-                [""]
-                + [f"_ql{q_i}" for q_i in q]
-                + self.return_params * self.param_names
-            )
-            self.has_predicted = True
-        else:
-            # Restore the quantiles that the loss was built with.
-            self.quantiles = nn.Parameter(
-                self._init_quantiles.clone(), requires_grad=False
-            )
-            self.output_names = list(self._init_output_names)
+        self._update_distribution_quantile(q)
 
     def __call__(
         self,

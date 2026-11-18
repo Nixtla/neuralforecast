@@ -189,9 +189,7 @@ def test_primitives_and_containers_pass_through():
 
 def test_optimizer_and_scheduler_classes():
     assert roundtrip(torch.optim.Adam) is torch.optim.Adam
-    assert (
-        roundtrip(torch.optim.lr_scheduler.StepLR) is torch.optim.lr_scheduler.StepLR
-    )
+    assert roundtrip(torch.optim.lr_scheduler.StepLR) is torch.optim.lr_scheduler.StepLR
 
 
 def test_numpy_scalars_become_primitives():
@@ -243,7 +241,12 @@ def test_unencodable_value_names_the_key():
 
 @pytest.mark.parametrize(
     "vocab",
-    [{"city": {0: 0, 1: 1}}, {"city": {1.5: 0}}, {"city": {True: 0}}, {"city": {"a": 0}}],
+    [
+        {"city": {0: 0, 1: 1}},
+        {"city": {1.5: 0}},
+        {"city": {True: 0}},
+        {"city": {"a": 0}},
+    ],
     ids=["int", "float", "bool", "str"],
 )
 def test_mappings_with_non_string_keys_roundtrip(vocab):
@@ -287,6 +290,40 @@ def test_updated_quantiles_are_saved_not_just_init_args():
     decoded = roundtrip(loss)
     assert torch.equal(decoded.quantiles, loss.quantiles)
     assert decoded.output_names == loss.output_names
+
+
+@pytest.mark.parametrize(
+    "loss_kwargs",
+    [{"level": [80]}, {"quantiles": [0.2, 0.8]}],
+    ids=["level", "quantiles"],
+)
+def test_predict_without_quantiles_keeps_trained_quantiles(tmp_path, loss_kwargs):
+    from neuralforecast import NeuralForecast
+    from neuralforecast.models import MLP
+    from neuralforecast.utils import AirPassengersPanel
+
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    model = MLP(
+        h=12,
+        input_size=24,
+        loss=DistributionLoss("Normal", **loss_kwargs),
+        max_steps=2,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df)
+    before = nf.predict()
+    assert len(before.columns) > 3  # median plus the trained quantiles
+
+    nf.predict(quantiles=[0.1, 0.9])
+    pd.testing.assert_frame_equal(nf.predict(), before)
+
+    nf.predict(quantiles=[0.1, 0.9])
+    nf.save(str(tmp_path / "ckpt"), overwrite=True)
+    loaded = NeuralForecast.load(str(tmp_path / "ckpt"))
+    pd.testing.assert_frame_equal(loaded.predict(), before)
 
 
 def test_tensor_pointer_to_a_missing_payload_is_refused():
@@ -444,7 +481,9 @@ def test_kwargs_kept_only_in_a_partial_are_recovered(loss):
 def test_droppable_keys_keep_the_entries_that_do_encode():
     import numpy as np
 
-    mapping = {"dataloader_kwargs": {"drop_last": True, "worker_init_fn": np.random.seed}}
+    mapping = {
+        "dataloader_kwargs": {"drop_last": True, "worker_init_fn": np.random.seed}
+    }
     encoded, _, dropped = encode_mapping(mapping, droppable={"dataloader_kwargs"})
     assert encoded["dataloader_kwargs"] == {"drop_last": True}
     assert dropped == ["dataloader_kwargs.worker_init_fn"]
@@ -513,7 +552,15 @@ def test_every_registered_loss_round_trips(cls, legacy):
 
 @pytest.mark.parametrize(
     "distribution",
-    ["Bernoulli", "Normal", "Poisson", "StudentT", "NegativeBinomial", "Tweedie", "ISQF"],
+    [
+        "Bernoulli",
+        "Normal",
+        "Poisson",
+        "StudentT",
+        "NegativeBinomial",
+        "Tweedie",
+        "ISQF",
+    ],
 )
 @pytest.mark.parametrize("legacy", [False, True], ids=["fresh", "legacy"])
 def test_every_distribution_round_trips(distribution, legacy):
@@ -527,7 +574,9 @@ def test_every_distribution_round_trips(distribution, legacy):
     assert decoded.outputsize_multiplier == loss.outputsize_multiplier
 
 
-@pytest.mark.parametrize("scaler_type", ["standard", "robust", "robust-iqr", "minmax", "boxcox"])
+@pytest.mark.parametrize(
+    "scaler_type", ["standard", "robust", "robust-iqr", "minmax", "boxcox"]
+)
 def test_every_scaler_type_round_trips(scaler_type):
     from neuralforecast._serialization import _scaler_type_name
     from neuralforecast.core import _type2scaler
