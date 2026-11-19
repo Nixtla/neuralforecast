@@ -715,6 +715,7 @@ class NeuralForecast:
         self.time_col = time_col
         self.target_col = target_col
         self._check_nan(df, static_df, id_col, time_col, target_col)
+        df = self._fill_masked_nan(df, id_col, time_col)
 
         if self._has_categorical():
             if not self.categorical_vocab_:
@@ -732,6 +733,35 @@ class NeuralForecast:
         )
         self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
+
+    @staticmethod
+    def _fill_masked_nan(df, id_col, time_col):
+        # `_check_nan` ignores rows with available_mask == 0, so NaNs may remain
+        # there. Fill them with 0 so they cannot reach the scalers or the loss.
+        if "available_mask" not in df.columns:
+            return df
+        skip = (id_col, time_col, "sample_weight")
+        if isinstance(df, pl_DataFrame):
+            import polars as pl
+
+            masked = pl.col("available_mask").cast(pl.Boolean).not_()
+            return df.with_columns(
+                [
+                    pl.when(masked)
+                    .then(pl.col(c).fill_nan(0.0).fill_null(0.0))
+                    .otherwise(pl.col(c))
+                    .alias(c)
+                    for c, dtype in df.schema.items()
+                    if dtype.is_float() and c not in skip
+                ]
+            )
+        masked = ~df["available_mask"].to_numpy().astype(bool)
+        df = ufp.copy_if_pandas(df, deep=False)
+        for c in df.columns:
+            if c in skip or not pd.api.types.is_float_dtype(df[c]):
+                continue
+            df[c] = df[c].mask(masked & df[c].isna().to_numpy(), 0.0)
+        return df
 
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
         cols_with_nans = []
