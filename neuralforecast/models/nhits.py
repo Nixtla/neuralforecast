@@ -59,12 +59,12 @@ class _IdentityBasis(nn.Module):
             for i in range(n_batches):
                 forecast_i = F.interpolate(
                     knots[i * batch_size : (i + 1) * batch_size],
-                    size=self.forecast_size,
+                    size=(1, self.forecast_size),
                     mode="bicubic",
                 )
                 forecast[i * batch_size : (i + 1) * batch_size] += forecast_i[
                     :, 0, 0, :
-                ]  # [B,None,H,H] -> [B,H]
+                ]  # [B,1,1,H] -> [B,H]
             forecast = forecast[:, None, :]  # [B,H] -> [B,None,H]
 
         # [B,Q,H] -> [B,H,Q]
