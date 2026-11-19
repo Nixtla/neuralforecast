@@ -459,6 +459,8 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         y_idx (int): Index of target variable.
         static (Optional): Static features array.
         static_cols (Optional): Column names for static features.
+        series_files (Optional): For each series, its files sorted by time. Read from
+            the metadata of the files in `files_ds` when not given.
     """
 
     def __init__(
@@ -475,6 +477,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         y_idx: int,
         static=None,
         static_cols=None,
+        series_files=None,
     ):
         super().__init__(
             temporal_cols=temporal_cols,
@@ -485,6 +488,18 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             static_cols=static_cols,
         )
         self.files_ds = files_ds
+        # Files of each series, sorted by time. Computed once from the metadata.
+        if series_files is None:
+            import pyarrow.parquet as pq
+
+            series_files = []
+            for series_dir in files_ds:
+                bounds = {
+                    str(file): self._file_bounds(pq.read_metadata(file), time_col)
+                    for file in Path(series_dir).glob("*.parquet")
+                }
+                series_files.append(self._sort_files(bounds))
+        self.series_files = series_files
         self.id_col = id_col
         self.time_col = time_col
         self.target_col = target_col
@@ -493,14 +508,41 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         self.indices = indices
         self.n_groups = len(files_ds)
 
+    @staticmethod
+    def _file_bounds(meta, time_col):
+        rg = meta.row_group(0)
+        pos = [rg.column(i).path_in_schema for i in range(rg.num_columns)].index(
+            time_col
+        )
+        stats = [
+            meta.row_group(i).column(pos).statistics for i in range(meta.num_row_groups)
+        ]
+        return min(s.min for s in stats), max(s.max for s in stats)
+
+    @staticmethod
+    def _sort_files(bounds):
+        """Sort the files of one series by time. `bounds` maps file -> (min, max)."""
+        files = sorted(bounds, key=lambda f: bounds[f][0])
+        for prev, cur in zip(files, files[1:]):
+            if bounds[cur][0] <= bounds[prev][1]:
+                raise ValueError(
+                    f"Files of the same series overlap in time: {cur} starts at "
+                    f"{bounds[cur][0]}, but {prev} ends at {bounds[prev][1]}."
+                )
+        return files
+
     def __getitem__(self, idx):
         if not isinstance(idx, int):
             raise ValueError(f"idx must be int, got {type(idx)}")
 
+        import pyarrow.parquet as pq
+
         temporal_cols = self.temporal_cols.copy()
-        data = pd.read_parquet(
-            self.files_ds[idx], columns=temporal_cols.tolist()
-        ).to_numpy()
+        data = (
+            pq.read_table(self.series_files[idx], columns=temporal_cols.tolist())
+            .to_pandas()
+            .to_numpy()
+        )
         data, temporal_cols = TimeSeriesDataset._ensure_available_mask(
             data, temporal_cols
         )
@@ -563,6 +605,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
         min_size = float("inf")
         last_times = []
         ids = []
+        series_files = []
         expected_temporal = {target_col, *exogs}
         available_mask_seen = True
 
@@ -573,6 +616,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             uid = dir_path.name.split("=")[-1]
             total_rows = 0
             last_time = None
+            bounds = {}
             for file in dir_path.glob("*.parquet"):
                 meta = pa.parquet.read_metadata(file)
                 rg = meta.row_group(0)
@@ -589,6 +633,9 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
                     max(last_time, last_time_file)
                     if last_time is not None
                     else last_time_file
+                )
+                bounds[str(file)] = LocalFilesTimeSeriesDataset._file_bounds(
+                    meta, time_col
                 )
                 total_rows += sum(
                     meta.row_group(i).num_rows for i in range(meta.num_row_groups)
@@ -611,6 +658,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
                 else:
                     expected_temporal.add("available_mask")
 
+            series_files.append(LocalFilesTimeSeriesDataset._sort_files(bounds))
             max_size = max(total_rows, max_size)
             min_size = min(total_rows, min_size)
             ids.append(uid)
@@ -636,6 +684,7 @@ class LocalFilesTimeSeriesDataset(BaseTimeSeriesDataset):
             y_idx=0,
             static=static,
             static_cols=static_cols,
+            series_files=series_files,
         )
         return dataset
 

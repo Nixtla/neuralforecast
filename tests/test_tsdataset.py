@@ -1,10 +1,15 @@
 import numpy as np
 import pandas as pd
 import polars
+import pyarrow.parquet as pq
 import pytest
 import torch
 
-from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
+from neuralforecast.tsdataset import (
+    LocalFilesTimeSeriesDataset,
+    TimeSeriesDataModule,
+    TimeSeriesDataset,
+)
 from neuralforecast.utils import generate_series
 
 
@@ -342,3 +347,45 @@ def test_eq_allows_static_without_column_names():
 
     assert left == same
     assert left != other
+
+
+def _write_chunks(series_dir, ds, bounds):
+    # chunk k covers ds[bounds[k]:bounds[k+1]] and is saved as part-<k>.parquet
+    series_dir.mkdir()
+    for k, (lo, hi) in enumerate(zip(bounds[:-1], bounds[1:])):
+        pd.DataFrame({"ds": ds[lo:hi], "y": np.arange(lo, hi, dtype=float)}).to_parquet(
+            series_dir / f"part-{k}.parquet"
+        )
+
+
+def test_local_files_dataset_reads_chunks_in_time_order(tmp_path):
+    # part-0, part-1, part-10, part-11, part-2, ... sorts differently from time
+    ds = pd.date_range("2024-01-01", periods=120, freq="D")
+    series_dir = tmp_path / "unique_id=a"
+    _write_chunks(series_dir, ds, list(range(0, 121, 10)))
+    # the last chunk is written with several row groups
+    pd.DataFrame({"ds": ds[110:], "y": np.arange(110, 120, dtype=float)}).to_parquet(
+        series_dir / "part-11.parquet", row_group_size=3
+    )
+    assert pq.read_metadata(series_dir / "part-11.parquet").num_row_groups > 1
+    dataset = LocalFilesTimeSeriesDataset.from_data_directories([str(series_dir)])
+    assert dataset.last_times[0] == ds[-1]
+    assert dataset.max_size == 120
+    assert dataset[0]["temporal"][0].tolist() == list(range(120))
+
+
+def test_local_files_dataset_raises_on_overlapping_chunks(tmp_path):
+    ds = pd.date_range("2024-01-01", periods=120, freq="D")
+    series_dir = tmp_path / "unique_id=a"
+    _write_chunks(series_dir, ds, [0, 60])
+    pd.DataFrame({"ds": ds[50:], "y": np.arange(50, 120, dtype=float)}).to_parquet(
+        series_dir / "part-1.parquet"
+    )
+    with pytest.raises(ValueError, match="overlap"):
+        LocalFilesTimeSeriesDataset.from_data_directories([str(series_dir)])
+    # a chunk starting exactly at the previous chunk's last time overlaps too
+    pd.DataFrame({"ds": ds[59:], "y": np.arange(59, 120, dtype=float)}).to_parquet(
+        series_dir / "part-1.parquet"
+    )
+    with pytest.raises(ValueError, match="overlap"):
+        LocalFilesTimeSeriesDataset.from_data_directories([str(series_dir)])
