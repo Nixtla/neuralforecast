@@ -880,6 +880,17 @@ class BaseModel(pl.LightningModule):
         ):
             self.loss.update_quantile(q=quantiles)
 
+    def _fit_trainer_kwargs(self, val_size):
+        kwargs = self.trainer_kwargs.copy()
+        if val_size == 0:
+            callbacks = kwargs.get("callbacks") or []
+            if isinstance(callbacks, pl.Callback):
+                callbacks = [callbacks]
+            # Preserve metric checks for early stopping and monitored checkpoints.
+            if not any(getattr(cb, "monitor", None) is not None for cb in callbacks):
+                kwargs.setdefault("limit_val_batches", 0)
+        return kwargs
+
     def _fit_distributed(
         self,
         distributed_config,
@@ -932,7 +943,7 @@ class BaseModel(pl.LightningModule):
         use_gpu = _is_gpu_accelerator(accelerator)
         # resolve "auto" once on the driver so the workers use the same accelerator
         # (otherwise Lightning resolves it again on each worker, e.g. to MPS)
-        trainer_kwargs = dict(self.trainer_kwargs)
+        trainer_kwargs = self._fit_trainer_kwargs(val_size)
         if accelerator == "auto":
             trainer_kwargs["accelerator"] = "gpu" if use_gpu else "cpu"
         distributor = TorchDistributor(
@@ -1010,7 +1021,7 @@ class BaseModel(pl.LightningModule):
 
         if is_local:
             model = self
-            trainer = pl.Trainer(**model.trainer_kwargs)
+            trainer = pl.Trainer(**self._fit_trainer_kwargs(val_size))
             trainer.fit(model, datamodule=datamodule)
             model.metrics = trainer.callback_metrics
             model.__dict__.pop("_trainer", None)
@@ -1101,7 +1112,8 @@ class BaseModel(pl.LightningModule):
             avg_loss,
             batch_size=int(count),
         )
-        self.valid_trajectories.append((self.global_step, avg_loss))
+        if self._trainer is None or not self.trainer.sanity_checking:
+            self.valid_trajectories.append((self.global_step, avg_loss))
         self.validation_step_outputs.clear()  # free memory (compute `avg_loss` per epoch)
 
     def serialize(self) -> bytes:
