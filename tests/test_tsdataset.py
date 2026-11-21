@@ -8,6 +8,23 @@ from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
 from neuralforecast.utils import generate_series
 
 
+@pytest.mark.parametrize(
+    "kwargs, fit_persistent, predict_persistent",
+    [
+        ({}, False, False),
+        ({"num_workers": 0}, False, False),
+        ({"num_workers": 1}, True, False),
+        ({"num_workers": 1, "persistent_workers": False}, False, False),
+        ({"num_workers": 1, "persistent_workers": True}, True, True),
+    ],
+)
+def test_persistent_workers(setup_dataset, kwargs, fit_persistent, predict_persistent):
+    module = TimeSeriesDataModule(setup_dataset, **kwargs)
+    assert module.train_dataloader().persistent_workers is fit_persistent
+    assert module.val_dataloader().persistent_workers is fit_persistent
+    assert module.predict_dataloader().persistent_workers is predict_persistent
+
+
 @pytest.fixture
 def setup_data():
     temporal_df = generate_series(
