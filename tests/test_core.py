@@ -3027,12 +3027,15 @@ def test_predict_releases_dataset(setup_airplane_data, monkeypatch, fail):
             with pytest.raises(RuntimeError, match="prediction interrupted"):
                 model.predict(dataset)
         else:
-            model.predict(dataset)
+            predictions = model.predict(dataset)
+            assert predictions.size > 0
+            assert np.isfinite(predictions).all()
         return weakref.ref(dataset)
 
     dataset_ref = predict()
     gc.collect()
     assert dataset_ref() is None
+    assert model.trainer.predict_loop.predictions == []
 
 
 def test_trainer_caching(setup_airplane_data):

@@ -2810,7 +2810,9 @@ class BaseModel(pl.LightningModule):
         try:
             return trainer.predict(self, datamodule=datamodule)
         finally:
-            # Release the previous data sources and loaders before reusing the trainer.
+            # Drop the cached batches before detaching their loader. Replacing the list
+            # keeps the prediction batches returned to the caller intact.
+            trainer.predict_loop._predictions = []
             trainer._data_connector.attach_data(self)
             trainer.datamodule = None
             self.n_predicts = 1
