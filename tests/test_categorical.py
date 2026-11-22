@@ -2,6 +2,8 @@ import sys
 
 import numpy as np
 import pandas as pd
+import polars as pl
+import polars.testing
 import pytest
 import torch
 
@@ -21,6 +23,7 @@ from neuralforecast.models import (
 )
 from neuralforecast.losses.pytorch import DistributionLoss
 from neuralforecast.auto import AutoMLP
+from neuralforecast.utils import generate_series
 
 CITIES = ["paris", "london", "tokyo", "berlin"]
 DOWS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"]
@@ -873,3 +876,84 @@ def test_distributed_simulate_with_categoricals(spark_session, tmp_path):
     spark_futr = spark.createDataFrame(_futr_df())
     sims = nf.simulate(futr_df=spark_futr, engine=spark, n_paths=5).toPandas()
     assert np.isfinite(sims["NHITS"].to_numpy()).all()
+
+
+def _predict_insample(df, freq):
+    model = MLP(
+        h=7,
+        input_size=14,
+        max_steps=2,
+        accelerator="cpu",
+        devices=1,
+        enable_progress_bar=False,
+        logger=False,
+        random_seed=1,
+    )
+    nf = NeuralForecast(models=[model], freq=freq)
+    nf.fit(df)
+    nf.predict()
+    return nf.predict_insample()
+
+
+@pytest.mark.parametrize("n_series", [1, 3])
+def test_predict_insample_with_categorical_ids(n_series):
+    df = generate_series(n_series, min_length=50, max_length=50, freq="D")
+    assert df["unique_id"].dtype == "category"
+
+    insample = _predict_insample(df, "D")
+    expected = _predict_insample(df.astype({"unique_id": str}), "D")
+
+    pd.testing.assert_frame_equal(insample.astype({"unique_id": str}), expected)
+    assert insample["unique_id"].dtype == "category"
+
+
+@pytest.mark.parametrize("n_series", [1, 3])
+def test_predict_insample_with_polars_categorical_ids(n_series):
+    df = pl.from_pandas(
+        generate_series(n_series, min_length=50, max_length=50, freq="D")
+    ).with_columns(pl.col("unique_id").cast(pl.String).cast(pl.Categorical))
+
+    insample = _predict_insample(df, "1d")
+    expected = _predict_insample(df.with_columns(pl.col("unique_id").cast(pl.String)), "1d")
+
+    pl.testing.assert_frame_equal(
+        insample.with_columns(pl.col("unique_id").cast(pl.String)), expected
+    )
+    assert insample["unique_id"].dtype == pl.Categorical
+
+
+@pytest.mark.parametrize(
+    "stream", ["hist", "futr", "stat"], ids=["historical", "future", "static"]
+)
+def test_pandas_categorical_predictions_match_object(stream):
+    col = "dow" if stream == "futr" else "city"
+    categories = DOWS if stream == "futr" else CITIES
+    df = _panel(cols=() if stream == "stat" else (col,))
+    static_df = (
+        pd.DataFrame({"unique_id": [f"s{u}" for u in range(4)], col: CITIES})
+        if stream == "stat"
+        else None
+    )
+    futr_df = _futr_df() if stream == "futr" else None
+    predictions = []
+    for categorical in (False, True):
+        train = df.copy()
+        static = static_df.copy() if static_df is not None else None
+        future = futr_df.copy() if futr_df is not None else None
+        if categorical:
+            target = static if stream == "stat" else train
+            target[col] = pd.Categorical(target[col], categories=categories)
+            if future is not None:
+                future[col] = pd.Categorical(
+                    future[col], categories=list(reversed(categories))
+                )
+        model = _model(
+            MLP,
+            **{f"{stream}_exog_list": [col]},
+            cat_exog_list=[col],
+            categorical_cardinalities={col: len(categories)},
+        )
+        nf = NeuralForecast(models=[model], freq=1)
+        nf.fit(train, static_df=static)
+        predictions.append(nf.predict(futr_df=future))
+    pd.testing.assert_frame_equal(predictions[0], predictions[1], check_exact=True)

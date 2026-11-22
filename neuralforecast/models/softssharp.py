@@ -133,7 +133,7 @@ class SOFTSSharp(BaseModel):
         step_size (int): Step size between each window of temporal data.
         scaler_type (str): Type of scaler for temporal inputs normalization.
         random_seed (int): Random seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): If True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): Optional custom name of the model.
 
     References:

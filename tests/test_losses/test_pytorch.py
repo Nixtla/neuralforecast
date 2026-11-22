@@ -10,14 +10,17 @@ from neuralforecast.losses.pytorch import (
     MASE,
     MQLoss,
     MSE,
+    NBMM,
     PMM,
     RMSE,
     SMAPE,
     DistributionLoss,
     FreDF,
+    HuberMQLoss,
     HuberIQLoss,
     IQLoss,
     QuantileLoss,
+    sCRPS,
     _divide_no_nan,
     _weighted_mean,
     weighted_average,
@@ -29,6 +32,7 @@ from neuralforecast.losses.pytorch import (
 def test_MQLoss_level():
     check = MQLoss(level=[80, 90])
     assert len(check.quantiles) == 5
+
 
 def test_MQLoss_quantiles():
     check = MQLoss(quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
@@ -54,6 +58,7 @@ def test_DistributionLoss_level():
     check = DistributionLoss(distribution="Normal", level=[80, 90])
     assert len(check.quantiles), 5
 
+
 def test_DistributionLoss_quantiles():
     check = DistributionLoss(
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900]
@@ -64,6 +69,7 @@ def test_DistributionLoss_quantiles():
         distribution="Normal", quantiles=[0.0100, 0.1000, 0.9000, 0.9900]
     )
     assert len(check.quantiles) == 4
+
 
 # Unit tests to check DistributionLoss' horizon weight
 def test_DistributionLoss_horizon_weight():
@@ -90,12 +96,60 @@ def test_PMM_level():
     check = PMM(n_components=2, level=[80, 90])
     assert len(check.quantiles) == 5
 
+
 def test_PMM_quantiles():
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.5, 0.9000, 0.9900])
     assert len(check.quantiles) == 5
 
     check = PMM(n_components=2, quantiles=[0.0100, 0.1000, 0.9000, 0.9900])
     assert len(check.quantiles) == 4
+
+
+# Unit tests to check NBMM anchors its mean on loc and scale
+def _NBMM_distr_args(weighted, raw_mu, raw_alpha, loc, scale):
+    loss = NBMM(n_components=1, weighted=weighted)
+    raw = [raw_mu, raw_alpha] + ([0.0] if weighted else [])
+    out = torch.tensor(raw).repeat(1, 3, 1).requires_grad_()
+    distr_args = loss.scale_decouple(
+        loss.domain_map(out),
+        loc=torch.full((1, 3, 1), loc),
+        scale=torch.full((1, 3, 1), scale),
+    )
+    return loss, out, distr_args
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("scale", [1.0, 4.0])
+@pytest.mark.parametrize("loc", [100.0, 0.0, -5.0])
+def test_NBMM_mean_and_total_count_anchored_on_loc_and_scale(loc, scale, weighted):
+    raw_mu, raw_alpha = 3.0, 0.5
+    loss, out, distr_args = _NBMM_distr_args(weighted, raw_mu, raw_alpha, loc, scale)
+    distr = loss.get_distribution(distr_args)
+
+    softplus = torch.nn.functional.softplus
+    expected_mean = softplus(torch.tensor(raw_mu * scale + loc)).item()
+    expected_total_count = (
+        (softplus(torch.tensor(raw_alpha)) + 1e-8) / (scale + 1)
+    ) ** -1
+    total_count = distr_args[0]
+    assert distr.mean.flatten()[0].item() == pytest.approx(expected_mean, rel=1e-4)
+    assert total_count.flatten()[0].item() == pytest.approx(
+        expected_total_count.item(), rel=1e-5
+    )
+
+    # loc = 0 comes from the identity scaler, negative loc from a standard
+    # scaler on negative data; the mean must stay learnable in both cases.
+    y = torch.full((1, 3, 1), 50.0)
+    (grad,) = torch.autograd.grad(loss(y=y, distr_args=distr_args), out)
+    assert grad[0, 0, 0].item() != 0.0
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+def test_NBMM_mean_has_no_floor(weighted):
+    loss, _, distr_args = _NBMM_distr_args(weighted, -30.0, 0.0, loc=0.0, scale=1.0)
+
+    assert loss.get_distribution(distr_args).mean.flatten()[0].item() < 1e-6
+
 
 # Unit tests
 # Check that default quantile is set to 0.5 at initialization
@@ -105,6 +159,24 @@ def test_HuberIQLoss_init_and_update():
 
     check.update_quantile([0.7])
     assert check.q == 0.7
+
+
+# Once predict() has fixed the quantile, eval mode keeps using it and
+# training mode samples quantiles again.
+@pytest.mark.parametrize("loss_cls", [IQLoss, HuberIQLoss])
+def test_IQLoss_samples_quantiles_in_train_mode_after_update_quantile(loss_cls):
+    check = loss_cls()
+    y_hat = torch.zeros(4, 3, 1)
+
+    check.update_quantile([0.7])
+    check.eval()
+    check.domain_map(y_hat)
+    assert check.q == 0.7
+
+    check.train()
+    check.domain_map(y_hat)
+    assert isinstance(check.q, torch.Tensor)
+    assert not check.has_predicted
 
 
 # Each 1 is an error, there are 6 datapoints.
@@ -178,22 +250,23 @@ def test_fredf_alpha0_equals_mse():
     """When alpha=0, FreDF should reduce to pure time-domain MSE."""
     loss_fn = FreDF(alpha=0.0)
 
-    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
 
     # MSE = mean((1-2)^2, (2-2)^2, (3-2)^2) = mean(1, 0, 1) = 2/3
     expected = torch.tensor(2.0 / 3.0)
-    assert torch.isclose(loss, expected, atol=1e-5), \
+    assert torch.isclose(loss, expected, atol=1e-5), (
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
+    )
 
 
 def test_fredf_alpha1_equals_freq_mae():
     """When alpha=1, FreDF should reduce to pure frequency-domain MAE."""
     loss_fn = FreDF(alpha=1.0)
 
-    y     = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
+    y = torch.tensor([[[1.0], [2.0], [3.0]]])  # [1, 3, 1]
     y_hat = torch.tensor([[[2.0], [2.0], [2.0]]])
 
     loss = loss_fn(y, y_hat)
@@ -203,8 +276,9 @@ def test_fredf_alpha1_equals_freq_mae():
     # |diff|      = [0.0, 1.732]
     # MAE         = mean(0.0, 1.732) = 0.866
     expected = torch.tensor(0.866025)
-    assert torch.isclose(loss, expected, atol=1e-4), \
+    assert torch.isclose(loss, expected, atol=1e-4), (
         f"Expected {expected.item():.6f}, got {loss.item():.6f}"
+    )
 
 
 def test_fredf_perfect_forecast_zero_loss():
@@ -214,8 +288,9 @@ def test_fredf_perfect_forecast_zero_loss():
     for alpha in [0.0, 0.5, 1.0]:
         loss_fn = FreDF(alpha=alpha)
         loss = loss_fn(y, y)
-        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), \
+        assert torch.isclose(loss, torch.tensor(0.0), atol=1e-6), (
             f"alpha={alpha}: expected 0.0, got {loss.item():.6f}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -351,6 +426,40 @@ def test_mase_skips_zero_scale():
     assert loss == 0.0, "a flat insample series must not give inf"
 
 
+def test_mase_scales_each_series_by_its_own_insample_errors():
+    # Models pass y_insample as [B, L, N]. The scales are 1 and 100, and the
+    # forecast errors are 1 and 100, so every scaled error is exactly 1.
+    y_insample = torch.tensor([[1.0, 2.0, 3.0], [100.0, 200.0, 300.0]]).unsqueeze(-1)
+    y = torch.tensor([[4.0, 5.0], [400.0, 500.0]]).unsqueeze(-1)
+    y_hat = y + torch.tensor([[1.0, 1.0], [100.0, 100.0]]).unsqueeze(-1)
+
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+    mask = torch.tensor([[1.0, 0.0], [1.0, 1.0]]).unsqueeze(-1)
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample, mask=mask)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+
+def test_mase_scales_each_series_in_multivariate_batches():
+    # [B=2, L=3, N=2], with a different scale per window and series.
+    y_insample = torch.tensor(
+        [
+            [[1.0, 10.0], [2.0, 20.0], [3.0, 30.0]],
+            [[2.0, 20.0], [4.0, 40.0], [6.0, 60.0]],
+        ]
+    )
+    scale = torch.tensor([[[1.0, 10.0]], [[2.0, 20.0]]])
+    y = torch.zeros(2, 4, 2)
+    y_hat = y + scale
+
+    loss = MASE(seasonality=1)(y=y, y_hat=y_hat, y_insample=y_insample)
+
+    assert torch.isclose(loss, torch.tensor(1.0))
+
+
 def test_mape_gradient_is_finite_with_zero_targets():
     y = torch.tensor([[[0.0], [20.0]]])
     y_hat = torch.tensor([[[1.0], [22.0]]], requires_grad=True)
@@ -359,3 +468,127 @@ def test_mape_gradient_is_finite_with_zero_targets():
 
     assert torch.isfinite(y_hat.grad).all()
     assert y_hat.grad.flatten()[0] == 0.0, "the zero-target point gets no gradient"
+
+
+@pytest.mark.parametrize("num_quantiles", [1, 3, 5])
+def test_mqloss_matches_average_pinball_loss(num_quantiles):
+    quantiles = (
+        [0.5]
+        if num_quantiles == 1
+        else torch.linspace(0.1, 0.9, steps=num_quantiles).tolist()
+    )
+    q = torch.tensor(quantiles)[None, None, None, :]
+    y = torch.tensor([[[1.0], [2.0]]])
+    y_hat = torch.linspace(0.0, 3.0, steps=2 * num_quantiles).reshape(
+        1, 2, 1, num_quantiles
+    )
+
+    actual = MQLoss(quantiles=quantiles)(y=y, y_hat=y_hat)
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(q * error, (q - 1) * error)
+    expected = pinball.mean()
+
+    torch.testing.assert_close(actual, expected)
+
+
+@pytest.mark.parametrize("num_quantiles", [1, 3, 5])
+def test_huber_mqloss_matches_average_quantile_loss(num_quantiles):
+    quantiles = (
+        [0.5]
+        if num_quantiles == 1
+        else torch.linspace(0.1, 0.9, steps=num_quantiles).tolist()
+    )
+    q = torch.tensor(quantiles)[None, None, None, :]
+    y = torch.tensor([[[1.0], [2.0]]])
+    y_hat = torch.linspace(0.0, 3.0, steps=2 * num_quantiles).reshape(
+        1, 2, 1, num_quantiles
+    )
+
+    actual = HuberMQLoss(quantiles=quantiles)(y=y, y_hat=y_hat)
+    error = y_hat - y.unsqueeze(-1)
+    lower = torch.maximum(-error, torch.zeros_like(error))
+    upper = torch.maximum(error, torch.zeros_like(error))
+    zero = torch.zeros_like(error)
+    losses = torch.nn.functional.huber_loss(
+        q * lower, zero, reduction="none"
+    ) + torch.nn.functional.huber_loss(
+        (1 - q) * upper, zero, reduction="none"
+    )
+    expected = losses.mean()
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_MQLoss_normalization_with_mask_and_horizon_weight():
+    quantiles = torch.tensor([0.1, 0.5, 0.9])
+    y = torch.tensor([[[2.0], [4.0], [8.0]]])
+    y_hat = torch.tensor(
+        [[[[1.0, 2.0, 3.0]], [[2.0, 4.0, 6.0]], [[6.0, 8.0, 10.0]]]]
+    )
+    mask = torch.tensor([[[1.0], [0.0], [1.0]]])
+    horizon_weight = torch.tensor([1.0, 2.0, 3.0])
+
+    actual = MQLoss(
+        quantiles=quantiles.tolist(), horizon_weight=horizon_weight
+    )(y=y, y_hat=y_hat, mask=mask)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(quantiles * error, (quantiles - 1) * error)
+    pointwise_mean = pinball.mean(dim=-1)
+    weights = mask * horizon_weight[None, :, None]
+    expected = (pointwise_mean * weights).sum() / weights.sum()
+
+    torch.testing.assert_close(actual, expected)
+
+
+def test_sCRPS_matches_mean_quantile_pinball_reference():
+    quantiles = [0.1, 0.5, 0.9]
+    y = torch.tensor([[[1.0], [2.0], [4.0]]])
+    y_hat = torch.tensor(
+        [[[[0.0, 1.0, 2.0]], [[1.0, 2.0, 3.0]], [[2.0, 4.0, 5.0]]]]
+    )
+    mask = torch.ones_like(y)
+    q = torch.tensor(quantiles)
+
+    error = y.unsqueeze(-1) - y_hat
+    pinball = torch.maximum(q * error, (q - 1) * error)
+    expected = 2 * pinball.mean(dim=-1).sum() / y.abs().sum()
+
+    actual = sCRPS(quantiles=quantiles)(
+        y=y, y_hat=y_hat, y_insample=torch.zeros_like(y), mask=mask
+    )
+
+    torch.testing.assert_close(actual, expected, atol=1e-5, rtol=1e-5)
+
+
+@pytest.mark.parametrize("shape", [(2, 4, 1), (3, 6, 3)])
+def test_scrps_without_mask_matches_all_ones_mask(shape):
+    torch.manual_seed(0)
+    y = torch.rand(*shape)
+    y_hat = torch.rand(*shape, 5)
+    loss = sCRPS(level=[80, 90])
+
+    no_mask = loss(y=y, y_hat=y_hat, y_insample=None)
+    ones_mask = loss(y=y, y_hat=y_hat, y_insample=None, mask=torch.ones_like(y))
+
+    assert torch.isfinite(no_mask)
+    assert torch.equal(no_mask, ones_mask)
+
+
+def test_scrps_norm_ignores_masked_points():
+    torch.manual_seed(0)
+    y = torch.rand(1, 4, 1)
+    y_hat = torch.rand(1, 4, 1, 5)
+    mask = torch.tensor([[[1.0], [1.0], [0.0], [0.0]]])
+    loss = sCRPS(level=[80, 90])
+
+    base = loss(y=y, y_hat=y_hat, y_insample=None, mask=mask)
+    y_big = y.clone()
+    y_big[:, 2:] = 1e6  # masked points must not inflate the normalisation
+    changed = loss(y=y_big, y_hat=y_hat, y_insample=None, mask=mask)
+
+    assert torch.isclose(base, changed)
+
+    # sCRPS on only the unmasked steps pins both the mask and the denominator
+    unmasked = loss(y=y[:, :2], y_hat=y_hat[:, :2], y_insample=None)
+    torch.testing.assert_close(base, unmasked)

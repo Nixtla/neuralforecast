@@ -647,9 +647,10 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         dataset (BaseTimeSeriesDataset): Time series dataset.
         batch_size (int, optional): Batch size for training. Defaults to 32.
         valid_batch_size (int, optional): Batch size for validation. Defaults to 1024.
-        drop_last (bool, optional): Whether to drop the last incomplete batch. Defaults to False.
+        drop_last (bool, optional): Whether to drop the last incomplete training batch. Defaults to False.
         shuffle_train (bool, optional): Whether to shuffle training data. Defaults to True.
-        **dataloaders_kwargs: Additional keyword arguments for data loaders.
+        **dataloaders_kwargs: Additional keyword arguments for data loaders. Training
+            and validation keep workers across epochs by default when num_workers > 0.
     """
 
     def __init__(
@@ -669,13 +670,20 @@ class TimeSeriesDataModule(pl.LightningDataModule):
         self.shuffle_train = shuffle_train
         self.dataloaders_kwargs = dataloaders_kwargs
 
+    @property
+    def _fit_dataloader_kwargs(self):
+        return {
+            "persistent_workers": self.dataloaders_kwargs.get("num_workers", 0) > 0,
+            **self.dataloaders_kwargs,
+        }
+
     def train_dataloader(self):
         loader = TimeSeriesLoader(
             self.dataset,
             batch_size=self.batch_size,
             shuffle=self.shuffle_train,
             drop_last=self.drop_last,
-            **self.dataloaders_kwargs
+            **self._fit_dataloader_kwargs
         )
         return loader
 
@@ -684,8 +692,7 @@ class TimeSeriesDataModule(pl.LightningDataModule):
             self.dataset,
             batch_size=self.valid_batch_size,
             shuffle=False,
-            drop_last=self.drop_last,
-            **self.dataloaders_kwargs
+            **self._fit_dataloader_kwargs
         )
         return loader
 

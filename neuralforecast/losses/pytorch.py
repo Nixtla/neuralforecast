@@ -471,9 +471,9 @@ class MASE(BasePointLoss):
     ) -> torch.Tensor:
         """
         Args:
-            y: Tensor (batch_size, output_size), Actual values.
-            y_hat: Tensor (batch_size, output_size)), Predicted values.
-            y_insample: Tensor (batch_size, input_size), Actual insample values.
+            y: Tensor [B, h, N], Actual values.
+            y_hat: Tensor [B, h, N], Predicted values.
+            y_insample: Tensor [B, L, N], Actual insample values.
             mask: Tensor, Specifies date stamps per serie to consider in loss.
 
         Returns:
@@ -486,7 +486,8 @@ class MASE(BasePointLoss):
             ),
             axis=1,
         )
-        losses = _divide_no_nan(delta_y, scale[:, None, None])
+        # [B] or [B, N] -> [B, 1, N], so that each series uses its own scale
+        losses = _divide_no_nan(delta_y, scale.view(scale.shape[0], 1, -1))
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
@@ -762,7 +763,7 @@ class MQLoss(BasePointLoss):
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
         quantiles = self.quantiles[None, None, None, :]
-        losses = (1 / len(quantiles)) * (quantiles * sq + (1 - quantiles) * s1_q)
+        losses = (1 / quantiles.shape[-1]) * (quantiles * sq + (1 - quantiles) * s1_q)
         weights = self._compute_weights(y=losses, mask=mask)  # Use losses for extra dim
 
         return _weighted_mean(losses=losses, weights=weights)
@@ -874,7 +875,7 @@ class IQLoss(QuantileLoss):
         Returns:
             torch.Tensor: Domain mapped tensor.
         """
-        if self.eval() and self.has_predicted:
+        if not self.training and self.has_predicted:
             quantiles = torch.full(
                 size=y_hat.shape,
                 fill_value=self.q,
@@ -2050,7 +2051,7 @@ class DistributionLoss(_BaseLoss):
             Distribution: AffineTransformed distribution.
         """
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         if self.distribution in ("Poisson", "NegativeBinomial"):
             distr.support = constraints.nonnegative
@@ -2296,7 +2297,7 @@ class PMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
@@ -2531,7 +2532,7 @@ class GMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
@@ -2727,14 +2728,16 @@ class NBMM(_BaseLoss):
         else:
             mu, alpha = output
 
-        mu = F.softplus(mu) + 1e-8
         alpha = F.softplus(alpha) + 1e-8  # alpha = 1/total_counts
         if (loc is not None) and (scale is not None):
             if loc.ndim == 3:
                 loc = loc.unsqueeze(-1)
                 scale = scale.unsqueeze(-1)
-            mu *= loc
-            alpha /= loc + 1.0
+            # Anchor the raw output once, as PMM.scale_decouple does. The softplus
+            # below keeps mu positive and differentiable for any loc.
+            mu = mu * scale + loc
+            alpha = alpha / (scale + 1.0)
+        mu = F.softplus(mu) + 1e-8
 
         # mu = total_count * (probs/(1-probs))
         # => probs = mu / (total_count + mu)
@@ -2770,7 +2773,7 @@ class NBMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean
+        self.distr_mean = distr.mean.detach()
 
         return distr
 
@@ -3194,7 +3197,7 @@ class HuberMQLoss(BasePointLoss):
         ) + F.huber_loss(
             (1 - quantiles) * s1_q, zero_error, reduction="none", delta=self.delta
         )
-        losses = (1 / len(quantiles)) * losses
+        losses = (1 / quantiles.shape[-1]) * losses
 
         weights = self._compute_weights(y=losses, mask=mask)
 
@@ -3287,7 +3290,7 @@ class HuberIQLoss(HuberQLoss):
             - shape: [B, h, 1] for univariate
             - shape: [B, h, N] for multivariate
         """
-        if self.eval() and self.has_predicted:
+        if not self.training and self.has_predicted:
             quantiles = torch.full(
                 size=y_hat.shape,
                 fill_value=self.q,
@@ -3421,8 +3424,11 @@ class sCRPS(BasePointLoss):
         Returns:
             float: sCRPS.
         """
+        if mask is None:
+            mask = torch.ones_like(y)
+
         mql = self.mql(y=y, y_hat=y_hat, mask=mask, y_insample=y_insample)
-        norm = torch.sum(torch.abs(y))
+        norm = torch.sum(torch.abs(y) * mask)
         unmean = torch.sum(mask)
         scrps = 2 * mql * unmean / (norm + 1e-5)
         return scrps
