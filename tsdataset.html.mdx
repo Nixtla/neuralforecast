@@ -240,7 +240,7 @@ Name | Type | Description | Default
 `valid_batch_size` | <code>[int](#int)</code> | Batch size for validation. Defaults to 1024. | <code>1024</code>
 `drop_last` | <code>[bool](#bool)</code> | Whether to drop the last incomplete training batch. Defaults to False. | <code>False</code>
 `shuffle_train` | <code>[bool](#bool)</code> | Whether to shuffle training data. Defaults to True. | <code>True</code>
-`**dataloaders_kwargs` | | Additional keyword arguments for data loaders. | <code>{}</code>
+`**dataloaders_kwargs` | | Additional keyword arguments for data loaders. Training and validation keep workers across epochs by default when num_workers > 0. | <code>{}</code>
 
 ### Example
 
