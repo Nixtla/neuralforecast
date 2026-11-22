@@ -166,16 +166,17 @@ def _mixture_distr_args(loss_cls, weighted, B=4, h=6, seed=0):
 @pytest.mark.parametrize("weighted", [False, True])
 @pytest.mark.parametrize("loss_cls", [PMM, GMM, NBMM])
 def test_mixture_sample_matches_mixture_moments(loss_cls, weighted):
-    loss, distr_args = _mixture_distr_args(loss_cls, weighted)
+    B, h = 4, 6
+    loss, distr_args = _mixture_distr_args(loss_cls, weighted, B=B, h=h)
     distr = loss.get_distribution(distr_args)
     num_samples = 4000
 
     torch.manual_seed(1)
     samples, sample_mean, quants = loss.sample(distr_args, num_samples=num_samples)
 
-    assert samples.shape == (4, 6, 1, num_samples)
-    assert sample_mean.shape == (4, 6, 1, 1)
-    assert quants.shape == (4, 6, 1, len(loss.quantiles))
+    assert samples.shape == (B, h, 1, num_samples)
+    assert sample_mean.shape == (B, h, 1, 1)
+    assert quants.shape == (B, h, 1, len(loss.quantiles))
     mean, var = distr.mean, distr.variance
     z = (samples.mean(-1) - mean) / (var / num_samples).sqrt()
     assert z.abs().max() < 5
