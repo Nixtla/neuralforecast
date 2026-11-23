@@ -10,6 +10,7 @@ from neuralforecast.losses.pytorch import (
     MASE,
     MQLoss,
     MSE,
+    GMM,
     NBMM,
     PMM,
     RMSE,
@@ -149,6 +150,62 @@ def test_NBMM_mean_has_no_floor(weighted):
     loss, _, distr_args = _NBMM_distr_args(weighted, -30.0, 0.0, loc=0.0, scale=1.0)
 
     assert loss.get_distribution(distr_args).mean.flatten()[0].item() < 1e-6
+
+
+# Unit tests to check the mixture losses sample from the mixture
+def _mixture_distr_args(loss_cls, weighted, B=4, h=6, seed=0):
+    torch.manual_seed(seed)
+    loss = loss_cls(n_components=3, weighted=weighted)
+    out = loss.domain_map(torch.randn(B, h, loss.outputsize_multiplier))
+    distr_args = loss.scale_decouple(
+        out, loc=torch.full((B, h, 1), 50.0), scale=torch.full((B, h, 1), 5.0)
+    )
+    return loss, distr_args
+
+
+@pytest.mark.parametrize("weighted", [False, True])
+@pytest.mark.parametrize("loss_cls", [PMM, GMM, NBMM])
+def test_mixture_sample_matches_mixture_moments(loss_cls, weighted):
+    B, h = 4, 6
+    loss, distr_args = _mixture_distr_args(loss_cls, weighted, B=B, h=h)
+    distr = loss.get_distribution(distr_args)
+    num_samples = 4000
+
+    torch.manual_seed(1)
+    samples, sample_mean, quants = loss.sample(distr_args, num_samples=num_samples)
+
+    assert samples.shape == (B, h, 1, num_samples)
+    assert sample_mean.shape == (B, h, 1, 1)
+    assert quants.shape == (B, h, 1, len(loss.quantiles))
+    mean, var = distr.mean, distr.variance
+    z = (samples.mean(-1) - mean) / (var / num_samples).sqrt()
+    assert z.abs().max() < 5
+    assert (samples.var(-1) / var).mean().item() == pytest.approx(1.0, abs=0.05)
+
+
+@pytest.mark.parametrize("loss_cls", [PMM, GMM, NBMM])
+def test_mixture_sample_picks_components_by_weight(loss_cls):
+    # Two components far apart, weighted 1:3. Every draw must come from one
+    # of them, and three quarters from the second.
+    shape = (2, 3, 1)
+    weights = torch.tensor([0.25, 0.75]).expand(*shape, 2)
+    if loss_cls is PMM:
+        distr_args = (torch.tensor([1.0, 1000.0]).expand(*shape, 2), weights)
+    elif loss_cls is GMM:
+        means = torch.tensor([0.0, 1000.0]).expand(*shape, 2)
+        distr_args = (means, torch.ones(*shape, 2), weights)
+    else:
+        # total_count 100, means 1 and 1000
+        probs = torch.tensor([1 / 101, 10 / 11]).expand(*shape, 2)
+        distr_args = (torch.full((*shape, 2), 100.0), probs, weights)
+    loss = loss_cls(n_components=2, weighted=True)
+
+    torch.manual_seed(0)
+    samples, _, _ = loss.sample(distr_args, num_samples=5000)
+
+    high = samples > 500
+    assert torch.all(torch.where(high, samples > 600, samples < 50))
+    assert high.float().mean().item() == pytest.approx(0.75, abs=0.02)
 
 
 # Unit tests

@@ -2162,6 +2162,24 @@ class DistributionLoss(_BaseLoss):
         return weighted_average(loss_values, weights=loss_weights)
 
 
+def _sample_mixture(distr: MixtureSameFamily, param_names, num_samples: int):
+    """Sample a MixtureSameFamily by drawing the component index first.
+
+    `MixtureSameFamily.sample` draws from every component and keeps one, so it
+    costs `n_components` draws per value. Drawing the index, gathering that
+    component's parameters and drawing once gives the same distribution.
+    """
+    components = distr.component_distribution
+    with torch.no_grad():
+        idx = distr.mixture_distribution.sample((num_samples,)).unsqueeze(-1)
+        params = {}
+        for name in param_names:
+            param = getattr(components, name)
+            param = param.expand(num_samples, *param.shape)
+            params[name] = torch.gather(param, -1, idx).squeeze(-1)
+        return type(components)(**params).sample()
+
+
 class PMM(_BaseLoss):
     r"""Poisson Mixture Mesh
 
@@ -2318,7 +2336,7 @@ class PMM(_BaseLoss):
 
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args)
-        samples = distr.sample(sample_shape=(num_samples,))
+        samples = _sample_mixture(distr, ("rate",), num_samples)
         samples = samples.permute(
             1, 2, 3, 0
         )  # [samples, B, H, N] -> [B, H, N, samples]
@@ -2553,7 +2571,7 @@ class GMM(_BaseLoss):
 
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args)
-        samples = distr.sample(sample_shape=(num_samples,))
+        samples = _sample_mixture(distr, ("loc", "scale"), num_samples)
         samples = samples.permute(
             1, 2, 3, 0
         )  # [samples, B, H, N] -> [B, H, N, samples]
@@ -2794,7 +2812,7 @@ class NBMM(_BaseLoss):
 
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args)
-        samples = distr.sample(sample_shape=(num_samples,))
+        samples = _sample_mixture(distr, ("total_count", "probs"), num_samples)
         samples = samples.permute(
             1, 2, 3, 0
         )  # [samples, B, H, N] -> [B, H, N, samples]
