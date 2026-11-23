@@ -288,7 +288,11 @@ MixingLayerWithStaticExogenous(h, dropout, ff_dim, stat_input_size)
 
 Bases: <code>[Module](#torch.nn.Module)</code>
 
-MixingLayerWithStaticExogenous
+Mixing layer whose static branch is batch-independent.
+
+The static feature mixer is evaluated once on `[1, h, stat_input_size]`
+and broadcast over the batch inside :meth:`forward`. During training, this
+means dropout masks in the static branch are shared across the batch.
 
 ### `MixingLayer`
 
