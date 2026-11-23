@@ -1,13 +1,18 @@
 import pytest
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 from neuralforecast.common._modules import (
     FullAttention,
     MLP,
     RevIN,
     RevINMultivariate,
+    TransDecoderLayer,
+    TransEncoderLayer,
     TriangularCausalMask,
 )
+from neuralforecast.models import autoformer, fedformer, timexer
 
 
 @pytest.mark.parametrize("num_layers", [2, 3])
@@ -224,3 +229,66 @@ def test_revin_clamped_denorm_has_no_affine_weight_gradient(revin_cls, weight):
     torch.testing.assert_close(
         model.affine_weight.grad, torch.zeros_like(model.affine_weight)
     )
+
+
+_FFN_LAYERS = {
+    "TransEncoderLayer": lambda: TransEncoderLayer(None, 8, 16),
+    "TransDecoderLayer": lambda: TransDecoderLayer(None, None, 8, 16),
+    "Autoformer.EncoderLayer": lambda: autoformer.EncoderLayer(None, 8, 16),
+    "Autoformer.DecoderLayer": lambda: autoformer.DecoderLayer(None, None, 8, 1, 16),
+    "FEDformer.EncoderLayer": lambda: fedformer.EncoderLayer(None, 8, 16),
+    "FEDformer.DecoderLayer": lambda: fedformer.DecoderLayer(None, None, 8, 1, 16),
+    "TimeXer.EncoderLayer": lambda: timexer.EncoderLayer(None, None, 8, 16),
+}
+
+
+def _as_conv1x1_state_dict(module):
+    """State dict as saved when the FFN used `nn.Conv1d(kernel_size=1)`."""
+    return {
+        k: v.unsqueeze(-1) if k.endswith(("conv1.weight", "conv2.weight")) else v
+        for k, v in module.state_dict().items()
+    }
+
+
+@pytest.mark.parametrize("make_layer", _FFN_LAYERS.values(), ids=_FFN_LAYERS.keys())
+def test_transformer_ffn_loads_conv1x1_checkpoints(make_layer):
+    torch.manual_seed(0)
+    source = nn.Sequential(make_layer())
+    legacy = _as_conv1x1_state_dict(source)
+    assert legacy["0.conv1.weight"].dim() == 3
+
+    target = nn.Sequential(make_layer())
+    target.load_state_dict(legacy, strict=True)
+
+    for name in ("conv1", "conv2"):
+        assert isinstance(getattr(target[0], name), nn.Linear)
+        torch.testing.assert_close(
+            getattr(target[0], name).weight, getattr(source[0], name).weight
+        )
+
+
+class _ZeroAttention(nn.Module):
+    def forward(self, queries, keys, values, attn_mask=None):
+        return torch.zeros_like(queries), None
+
+
+@pytest.mark.parametrize("training", [False, True])
+def test_trans_encoder_layer_matches_conv1x1_ffn(training):
+    """Same output as the former Conv1d FFN, including seeded dropout masks."""
+    p = 0.3
+    torch.manual_seed(0)
+    layer = TransEncoderLayer(_ZeroAttention(), 8, 16, dropout=p).train(training)
+    legacy = _as_conv1x1_state_dict(layer)
+    inputs = torch.randn(4, 6, 8)
+
+    torch.manual_seed(1)
+    x = inputs + F.dropout(torch.zeros_like(inputs), p, training)
+    x = layer.norm1(x)
+    y = F.conv1d(x.transpose(-1, 1), legacy["conv1.weight"], legacy["conv1.bias"])
+    y = F.dropout(F.relu(y), p, training)
+    y = F.conv1d(y, legacy["conv2.weight"], legacy["conv2.bias"]).transpose(-1, 1)
+    expected = layer.norm2(x + F.dropout(y, p, training))
+
+    torch.manual_seed(1)
+    out, _ = layer(inputs)
+    torch.testing.assert_close(out, expected)
