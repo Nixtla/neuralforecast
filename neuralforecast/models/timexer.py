@@ -15,6 +15,8 @@ from neuralforecast.common._modules import (
     DataEmbedding_inverted,
     FullAttention,
     PositionalEmbedding,
+    _channel_first_dropout,
+    _squeeze_conv1x1_ffn_weights,
 )
 
 from ..common._base_model import BaseModel
@@ -71,8 +73,9 @@ class EncoderLayer(nn.Module):
         d_ff = d_ff or 4 * d_model
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.conv1 = nn.Linear(d_model, d_ff)
+        self.conv2 = nn.Linear(d_ff, d_model)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
@@ -101,8 +104,8 @@ class EncoderLayer(nn.Module):
 
         y = x = torch.cat([x[:, :-1, :], x_glb], dim=1)
 
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
 
         return self.norm3(x + y)
 
