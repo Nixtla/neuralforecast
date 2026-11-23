@@ -2068,7 +2068,7 @@ wheels = [
 
 [[package]]
 name = "neuralforecast"
-version = "3.3.1"
+version = "3.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreforecast" },
