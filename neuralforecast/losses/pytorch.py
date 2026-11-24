@@ -2146,10 +2146,6 @@ class DistributionLoss(_BaseLoss):
         Args:
             y (torch.Tensor): Actual values.
             distr_args (torch.Tensor): Constructor arguments for the underlying Distribution type.
-            loc (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape + event_shape. Defaults to None.
-               of the resulting distribution.
-            scale (Optional[torch.Tensor], optional): Optional tensor, of the same shape as the batch_shape+event_shape
-               of the resulting distribution. Defaults to None.
             mask (Union[torch.Tensor, None], optional): Specifies date stamps per serie to consider in loss. Defaults to None.
 
         Returns:
@@ -3237,9 +3233,11 @@ class HuberIQLoss(HuberQLoss):
     ```
 
     Args:
-        quantile_sampling (str, optional): Sampling distribution used to sample the quantiles during training. Choose from ['uniform', 'beta']. Defaults to 'uniform'.
-        horizon_weight (Union[torch.Tensor, None], optional): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None.
+        cos_embedding_dim (int, optional): Cosine embedding dimension. Defaults to 64.
+        concentration0 (float, optional): Beta distribution concentration parameter. Defaults to 1.0.
+        concentration1 (float, optional): Beta distribution concentration parameter. Defaults to 1.0.
         delta (float, optional): Specifies the threshold at which to change between delta-scaled L1 and L2 loss. Defaults to 1.0.
+        horizon_weight (Union[torch.Tensor, None], optional): Tensor of size h, weight for each timestamp of the forecasting window. Defaults to None.
 
     References:
         - [Gouttes, Adèle, Kashif Rasul, Mateusz Koren, Johannes Stephan, and Tofigh Naghibi, "Probabilistic Time Series Forecasting with Implicit Quantile Networks".](http://arxiv.org/abs/2107.03743)
