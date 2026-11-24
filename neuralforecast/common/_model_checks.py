@@ -24,7 +24,7 @@ FREQ = "D"
 # 1 series, no exogenous
 N_SERIES_1 = 1
 df = generate_series(
-    n_series=N_SERIES_1, seed=seed, freq=FREQ, equal_ends=True, max_length=75
+    n_series=N_SERIES_1, seed=seed, freq=FREQ, equal_ends=True, min_length=70, max_length=75
 )
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_1 = df[df.ds < max_ds]
@@ -33,7 +33,7 @@ Y_TEST_DF_1 = df[df.ds >= max_ds]
 # 5 series, no exogenous
 N_SERIES_2 = 5
 df = generate_series(
-    n_series=N_SERIES_2, seed=seed, freq=FREQ, equal_ends=True, max_length=75
+    n_series=N_SERIES_2, seed=seed, freq=FREQ, equal_ends=True, min_length=70, max_length=75
 )
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_2 = df[df.ds < max_ds]
@@ -48,6 +48,7 @@ df, STATIC_3 = generate_series(
     seed=seed,
     freq=FREQ,
     equal_ends=True,
+    min_length=70,
     max_length=75,
 )
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
@@ -63,6 +64,7 @@ df, STATIC_4 = generate_series(
     seed=seed,
     freq=FREQ,
     equal_ends=True,
+    min_length=70,
 )
 max_ds = df.ds.max() - pd.Timedelta(test_size, FREQ)
 Y_TRAIN_DF_4 = df[df.ds < max_ds]
@@ -124,6 +126,10 @@ def _run_model_tests(model_class, config):
         _ = fcst.predict(futr_df=Y_TEST_DF_4)
 
 
+# Models that raise on any loss with more than one output per horizon step
+POINT_LOSS_ONLY_MODELS = ("DeepNPTS", "TimeLLM")
+
+
 # Tests a model against every loss function
 def check_loss_functions(model_class):
     loss_list = [
@@ -155,6 +161,11 @@ def check_loss_functions(model_class):
         losses.HuberMQLoss(),
     ]
     for loss in loss_list:
+        if (
+            model_class.__name__ in POINT_LOSS_ONLY_MODELS
+            and loss.outputsize_multiplier > 1
+        ):
+            continue
         test_name = f"{model_class.__name__}: checking {loss._get_name()}"
         print(f"{test_name}")
         config = {
@@ -173,11 +184,8 @@ def check_loss_functions(model_class):
         }
         try:
             _run_model_tests(model_class, config)
-        except RuntimeError:
-            raise Exception(f"{test_name} failed.")
-        except Exception:
-            print(f"{test_name} skipped on raised Exception.")
-            pass
+        except Exception as e:
+            raise Exception(f"{test_name} failed.") from e
 
 
 # Tests a model against the AirPassengers dataset
