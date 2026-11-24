@@ -957,3 +957,50 @@ def test_pandas_categorical_predictions_match_object(stream):
         nf.fit(train, static_df=static)
         predictions.append(nf.predict(futr_df=future))
     pd.testing.assert_frame_equal(predictions[0], predictions[1], check_exact=True)
+
+
+@pytest.mark.parametrize("dtype", [pl.String, pl.Categorical])
+@pytest.mark.parametrize("stream", ["hist", "stat"])
+def test_polars_string_categorical_columns_fit(dtype, stream):
+    pdf = _panel(cols=("city",))
+    df = pl.from_pandas(pdf).with_columns(pl.col("city").cast(dtype))
+    kwargs = dict(h=4, input_size=8, max_steps=1, accelerator="cpu")
+    if stream == "stat":
+        static_df = df.group_by("unique_id").agg(pl.col("city").first())
+        df = df.drop("city")
+        model = MLP(
+            stat_exog_list=["city"],
+            cat_exog_list=["city"],
+            categorical_cardinalities={"city": len(CITIES)},
+            **kwargs,
+        )
+        nf = NeuralForecast(models=[model], freq=1)
+        nf.fit(df, static_df=static_df)
+    else:
+        model = MLP(
+            hist_exog_list=["city"],
+            cat_exog_list=["city"],
+            categorical_cardinalities={"city": len(CITIES)},
+            **kwargs,
+        )
+        nf = NeuralForecast(models=[model], freq=1)
+        nf.fit(df)
+
+
+def test_polars_string_column_with_null_still_raises():
+    pdf = _panel(cols=("city",))
+    df = pl.from_pandas(pdf).with_columns(
+        pl.when(pl.col("ds") == 3).then(None).otherwise(pl.col("city")).alias("city")
+    )
+    model = MLP(
+        h=4,
+        input_size=8,
+        max_steps=1,
+        accelerator="cpu",
+        hist_exog_list=["city"],
+        cat_exog_list=["city"],
+        categorical_cardinalities={"city": len(CITIES)},
+    )
+    nf = NeuralForecast(models=[model], freq=1)
+    with pytest.raises(ValueError, match="missing values"):
+        nf.fit(df)

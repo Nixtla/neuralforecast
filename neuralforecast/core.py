@@ -733,6 +733,15 @@ class NeuralForecast:
         self._scalers_fit_transform(dataset)
         return dataset, uids, last_dates, ds
 
+    @staticmethod
+    def _has_missing(s) -> bool:
+        # polars can't evaluate `is_nan` on non-numeric dtypes (String,
+        # Categorical, ...), so only look for nulls there.
+        if hasattr(s, "dtype") and hasattr(s, "is_null") and not s.dtype.is_float():
+            if not s.dtype.is_numeric():
+                return bool(s.is_null().any())
+        return bool(ufp.is_nan_or_none(s).any())
+
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
         cols_with_nans = []
 
@@ -756,12 +765,12 @@ class NeuralForecast:
         for col in temporal_cols:
             if col == "sample_weight":
                 continue
-            if ufp.is_nan_or_none(df_to_check[col]).any():
+            if self._has_missing(df_to_check[col]):
                 cols_with_nans.append(col)
 
         if static_df is not None:
             for col in [x for x in static_df.columns if x != id_col]:
-                if ufp.is_nan_or_none(static_df[col]).any():
+                if self._has_missing(static_df[col]):
                     cols_with_nans.append(col)
 
         if cols_with_nans:
