@@ -97,6 +97,19 @@ def test_augment_calendar_df_non_range_index(make_index):
     np.testing.assert_allclose(out[cols].to_numpy(), expected[cols].to_numpy())
 
 
+def test_augment_calendar_df_rejects_existing_calendar_columns():
+    df = pd.DataFrame(
+        {
+            "unique_id": "a",
+            "ds": pd.date_range("2024-01-01", periods=10, freq="D"),
+            "y": range(10),
+            "weekday": 1.0,
+        }
+    )
+    with pytest.raises(ValueError, match=r"\['weekday'\]"):
+        augment_calendar_df(df, freq="D")
+
+
 @pytest.mark.skipif(
     not hasattr(pd.errors, "Pandas4Warning"),
     reason="Pandas4Warning only exists in pandas>=3.1",
