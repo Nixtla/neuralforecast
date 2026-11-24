@@ -3001,6 +3001,26 @@ class BaseModel(pl.LightningModule):
         output_index,
     ):
         """Forward pass for tensorized inputs."""
+        y_hat = self._predict_step_outputs(
+            insample_y=insample_y,
+            insample_mask=insample_mask,
+            futr_exog=futr_exog,
+            hist_exog=hist_exog,
+            stat_exog=stat_exog,
+            y_idx=y_idx,
+        )
+        return y_hat[:, output_horizon, output_series, output_index]
+
+    def _predict_step_outputs(
+        self,
+        insample_y,
+        insample_mask,
+        futr_exog,
+        hist_exog,
+        stat_exog,
+        y_idx,
+    ):
+        """Forward pass returning every [horizon, series, output] for explanations."""
 
         # Dumb trick to ensure that insample_mask is used to produce the output for calculating explanations.
         insample_y = insample_y - insample_mask
@@ -3026,7 +3046,138 @@ class BaseModel(pl.LightningModule):
         if y_hat.ndim == 3:
             y_hat = y_hat.unsqueeze(-1)  # Add output dimension if needed
 
-        return y_hat[:, output_horizon, output_series, output_index]
+        return y_hat
+
+    def _gradient_attributions(
+        self,
+        input_batch,
+        param_positions,
+        stat_exog,
+        y_idx,
+        targets,
+    ):
+        """Attributions for every target from a single forward pass.
+
+        Matches captum's ``IntegratedGradients`` and ``InputXGradient`` with
+        their default arguments (zero baselines, 50 Gauss-Legendre steps for
+        IG), which run one forward and one backward per target. Here the
+        interpolated inputs go through the model once, every
+        ``[horizon, series, output]`` comes out of that forward, and the
+        targets' gradients are taken from the same graph.
+
+        Args:
+            targets: ``(local_horizon, series_idx, output_idx)`` tuples.
+
+        Returns:
+            A generator yielding one attributions tuple per target, in the
+            order of ``targets`` and ordered like ``input_batch``, or None for
+            any other explainer.
+        """
+        from captum.attr import InputXGradient, IntegratedGradients
+
+        explainer = self.explainer_config["explainer"]
+        if explainer is IntegratedGradients:
+            nodes, weights = np.polynomial.legendre.leggauss(50)
+            alphas = list(0.5 * (1 + nodes))
+            step_sizes = list(0.5 * weights)
+        elif explainer is InputXGradient:
+            alphas, step_sizes = [1.0], [1.0]
+        else:
+            return None
+        return self._iter_gradient_attributions(
+            input_batch, param_positions, stat_exog, y_idx, targets, alphas, step_sizes
+        )
+
+    def _iter_gradient_attributions(
+        self,
+        input_batch,
+        param_positions,
+        stat_exog,
+        y_idx,
+        targets,
+        alphas,
+        step_sizes,
+    ):
+        n_steps = len(alphas)
+        with torch.enable_grad():
+            scaled = tuple(
+                torch.cat([alpha * inp.detach() for alpha in alphas], dim=0).requires_grad_()
+                for inp in input_batch
+            )
+
+            def arg(name, rows=slice(None)):
+                if name not in param_positions:
+                    return None
+                return scaled[param_positions[name]][rows]
+
+            if self.MULTIVARIATE and "stat_exog" in param_positions:
+                # The model takes stat_exog as [n_series, S] for the whole batch,
+                # so run one forward per interpolation step.
+                n_rows = input_batch[0].shape[0]
+                y_hat = torch.cat(
+                    [
+                        self._predict_step_outputs(
+                            insample_y=arg("insample_y", slice(s * n_rows, (s + 1) * n_rows)),
+                            insample_mask=arg("insample_mask", slice(s * n_rows, (s + 1) * n_rows)),
+                            futr_exog=arg("futr_exog", slice(s * n_rows, (s + 1) * n_rows)),
+                            hist_exog=arg("hist_exog", slice(s * n_rows, (s + 1) * n_rows)),
+                            stat_exog=arg("stat_exog")[s].reshape(stat_exog.shape),
+                            y_idx=y_idx,
+                        )
+                        for s in range(n_steps)
+                    ],
+                    dim=0,
+                )
+            else:
+                y_hat = self._predict_step_outputs(
+                    insample_y=arg("insample_y"),
+                    insample_mask=arg("insample_mask"),
+                    futr_exog=arg("futr_exog"),
+                    hist_exog=arg("hist_exog"),
+                    stat_exog=arg("stat_exog"),
+                    y_idx=y_idx,
+                )
+
+        # As captum does: the step weights stay float64, like its torch.tensor(step_sizes).
+        step_sizes = torch.tensor(step_sizes).to(y_hat.device)
+        chunk_size = 32
+        batched = True
+        for start in range(0, len(targets), chunk_size):
+            chunk = targets[start:start + chunk_size]
+            grads = None
+            if batched:
+                grad_outputs = torch.zeros(
+                    (len(chunk), *y_hat.shape), dtype=y_hat.dtype, device=y_hat.device
+                )
+                for c, (h, s, o) in enumerate(chunk):
+                    grad_outputs[c, :, h, s, o] = 1
+                try:
+                    grads = torch.autograd.grad(
+                        y_hat,
+                        scaled,
+                        grad_outputs=grad_outputs,
+                        retain_graph=True,
+                        is_grads_batched=True,
+                    )
+                except RuntimeError:
+                    # Some ops have no batching rule; fall back to one
+                    # backward per target on the same graph.
+                    batched = False
+            if grads is None:
+                per_target = [
+                    torch.autograd.grad(y_hat[:, h, s, o].sum(), scaled, retain_graph=True)
+                    for h, s, o in chunk
+                ]
+                grads = tuple(torch.stack(g) for g in zip(*per_target))
+
+            attributions = []
+            for grad, inp in zip(grads, input_batch):
+                # [chunk, n_steps * rows, ...] -> weighted sum over steps.
+                grad = grad.reshape(len(chunk), n_steps, inp.shape[0], *inp.shape[1:])
+                weights = step_sizes.view(1, n_steps, *([1] * inp.ndim))
+                attributions.append((grad * weights).sum(dim=1) * inp.detach())
+            for c in range(len(chunk)):
+                yield tuple(attr[c] for attr in attributions)
 
     def _cat_attr_groups(self, exog_list, cat_exog_list):
         """Embedded-column groups per original feature, in ``exog_list`` order.
@@ -3269,6 +3420,16 @@ class BaseModel(pl.LightningModule):
             param_positions["stat_exog"] = pos
             pos += 1
 
+        # IntegratedGradients and InputXGradient share one forward pass across
+        # every target; other explainers run captum once per target below.
+        batched_attributions = self._gradient_attributions(
+            input_batch,
+            param_positions,
+            stat_exog,
+            y_idx,
+            [(h, s, o) for h in local_horizons for s in series for o in output_index],
+        )
+
         # Loop over horizons, series and output_indices
         _mv_stat = self.MULTIVARIATE and "stat_exog" in param_positions
         for i, local_horizon in enumerate(local_horizons):
@@ -3338,8 +3499,11 @@ class BaseModel(pl.LightningModule):
                             output_series=series_idx,
                             output_index=output_idx,
                         )
-                    attributor = self.explainer_config["explainer"](forward_fn)
-                    attributions = attributor.attribute(input_batch)
+                    if batched_attributions is not None:
+                        attributions = next(batched_attributions)
+                    else:
+                        attributor = self.explainer_config["explainer"](forward_fn)
+                        attributions = attributor.attribute(input_batch)
 
                     if self.MULTIVARIATE:
                         insample_explanations[:, i, j, k, :, :, 0] = attributions[0]

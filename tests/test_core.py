@@ -63,6 +63,7 @@ from neuralforecast.losses.pytorch import (
     MQLoss,
     sCRPS,
 )
+from neuralforecast.common._base_model import BaseModel
 from neuralforecast.models import NLinear
 from neuralforecast.tsdataset import TimeSeriesDataset
 from neuralforecast.utils import (
@@ -3065,3 +3066,70 @@ def test_predict_insample_uses_correct_static_per_series():
     b = ins[ins["unique_id"] == "B"]["NHITS"].to_numpy()
     # Same history, different static -> predictions must differ once static is aligned.
     assert not np.allclose(a, b), "series B was predicted with series A's static features"
+
+
+def _explain_counting_forwards(nf, **kwargs):
+    calls = {"n": 0}
+    forward = BaseModel._predict_step_outputs
+
+    def counted(self, *args, **kw):
+        calls["n"] += 1
+        return forward(self, *args, **kw)
+
+    with patch.object(BaseModel, "_predict_step_outputs", counted):
+        _, explanations = nf.explain(**kwargs)
+    return explanations, calls["n"]
+
+
+@pytest.mark.parametrize("explainer", [ExplainerEnum.IntegratedGradients, ExplainerEnum.InputXGradient])
+@pytest.mark.parametrize("recursive_horizon", [False, True])
+def test_explain_batched_gradients_match_captum(explainer, recursive_horizon):
+    "IntegratedGradients and InputXGradient give captum's per-target attributions from one forward pass"
+    Y_train_df = AirPassengersPanel[AirPassengersPanel["ds"] < AirPassengersPanel["ds"].values[-12]].reset_index(drop=True)
+    Y_test_df = AirPassengersPanel[AirPassengersPanel["ds"] >= AirPassengersPanel["ds"].values[-12]].reset_index(drop=True)
+    futr_df = Y_test_df.drop(columns=["y", "y_[lag12]"])
+    static_df = AirPassengersStatic.drop(columns=["airline2"])
+
+    h_train = 6 if recursive_horizon else 12
+    config = {"h": h_train, "input_size": 12, "max_steps": 2, "accelerator": "cpu"}
+    exog = {"futr_exog_list": ["trend"], "stat_exog_list": ["airline1"]}
+    if not recursive_horizon:
+        # A horizon past the training one can't use historic exogenous features.
+        exog["hist_exog_list"] = ["y_[lag12]"]
+    models = [
+        NHITS(**config, **exog, scaler_type="robust"),
+        LSTM(**config, **exog, recurrent=False),
+        MLPMultivariate(**config, **exog, n_series=2),
+    ]
+    if explainer == ExplainerEnum.InputXGradient:
+        # IntegratedGradients skips recurrent models.
+        models.append(LSTM(**config, **exog, recurrent=True, alias="LSTM-recurrent"))
+    multi_output = [NHITS(**config, loss=MQLoss(level=[80]), alias="NHITS-MQLoss")]
+
+    for model_set, outputs in [(models, [0]), (multi_output, [0, 1, 2])]:
+        nf = NeuralForecast(models=model_set, freq="ME")
+        nf.fit(df=Y_train_df, static_df=static_df)
+        kwargs = dict(
+            outputs=outputs,
+            horizons=[0, 3, 11],
+            static_df=static_df,
+            futr_df=futr_df,
+            h=12,
+            explainer=explainer,
+            verbose=False,
+        )
+        batched, batched_calls = _explain_counting_forwards(nf, **kwargs)
+        with patch.object(BaseModel, "_gradient_attributions", return_value=None):
+            reference, reference_calls = _explain_counting_forwards(nf, **kwargs)
+        assert batched_calls < reference_calls
+
+        assert batched.keys() == reference.keys() == {m.alias or type(m).__name__ for m in model_set}
+        for model_name, expected in reference.items():
+            for key, value in expected.items():
+                got = batched[model_name][key]
+                if value is None:
+                    assert got is None, (model_name, key)
+                else:
+                    np.testing.assert_allclose(
+                        np.asarray(got), np.asarray(value), rtol=1e-4, atol=1e-5, err_msg=f"{model_name} {key}"
+                    )
