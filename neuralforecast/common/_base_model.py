@@ -976,14 +976,14 @@ class BaseModel(pl.LightningModule):
         else:
             datamodule_constructor = _DistributedTimeSeriesDataModule
 
-        dataloader_kwargs = (
-            self.dataloader_kwargs if self.dataloader_kwargs is not None else {}
-        )
+        # An explicit dataloader_kwargs["drop_last"] overrides drop_last_loader.
+        dataloader_kwargs = dict(self.dataloader_kwargs or {})
+        drop_last = dataloader_kwargs.pop("drop_last", self.drop_last_loader)
         datamodule = datamodule_constructor(
             dataset=dataset,
             batch_size=batch_size,
             valid_batch_size=valid_batch_size,
-            drop_last=self.drop_last_loader,
+            drop_last=drop_last,
             shuffle_train=shuffle_train,
             **dataloader_kwargs,
         )
