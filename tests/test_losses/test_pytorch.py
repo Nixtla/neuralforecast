@@ -649,3 +649,44 @@ def test_scrps_norm_ignores_masked_points():
     # sCRPS on only the unmasked steps pins both the mask and the denominator
     unmasked = loss(y=y[:, :2], y_hat=y_hat[:, :2], y_insample=None)
     torch.testing.assert_close(base, unmasked)
+
+
+# The distribution mean is only needed at prediction, so the training loss must
+# not compute it. For ISQF it is a 1000-sample estimate.
+def test_DistributionLoss_training_step_skips_distribution_mean():
+    torch.manual_seed(0)
+    loss = DistributionLoss("ISQF", level=[80, 90])
+    out = loss.domain_map(torch.randn(4, 6, loss.outputsize_multiplier))
+    distr_args = loss.scale_decouple(
+        out, loc=torch.zeros(4, 6, 1), scale=torch.ones(4, 6, 1)
+    )
+    y = torch.rand(4, 6, 1)
+
+    rng_state = torch.get_rng_state()
+    loss(y=y, distr_args=distr_args)
+
+    assert torch.equal(torch.get_rng_state(), rng_state)
+    assert not hasattr(loss, "distr_mean")
+
+
+@pytest.mark.parametrize("loss_name", ["Normal", "PMM", "GMM", "NBMM"])
+def test_sample_sets_distribution_mean(loss_name):
+    from neuralforecast.losses.pytorch import GMM
+
+    torch.manual_seed(0)
+    if loss_name == "Normal":
+        loss = DistributionLoss("Normal", level=[80, 90])
+    else:
+        loss = {"PMM": PMM, "GMM": GMM, "NBMM": NBMM}[loss_name](n_components=2)
+    out = loss.domain_map(torch.randn(4, 6, loss.outputsize_multiplier))
+    distr_args = loss.scale_decouple(
+        out, loc=torch.full((4, 6, 1), 5.0), scale=torch.ones(4, 6, 1)
+    )
+    loss(y=torch.rand(4, 6, 1), distr_args=distr_args)
+    assert not hasattr(loss, "distr_mean")
+
+    loss.sample(distr_args, num_samples=10)
+
+    expected = loss.get_distribution(distr_args).mean
+    torch.testing.assert_close(loss.distr_mean, expected)
+    assert not loss.distr_mean.requires_grad

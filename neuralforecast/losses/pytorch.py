@@ -2051,7 +2051,6 @@ class DistributionLoss(_BaseLoss):
             Distribution: AffineTransformed distribution.
         """
         distr = self._base_distribution(*distr_args, **distribution_kwargs)
-        self.distr_mean = distr.mean.detach()
 
         if self.distribution in ("Poisson", "NegativeBinomial"):
             distr.support = constraints.nonnegative
@@ -2074,6 +2073,7 @@ class DistributionLoss(_BaseLoss):
 
         # Instantiate Scaled Decoupled Distribution
         distr = self.get_distribution(distr_args=distr_args, **self.distribution_kwargs)
+        self.distr_mean = distr.mean.detach()
         samples = distr.sample(sample_shape=(num_samples,))
         samples = samples.permute(
             1, 2, 3, 0
@@ -2315,8 +2315,6 @@ class PMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean.detach()
-
         return distr
 
     def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
@@ -2347,6 +2345,7 @@ class PMM(_BaseLoss):
         quantiles_device = self.quantiles.to(distr_args[0].device)
         quants = torch.quantile(input=samples, q=quantiles_device, dim=-1)
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
+        self.distr_mean = distr.mean.detach()
 
         return samples, sample_mean, quants
 
@@ -2550,8 +2549,6 @@ class GMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean.detach()
-
         return distr
 
     def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
@@ -2582,6 +2579,7 @@ class GMM(_BaseLoss):
         quantiles_device = self.quantiles.to(distr_args[0].device)
         quants = torch.quantile(input=samples, q=quantiles_device, dim=-1)
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
+        self.distr_mean = distr.mean.detach()
 
         return samples, sample_mean, quants
 
@@ -2791,8 +2789,6 @@ class NBMM(_BaseLoss):
             mixture_distribution=mix, component_distribution=components
         )
 
-        self.distr_mean = distr.mean.detach()
-
         return distr
 
     def sample(self, distr_args: torch.Tensor, num_samples: Optional[int] = None):
@@ -2823,6 +2819,7 @@ class NBMM(_BaseLoss):
         quantiles_device = self.quantiles.to(distr_args[0].device)
         quants = torch.quantile(input=samples, q=quantiles_device, dim=-1)
         quants = quants.permute(1, 2, 3, 0)  # [Q, B, H, N] -> [B, H, N, Q]
+        self.distr_mean = distr.mean.detach()
 
         return samples, sample_mean, quants
 
