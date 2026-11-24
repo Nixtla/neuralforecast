@@ -4,7 +4,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
            'time_features_from_frequency_str', 'augment_calendar_df', 'get_indexer_raise_missing',
            'PredictionIntervals', 'add_conformal_distribution_intervals', 'add_conformal_error_intervals',
            'get_prediction_interval_method', 'level_to_quantiles', 'quantiles_to_level',
-           'estimate_ar1_rho', 'interp_2d', 'gaussian_copula_sample',
+           'estimate_ar1_rho', 'estimate_ar1_rho_batch', 'interp_2d', 'gaussian_copula_sample',
            'schaake_shuffle_sample', 'sample_from_quantiles',
            'DEFAULT_QUANTILE_GRID', 'VALID_SIMULATION_METHODS',
            'extract_y_hist']
@@ -736,6 +736,47 @@ def estimate_ar1_rho(y):
     return rho.clamp(-0.99, 0.99)
 
 
+def estimate_ar1_rho_batch(y_hist):
+    """Batched version of `estimate_ar1_rho` over many series.
+
+    Gives the same result as calling `estimate_ar1_rho` on each series,
+    without a Python loop.
+
+    Args:
+        y_hist: list of 1-D tensors of any length (may contain NaN).
+
+    Returns:
+        rhos: (n_series,) tensor with the dtype of the inputs.
+    """
+    if len(y_hist) == 0:
+        return torch.zeros(0, dtype=torch.float64)
+    dtype = y_hist[0].dtype
+    Y = torch.nn.utils.rnn.pad_sequence(
+        list(y_hist), batch_first=True, padding_value=float("nan")
+    )
+    # `estimate_ar1_rho` drops the NaNs and then differences the remaining
+    # values, so move the NaNs of each row to the end (a stable sort keeps the
+    # order of the observed values) instead of just masking them.
+    isnan = torch.isnan(Y)
+    order = torch.sort(isnan.to(torch.int8), dim=1, stable=True).indices
+    Y = Y.gather(1, order)
+    n_obs = (~isnan).sum(1)
+    y_diff = Y[:, 1:] - Y[:, :-1]
+    x, z = y_diff[:, :-1], y_diff[:, 1:]
+    # x and z hold n_obs - 2 valid values per row
+    m = (n_obs - 2).clamp(min=0)
+    valid = torch.arange(x.shape[1], device=Y.device).unsqueeze(0) < m.unsqueeze(1)
+    x = torch.where(valid, x, 0.0)
+    z = torch.where(valid, z, 0.0)
+    cnt = m.clamp(min=1).to(dtype).unsqueeze(1)
+    x = torch.where(valid, x - x.sum(1, keepdim=True) / cnt, 0.0)
+    z = torch.where(valid, z - z.sum(1, keepdim=True) / cnt, 0.0)
+    denom = torch.sqrt((x * x).sum(1) * (z * z).sum(1))
+    ok = (n_obs >= 3) & (denom >= 1e-15)
+    rho = (x * z).sum(1) / torch.where(ok, denom, torch.ones_like(denom))
+    return torch.where(ok, rho.clamp(-0.99, 0.99), torch.zeros_like(rho))
+
+
 def interp_2d(x, xp, fp):
     """Vectorised 1-D linear interpolation across rows.
 
@@ -751,7 +792,7 @@ def interp_2d(x, xp, fp):
         result: (N, n_paths) interpolated values.
     """
     Q = xp.shape[0]
-    idx = torch.searchsorted(xp.expand(x.shape[0], -1), x).clamp(1, Q - 1)
+    idx = torch.searchsorted(xp, x).clamp(1, Q - 1)
     x0 = xp[idx - 1]
     x1 = xp[idx]
     f0 = fp.gather(1, idx - 1)
@@ -798,10 +839,8 @@ def gaussian_copula_sample(
     q_hi = quantile_positions[-1]
     sqrt2 = math.sqrt(2.0)
 
-    # Compute one rho per series (variable-length NaN filtering: kept as loop).
-    rhos = torch.stack(
-        [estimate_ar1_rho(y).to(dtype) for y in y_hist]
-    )  # (n_series,)
+    # Compute one rho per series.
+    rhos = estimate_ar1_rho_batch(y_hist).to(dtype)  # (n_series,)
 
     # Build batched Toeplitz correlation matrices: (n_series, H, H)
     R = rhos.abs().view(n_series, 1, 1) ** abs_diff.unsqueeze(0)
@@ -959,14 +998,10 @@ def extract_y_hist(dataset):
     Returns:
         list of 1-D tensors, one per series.
     """
-    y_idx = dataset.y_idx
-    temporal = dataset.temporal[:, y_idx]
-    y_hist = []
-    for i in range(dataset.n_groups):
-        start = dataset.indptr[i]
-        end = dataset.indptr[i + 1]
-        y_hist.append(temporal[start:end])
-    return y_hist
+    indptr = dataset.indptr
+    temporal = dataset.temporal[int(indptr[0]) : int(indptr[-1]), dataset.y_idx]
+    sizes = (indptr[1:] - indptr[:-1]).tolist()
+    return list(torch.split(temporal, sizes))
 
 
 def sample_from_quantiles(

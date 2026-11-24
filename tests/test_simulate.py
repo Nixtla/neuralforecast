@@ -1,5 +1,7 @@
 """Tests for neuralforecast simulation."""
 
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -759,7 +761,77 @@ class TestEstimateAR1Rho:
         assert -0.99 <= rho.item() <= 0.99
 
 
+class TestEstimateAR1RhoBatch:
+    @staticmethod
+    def _panel(dtype):
+        g = torch.Generator().manual_seed(0)
+        walk = torch.cumsum(torch.randn(50, generator=g, dtype=dtype), 0)
+        gaps = walk.clone()
+        gaps[[3, 4, 10, 25, 26, 27]] = float("nan")
+        leading = walk.clone()
+        leading[:20] = float("nan")
+        return [
+            walk,
+            gaps,  # NaNs in the middle: the values around a gap are joined
+            leading,
+            walk[:7] * 1e3,
+            torch.full((10,), 5.0, dtype=dtype),  # constant -> 0
+            torch.arange(10, dtype=dtype),  # constant differences -> 0
+            torch.tensor([1.0, float("nan"), 2.0, float("nan")], dtype=dtype),
+            torch.tensor([1.0, 2.0, 4.0], dtype=dtype),  # 3 values -> 0
+            torch.tensor([1.0, 2.0], dtype=dtype),
+            torch.tensor([1.0], dtype=dtype),
+            torch.tensor([], dtype=dtype),
+        ]
+
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+    def test_matches_per_series_estimate(self, dtype):
+        """The batched estimate should match `estimate_ar1_rho` on each series."""
+        from neuralforecast.utils import estimate_ar1_rho, estimate_ar1_rho_batch
+
+        y_hist = self._panel(dtype)
+        expected = torch.stack([estimate_ar1_rho(y).to(dtype) for y in y_hist])
+        result = estimate_ar1_rho_batch(y_hist)
+        assert result.dtype == dtype
+        assert torch.equal(result == 0, expected == 0)
+        torch.testing.assert_close(result, expected)
+
+    def test_empty_list(self):
+        from neuralforecast.utils import estimate_ar1_rho_batch
+
+        assert estimate_ar1_rho_batch([]).shape == (0,)
+
+
+def test_extract_y_hist_matches_indptr_slices():
+    """`extract_y_hist` should return the `indptr` slices of the target column."""
+    from types import SimpleNamespace
+
+    from neuralforecast.utils import extract_y_hist
+
+    sizes = np.array([3, 1, 5, 2])
+    indptr = np.append(0, sizes.cumsum())
+    temporal = torch.randn(int(indptr[-1]), 3)
+    dataset = SimpleNamespace(
+        temporal=temporal, y_idx=1, indptr=indptr, n_groups=len(sizes)
+    )
+    y_hist = extract_y_hist(dataset)
+    assert len(y_hist) == len(sizes)
+    for i, y in enumerate(y_hist):
+        assert torch.equal(y, temporal[indptr[i] : indptr[i + 1], 1])
+
+
 class TestInterp2D:
+    def test_no_non_contiguous_warning(self):
+        """searchsorted should get 1-D boundaries, so no warning is raised."""
+        from neuralforecast.utils import interp_2d
+
+        xp = torch.linspace(0.1, 0.9, 5)
+        fp = torch.sort(torch.randn(4, 5), dim=1).values
+        x = torch.rand(4, 6) * 0.8 + 0.1
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            interp_2d(x, xp, fp)
+
     def test_exact_knots(self):
         """Querying at knot positions should return exact knot values."""
         from neuralforecast.utils import interp_2d
