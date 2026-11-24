@@ -3065,3 +3065,34 @@ def test_predict_insample_uses_correct_static_per_series():
     b = ins[ins["unique_id"] == "B"]["NHITS"].to_numpy()
     # Same history, different static -> predictions must differ once static is aligned.
     assert not np.allclose(a, b), "series B was predicted with series A's static features"
+
+
+# NaNs in rows with available_mask = 0 are ignored by the NaN check and must not
+# reach the scalers or the loss
+@pytest.mark.parametrize("scaler", [None, "standard"])
+@pytest.mark.parametrize("backend", ["pandas", "polars"])
+def test_masked_nans_are_filled(scaler, backend):
+    df = AirPassengersPanel[["unique_id", "ds", "y"]].copy()
+    df["available_mask"] = 1
+    gap = df.groupby("unique_id").cumcount().between(50, 55)
+    df.loc[gap, "y"] = np.nan
+    df.loc[gap, "available_mask"] = 0
+    if backend == "polars":
+        df = polars.from_pandas(df)
+    nf = NeuralForecast(
+        models=[
+            NHITS(
+                h=12,
+                input_size=24,
+                max_steps=2,
+                accelerator="cpu",
+                enable_progress_bar=False,
+                logger=False,
+            )
+        ],
+        freq="1mo" if backend == "polars" else "ME",
+        local_scaler_type=scaler,
+    )
+    nf.fit(df)
+    col = nf.dataset.temporal_cols.get_loc("y")
+    assert not torch.isnan(nf.dataset.temporal[:, col]).any()
