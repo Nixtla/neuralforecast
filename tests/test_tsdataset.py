@@ -8,6 +8,48 @@ from neuralforecast.tsdataset import TimeSeriesDataModule, TimeSeriesDataset
 from neuralforecast.utils import generate_series
 
 
+def test_series_metadata_survives_collation_append_and_trim():
+    from neuralforecast.tsdataset import TimeSeriesLoader
+
+    df = pd.DataFrame({"unique_id": ["b"] * 5 + ["a"] * 6,
+                       "ds": list(range(5)) + list(range(2, 8)),
+                       "y": np.arange(11) + 1.0})
+    dataset, *_ = TimeSeriesDataset.from_df(df.sample(frac=1, random_state=1))
+    assert dataset.series_ids == ["a", "b"]
+    np.testing.assert_array_equal(dataset.series_times[0], np.arange(2, 8))
+    batch = TimeSeriesLoader(dataset)._collate_fn([dataset[1], dataset[0]])
+    assert batch["series_idx"].tolist() == [1, 0]
+    future = pd.DataFrame({"unique_id": ["a", "b"], "ds": [8, 5], "y": [9., 6.]})
+    appended = TimeSeriesDataset.update_dataset(dataset, future)
+    assert appended.series_ids == dataset.series_ids
+    np.testing.assert_array_equal(appended.series_times[0], np.arange(2, 9))
+    trimmed = TimeSeriesDataset.trim_dataset(appended, left_trim=1, right_trim=2)
+    assert trimmed.series_ids == ["a", "b"]
+    np.testing.assert_array_equal(trimmed.series_times[0], np.arange(3, 7))
+    np.testing.assert_array_equal(trimmed.series_times[1], np.arange(1, 4))
+
+
+def test_append_rejects_different_series_identities():
+    left, *_ = TimeSeriesDataset.from_df(pd.DataFrame({
+        "unique_id": ["a", "a"], "ds": [0, 1], "y": [1., 2.]}))
+    right, *_ = TimeSeriesDataset.from_df(pd.DataFrame({
+        "unique_id": ["b"], "ds": [2], "y": [3.]}))
+    with pytest.raises(ValueError, match="series"):
+        left.append(right)
+
+
+def test_old_saved_dataset_without_identity_metadata_can_append_and_trim():
+    # Older dataset pickles have no newly introduced metadata attributes.
+    df = pd.DataFrame({"unique_id": ["a"] * 4, "ds": [0, 1, 2, 3], "y": [1., 2., 3., 4.]})
+    dataset, *_ = TimeSeriesDataset.from_df(df)
+    for name in ("series_ids", "series_times", "frequency"):
+        delattr(dataset, name)
+    future, *_ = TimeSeriesDataset.from_df(df.assign(ds=df.ds + 4))
+    appended = dataset.append(future)
+    assert appended.min_size == 8
+    assert TimeSeriesDataset.trim_dataset(dataset, right_trim=1).min_size == 3
+
+
 @pytest.fixture
 def setup_data():
     temporal_df = generate_series(

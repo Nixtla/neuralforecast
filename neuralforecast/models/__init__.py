@@ -1,4 +1,4 @@
-__all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN',
+__all__ = ['RNN', 'GRU', 'LSTM', 'TCN', 'DeepAR', 'DilatedRNN', 'ESRNN',
            'MLP', 'NHITS', 'NBEATS', 'NBEATSx', 'DLinear', 'NLinear',
            'TFT', 'VanillaTransformer', 'Informer', 'Autoformer', 'PatchTST', 'FEDformer',
            'StemGNN', 'HINT', 'TimesNet', 'TimeLLM', 'TSMixer', 'TSMixerx', 'MLPMultivariate',
@@ -12,6 +12,7 @@ from .lstm import LSTM
 from .tcn import TCN
 from .deepar import DeepAR
 from .dilated_rnn import DilatedRNN
+from .esrnn import ESRNN
 from .mlp import MLP
 from .nhits import NHITS
 from .nbeats import NBEATS

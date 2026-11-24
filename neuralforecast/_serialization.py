@@ -994,7 +994,7 @@ _DATASET_FIELDS = {
         "static_cols",
     ),
 }
-_DATASET_EXTRA = ("updated",)
+_DATASET_EXTRA = ("updated", "series_ids", "series_times", "frequency")
 
 
 def encode_dataset(dataset) -> Tuple[Dict[str, Any], Dict[str, torch.Tensor]]:
