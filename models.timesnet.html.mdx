@@ -118,7 +118,7 @@ Name | Type | Description | Default
 `step_size` | <code>[int](#int)</code> | Step size between each window of temporal data. | <code>1</code>
 `scaler_type` | <code>[str](#str)</code> | Type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). | <code>'standard'</code>
 `random_seed` | <code>[int](#int)</code> | Random_seed for pytorch initializer and numpy generators. | <code>1</code>
-`drop_last_loader` | <code>[bool](#bool)</code> | If True `TimeSeriesDataLoader` drops last non-full batch. | <code>False</code>
+`drop_last_loader` | <code>[bool](#bool)</code> | If True `TimeSeriesDataLoader` drops last non-full training batch. | <code>False</code>
 `alias` | <code>[str](#str)</code> | optional (default=None), Custom name of the model. | <code>None</code>
 `optimizer` | <code>Subclass of 'torch.optim.Optimizer'</code> | optional (default=None), User specified optimizer instead of the default choice (Adam). | <code>None</code>
 `optimizer_kwargs` | <code>[dict](#dict)</code> | optional (default=None), List of parameters used by the user specified `optimizer`. | <code>None</code>

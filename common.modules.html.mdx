@@ -305,8 +305,8 @@ Type | Description
 The layer applies two main operations in sequence:
 
 1. Self-attention on the input with dropout, residual connection, and normalization
-1. Position-wise feed-forward network using 1D convolutions with dropout applied twice
-   (after the first convolution with activation, and after the second convolution),
+1. Position-wise feed-forward network using two linear layers with dropout applied twice
+   (after the first linear layer with activation, and after the second linear layer),
    residual connection, and normalization
 
 This layer is used as a building block in transformer-based models like Informer,
@@ -400,7 +400,7 @@ The layer applies three main operations in sequence:
 
 1. Masked self-attention on the decoder input with dropout, residual connection, and normalization
 1. Cross-attention between decoder and encoder outputs with dropout, residual connection, and normalization
-1. Position-wise feed-forward network using 1D convolutions with dropout applied twice (after each convolution),
+1. Position-wise feed-forward network using two linear layers with dropout applied twice (after each linear layer),
    residual connection, and normalization
 
 </details>
