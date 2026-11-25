@@ -1677,6 +1677,12 @@ class BaseModel(pl.LightningModule):
         loc, scale = self._get_loc_scale(y_idx)
         window_loc, window_scale = self._distribution_output_scale
         if window_loc is not None:
+            # The window statistics are in the scaler's coordinates. Map them back
+            # with its inverse, z -> loc + scale * z, except for minmax1, whose
+            # inverse is x_min + x_range * (z + 1) / 2.
+            if self.scaler.scaler_type == "minmax1":
+                scale = scale / 2
+                loc = loc + scale
             loc = loc + scale * window_loc
             scale = scale * window_scale
         return self.loss.scale_decouple(output=output, loc=loc, scale=scale)

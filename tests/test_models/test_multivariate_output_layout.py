@@ -155,7 +155,7 @@ def test_multivariate_output_layout(model_cls, config, head_name, loss_cls, norm
 @pytest.mark.parametrize("model_cls,config,head_name", MODEL_CONFIGS)
 @pytest.mark.parametrize("loss_cls", [GMM, PMM, NBMM])
 @pytest.mark.parametrize("weighted", [False, True])
-@pytest.mark.parametrize("scaler_type", ["identity", "standard"])
+@pytest.mark.parametrize("scaler_type", ["identity", "standard", "minmax1"])
 def test_distribution_window_normalization(
     model_cls, config, head_name, loss_cls, weighted, scaler_type
 ):
@@ -240,12 +240,16 @@ def test_distribution_window_normalization(
                     else:
                         value = raw[b, n, t * q + k]
                     params[b, t, n, k] = value
-    base_loc = model.scaler.x_shift[:, :, 0, :]
-    base_scale = model.scaler.x_scale[:, :, 0, :]
-    loc = (base_loc + base_scale * z.mean(1, keepdim=True)).unsqueeze(-1)
-    scale = (
-        base_scale * (z.var(1, keepdim=True, unbiased=False) + 1e-5).sqrt()
-    ).unsqueeze(-1)
+    # Map the window statistics back with the scaler's own inverse function
+    def inverse(values):
+        return model.scaler.inverse_scaler(
+            values, model.scaler.x_shift[:, :, 0, :], model.scaler.x_scale[:, :, 0, :]
+        )
+
+    # minmax1 maps x to 2 (x - x_min) / x_range - 1, so its inverse has slope x_range / 2
+    slope = model.scaler.x_scale[:, :, 0, :] / (2 if scaler_type == "minmax1" else 1)
+    loc = inverse(z.mean(1, keepdim=True)).unsqueeze(-1)
+    scale = (slope * (z.var(1, keepdim=True, unbiased=False) + 1e-5).sqrt()).unsqueeze(-1)
     first = params[..., :2]
     if loss_cls is GMM:
         expected = (first * scale + loc, (F.softplus(params[..., 2:4]) + 0.2) * scale)
