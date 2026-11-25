@@ -472,6 +472,8 @@ class BaseModel(pl.LightningModule):
             self.valid_loss = loss
         else:
             self.valid_loss = valid_loss
+        # Window statistics kept for distribution outputs by _keep_window_stats
+        self._distribution_output_scale = (None, None)
         self.train_trajectories: List = []
         self.valid_trajectories: List = []
 
@@ -1658,21 +1660,22 @@ class BaseModel(pl.LightningModule):
 
         return y_loc, y_scale
 
-    def _set_distribution_output_scale(self, loc=None, scale=None):
+    def _keep_window_stats(self, loc, scale):
+        # Called by models that normalize their own input windows. Returns whether
+        # the model should apply the inverse normalization to its output.
         # Distribution heads emit parameters, not target values. Keep the window
         # statistics for the loss's parameter-specific links instead of applying
         # the inverse normalization to every output channel. Learned RevIN affine
         # parameters still transform the inputs; they do not transform logits,
         # degrees of freedom or unconstrained dispersion parameters.
-        self._distribution_output_scale = (
-            (loc, scale) if self.loss.is_distribution_output else (None, None)
-        )
+        if self.loss.is_distribution_output:
+            self._distribution_output_scale = (loc, scale)
+            return False
+        return True
 
     def _distribution_args(self, output, y_idx):
         loc, scale = self._get_loc_scale(y_idx)
-        window_loc, window_scale = getattr(
-            self, "_distribution_output_scale", (None, None)
-        )
+        window_loc, window_scale = self._distribution_output_scale
         if window_loc is not None:
             loc = loc + scale * window_loc
             scale = scale * window_scale

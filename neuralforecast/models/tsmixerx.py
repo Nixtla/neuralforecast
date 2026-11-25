@@ -472,11 +472,9 @@ class TSMixerx(BaseModel):
         forecast = self.out(x)  #   [B, h, ff_dim] -> [B, h, N * n_outputs]
 
         # Reverse Instance Normalization on output
-        self._set_distribution_output_scale(
-            loc=self.norm.batch_mean if self.revin else None,
-            scale=self.norm.batch_std if self.revin else None,
-        )
-        if self.revin and not self.loss.is_distribution_output:
+        if self.revin and self._keep_window_stats(
+            self.norm.batch_mean, self.norm.batch_std
+        ):
             # DistributionLoss keeps parameter-major blocks; other losses group by series.
             if not isinstance(self.loss, DistributionLoss):
                 forecast = forecast.reshape(

@@ -368,11 +368,7 @@ class TimeXer(BaseModel):
         dec_out = self.head(enc_out)  # z: [bs x nvars x h * n_outputs]
         dec_out = dec_out.permute(0, 2, 1)
 
-        self._set_distribution_output_scale(
-            loc=means if self.use_norm else None,
-            scale=stdev if self.use_norm else None,
-        )
-        if self.use_norm and not self.loss.is_distribution_output:
+        if self.use_norm and self._keep_window_stats(means, stdev):
             # De-Normalization from Non-stationary Transformer
             dec_out = dec_out * (
                 stdev[:, 0, :]
