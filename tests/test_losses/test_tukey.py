@@ -83,6 +83,19 @@ def test_tukey_zero_spread_horizon_keeps_gradient(y):
     assert (gradient > 0).all()
 
 
+@pytest.mark.parametrize("normalize", [False, True])
+def test_tukey_infinite_prediction_gives_infinite_loss(normalize):
+    # A large finite outlier saturates, but an overflowed prediction must not.
+    y = torch.zeros(1, 3, 1)
+    prediction = torch.tensor([0.5, 0.1, float("inf")]).reshape(1, 3, 1)
+    loss = TukeyLoss(normalize=normalize)
+    assert torch.isinf(loss(y, prediction))
+    mask = torch.tensor([1.0, 1.0, 0.0]).reshape_as(y)
+    torch.testing.assert_close(
+        loss(y, prediction, mask=mask), loss(y[:, :2], prediction[:, :2])
+    )
+
+
 def test_tukey_large_outlier_has_finite_zero_gradient():
     prediction = torch.full((1, 3, 1), 1e30, requires_grad=True)
     value = TukeyLoss(normalize=False)(torch.zeros_like(prediction), prediction)

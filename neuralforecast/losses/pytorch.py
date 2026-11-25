@@ -3028,6 +3028,9 @@ class TukeyLoss(BasePointLoss):
         losses = (self.c**2 / 6) * scaled_squared * (
             3 - 3 * scaled_squared + scaled_squared.square()
         )
+        # An infinite residual means the prediction overflowed: keep it visible to
+        # the non-finite loss checks instead of reporting the saturated value.
+        losses = torch.where(torch.isinf(delta_y), delta_y, losses)
         weights = self._compute_weights(y=y, mask=mask)
         return _weighted_mean(losses=losses, weights=weights)
 
