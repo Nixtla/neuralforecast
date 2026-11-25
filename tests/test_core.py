@@ -1793,6 +1793,77 @@ def test_val_df_equivalence_with_val_size(setup_airplane_data):
     np.testing.assert_allclose(losses_val_size, losses_val_df, atol=1e-4)
 
 
+@pytest.mark.parametrize("backend", ["pandas", "polars"])
+@pytest.mark.parametrize("ragged", [False, True])
+def test_val_df_predict_insample(backend, ragged):
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    train = df.groupby("unique_id", observed=True).head(120)
+    if ragged:
+        train = train.drop(train[train.unique_id == "Airline2"].head(12).index)
+    val = df.groupby("unique_id", observed=True).tail(24)
+    expected = pd.concat([train, val]).sort_values(["unique_id", "ds"])
+    # Validation rows need not arrive in series/time order.
+    val = val.sample(frac=1, random_state=42)
+    if backend == "polars":
+        train, val = polars.from_pandas(train), polars.from_pandas(val)
+
+    nf = NeuralForecast(
+        models=[
+            NHITS(
+                h=12,
+                input_size=24,
+                max_steps=2,
+                accelerator="cpu",
+                enable_progress_bar=False,
+                logger=False,
+            )
+        ],
+        freq="ME" if backend == "pandas" else "1mo",
+    )
+    nf.fit(train, val_df=val)
+    predictions = nf.predict_insample()
+    np.testing.assert_array_equal(nf.ds, expected.ds.to_numpy())
+    np.testing.assert_array_equal(
+        nf.last_dates, expected.groupby("unique_id", observed=True).ds.max()
+    )
+    if backend == "polars":
+        predictions = predictions.to_pandas()
+    actuals = predictions[["unique_id", "ds", "y"]].drop_duplicates()
+    pd.testing.assert_frame_equal(
+        actuals.sort_values(["unique_id", "ds"]).reset_index(drop=True),
+        expected.reset_index(drop=True),
+        check_dtype=False,
+    )
+    # cross_validation(df=None) also pairs self.ds with the stored dataset.
+    cv = nf.cross_validation(df=None, n_windows=1, step_size=12)
+    if backend == "polars":
+        cv = cv.to_pandas()
+    assert len(cv) == expected.unique_id.nunique() * 12
+
+
+# drop_last_loader only drops training batches: with fewer series than
+# valid_batch_size, validation must still run
+@pytest.mark.parametrize("model_cls, kwargs", [(MLP, {}), (TSMixer, {"n_series": 3})])
+def test_drop_last_loader_keeps_validation(model_cls, kwargs):
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    df = pd.concat(
+        [df, df[df["unique_id"] == "Airline1"].assign(unique_id="Airline3")]
+    )
+    model = model_cls(
+        h=12,
+        input_size=24,
+        max_steps=4,
+        val_check_steps=2,
+        batch_size=2,
+        valid_batch_size=4,
+        drop_last_loader=True,
+        **kwargs,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df, val_size=12)
+    assert nf.models[0].valid_trajectories
+
+
 @pytest.mark.parametrize("model,expected_error", [
     (NHITS(h=12, input_size=24, max_steps=50, hist_exog_list=["not_included"], scaler_type="robust"),
      "historical exogenous variables not found in input dataset"),

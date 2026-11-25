@@ -15,6 +15,8 @@ from neuralforecast.common._modules import (
     DataEmbedding_inverted,
     FullAttention,
     PositionalEmbedding,
+    _channel_first_dropout,
+    _squeeze_conv1x1_ffn_weights,
 )
 
 from ..common._base_model import BaseModel
@@ -71,8 +73,9 @@ class EncoderLayer(nn.Module):
         d_ff = d_ff or 4 * d_model
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(in_channels=d_model, out_channels=d_ff, kernel_size=1)
-        self.conv2 = nn.Conv1d(in_channels=d_ff, out_channels=d_model, kernel_size=1)
+        self.conv1 = nn.Linear(d_model, d_ff)
+        self.conv2 = nn.Linear(d_ff, d_model)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         self.norm3 = nn.LayerNorm(d_model)
@@ -101,8 +104,8 @@ class EncoderLayer(nn.Module):
 
         y = x = torch.cat([x[:, :-1, :], x_glb], dim=1)
 
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
 
         return self.norm3(x + y)
 
@@ -173,7 +176,7 @@ class TimeXer(BaseModel):
         step_size (int): step size between each window of temporal data.
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): random_seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): optional,  Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.
@@ -415,5 +418,5 @@ class TimeXer(BaseModel):
             x_mark_enc = stat_exog_expanded.repeat(B, L, 1)
 
         y_pred = self.forecast(insample_y, x_mark_enc)
-        y_pred = y_pred.reshape(B, self.h, -1)
+        y_pred = self._group_outputs_by_series(y_pred, B)
         return y_pred

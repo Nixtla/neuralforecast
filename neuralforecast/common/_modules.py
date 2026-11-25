@@ -64,6 +64,13 @@ def resolve_decoder_activation(activation, ignored_because, default="ReLU"):
     return default if activation is None else activation
 
 
+def _safe_affine_denominator(weight, eps):
+    """Clamp near-zero RevIN affine weights without a denorm gradient."""
+    floor = torch.full_like(weight, eps)
+    signed_floor = torch.where(weight < 0, -floor, floor)
+    return torch.where(weight.abs() <= floor, signed_floor, weight)
+
+
 class MLP(nn.Module):  
     """Multi-Layer Perceptron for time series forecasting.
 
@@ -297,6 +304,30 @@ class TemporalConvolutionEncoder(nn.Module):
         x = x.permute(0, 2, 1).contiguous()
         return x
 
+def _channel_first_dropout(dropout, x):
+    """Apply `dropout` to `x` of shape `[B, L, C]` with the mask drawn as `[B, C, L]`.
+
+    Dropout masks follow memory order. The feed-forward layers used to be
+    `nn.Conv1d(kernel_size=1)`, which kept activations channel-first, so drawing
+    the mask the same way keeps seeded training runs identical to that version.
+    """
+    if not dropout.training or dropout.p == 0:
+        return x
+    return dropout(x.transpose(-1, 1).contiguous()).transpose(-1, 1)
+
+
+def _squeeze_conv1x1_ffn_weights(state_dict, prefix, *args):
+    """Load FFN weights saved when `conv1`/`conv2` were `nn.Conv1d(kernel_size=1)`.
+
+    A 1x1 convolution over channels is a linear layer, so the old `[out, in, 1]`
+    weights are squeezed to the `[out, in]` shape `nn.Linear` expects.
+    """
+    for name in ("conv1.weight", "conv2.weight"):
+        weight = state_dict.get(prefix + name)
+        if weight is not None and weight.dim() == 3:
+            state_dict[prefix + name] = weight.squeeze(-1)
+
+
 class TransEncoderLayer(nn.Module):  
     """Transformer Encoder Layer.  
 
@@ -323,8 +354,8 @@ class TransEncoderLayer(nn.Module):
     Notes:
         The layer applies two main operations in sequence:
         1. Self-attention on the input with dropout, residual connection, and normalization
-        2. Position-wise feed-forward network using 1D convolutions with dropout applied twice
-           (after the first convolution with activation, and after the second convolution),
+        2. Position-wise feed-forward network using two linear layers with dropout applied twice
+           (after the first linear layer with activation, and after the second linear layer),
            residual connection, and normalization
 
         This layer is used as a building block in transformer-based models like Informer,
@@ -342,12 +373,9 @@ class TransEncoderLayer(nn.Module):
         super(TransEncoderLayer, self).__init__()
         conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.attention = attention
-        self.conv1 = nn.Conv1d(
-            in_channels=hidden_size, out_channels=conv_hidden_size, kernel_size=1
-        )
-        self.conv2 = nn.Conv1d(
-            in_channels=conv_hidden_size, out_channels=hidden_size, kernel_size=1
-        )
+        self.conv1 = nn.Linear(hidden_size, conv_hidden_size)
+        self.conv2 = nn.Linear(conv_hidden_size, hidden_size)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.norm1 = nn.LayerNorm(hidden_size)
         self.norm2 = nn.LayerNorm(hidden_size)
         self.dropout = nn.Dropout(dropout)
@@ -359,8 +387,8 @@ class TransEncoderLayer(nn.Module):
         x = x + self.dropout(new_x)
 
         y = x = self.norm1(x)
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
 
         return self.norm2(x + y), attn
 
@@ -448,7 +476,7 @@ class TransDecoderLayer(nn.Module):
         The layer applies three main operations in sequence:
         1. Masked self-attention on the decoder input with dropout, residual connection, and normalization
         2. Cross-attention between decoder and encoder outputs with dropout, residual connection, and normalization
-        3. Position-wise feed-forward network using 1D convolutions with dropout applied twice (after each convolution),
+        3. Position-wise feed-forward network using two linear layers with dropout applied twice (after each linear layer),
            residual connection, and normalization
     """
 
@@ -465,12 +493,9 @@ class TransDecoderLayer(nn.Module):
         conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(
-            in_channels=hidden_size, out_channels=conv_hidden_size, kernel_size=1
-        )
-        self.conv2 = nn.Conv1d(
-            in_channels=conv_hidden_size, out_channels=hidden_size, kernel_size=1
-        )
+        self.conv1 = nn.Linear(hidden_size, conv_hidden_size)
+        self.conv2 = nn.Linear(conv_hidden_size, hidden_size)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.norm1 = nn.LayerNorm(hidden_size)
         self.norm2 = nn.LayerNorm(hidden_size)
         self.norm3 = nn.LayerNorm(hidden_size)
@@ -486,8 +511,8 @@ class TransDecoderLayer(nn.Module):
         )
 
         y = x = self.norm2(x)
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
 
         return self.norm3(x + y)
 
@@ -1242,7 +1267,8 @@ class RevIN(nn.Module):
             return x
         if self.affine:
             x = x - self.affine_bias
-            x = x / (self.affine_weight + self.eps * self.eps)
+            denominator = _safe_affine_denominator(self.affine_weight, self.eps)
+            x = x / denominator
         x = x * self.stdev
         if self.subtract_last:
             x = x + self.last
@@ -1329,7 +1355,8 @@ class RevINMultivariate(nn.Module):
         # Reverse the normalization
         if self.affine:
             x = x - self.affine_bias
-            x = x / self.affine_weight
+            denominator = _safe_affine_denominator(self.affine_weight, self.eps)
+            x = x / denominator
 
         x = x * self.batch_std
         x = x + self.batch_mean

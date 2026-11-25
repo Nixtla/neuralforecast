@@ -214,7 +214,7 @@ class TimeLLM(BaseModel):
         val_monitor (str): metric to monitor for early stopping. Valid options: "ptl/val_loss", "valid_loss", "train_loss". Default: "ptl/val_loss"
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py). Default: 'identity'
         random_seed (int): random_seed for pytorch initializer and numpy generators. Default: 1
-        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch. Default: False
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full training batch. Default: False
         alias (str): optional,  Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.

@@ -14,7 +14,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from ..common._base_model import BaseModel
-from ..common._modules import DataEmbedding, SeriesDecomp
+from ..common._modules import (
+    DataEmbedding,
+    SeriesDecomp,
+    _channel_first_dropout,
+    _squeeze_conv1x1_ffn_weights,
+)
 from ..losses.pytorch import MAE
 
 
@@ -242,18 +247,9 @@ class EncoderLayer(nn.Module):
         super(EncoderLayer, self).__init__()
         conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.attention = attention
-        self.conv1 = nn.Conv1d(
-            in_channels=hidden_size,
-            out_channels=conv_hidden_size,
-            kernel_size=1,
-            bias=False,
-        )
-        self.conv2 = nn.Conv1d(
-            in_channels=conv_hidden_size,
-            out_channels=hidden_size,
-            kernel_size=1,
-            bias=False,
-        )
+        self.conv1 = nn.Linear(hidden_size, conv_hidden_size, bias=False)
+        self.conv2 = nn.Linear(conv_hidden_size, hidden_size, bias=False)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.decomp1 = SeriesDecomp(MovingAvg)
         self.decomp2 = SeriesDecomp(MovingAvg)
         self.dropout = nn.Dropout(dropout)
@@ -264,8 +260,8 @@ class EncoderLayer(nn.Module):
         x = x + self.dropout(new_x)
         x, _ = self.decomp1(x)
         y = x
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
         res, _ = self.decomp2(x + y)
         return res, attn
 
@@ -323,18 +319,9 @@ class DecoderLayer(nn.Module):
         conv_hidden_size = conv_hidden_size or 4 * hidden_size
         self.self_attention = self_attention
         self.cross_attention = cross_attention
-        self.conv1 = nn.Conv1d(
-            in_channels=hidden_size,
-            out_channels=conv_hidden_size,
-            kernel_size=1,
-            bias=False,
-        )
-        self.conv2 = nn.Conv1d(
-            in_channels=conv_hidden_size,
-            out_channels=hidden_size,
-            kernel_size=1,
-            bias=False,
-        )
+        self.conv1 = nn.Linear(hidden_size, conv_hidden_size, bias=False)
+        self.conv2 = nn.Linear(conv_hidden_size, hidden_size, bias=False)
+        self._register_load_state_dict_pre_hook(_squeeze_conv1x1_ffn_weights)
         self.decomp1 = SeriesDecomp(MovingAvg)
         self.decomp2 = SeriesDecomp(MovingAvg)
         self.decomp3 = SeriesDecomp(MovingAvg)
@@ -358,8 +345,8 @@ class DecoderLayer(nn.Module):
         )
         x, trend2 = self.decomp2(x)
         y = x
-        y = self.dropout(self.activation(self.conv1(y.transpose(-1, 1))))
-        y = self.dropout(self.conv2(y).transpose(-1, 1))
+        y = _channel_first_dropout(self.dropout, self.activation(self.conv1(y)))
+        y = _channel_first_dropout(self.dropout, self.conv2(y))
         x, trend3 = self.decomp3(x + y)
 
         residual_trend = trend1 + trend2 + trend3
@@ -445,7 +432,7 @@ class Autoformer(BaseModel):
         step_size (int): step size between each window of temporal data.
         scaler_type (str): type of scaler for temporal inputs normalization see [temporal scalers](https://github.com/Nixtla/neuralforecast/blob/main/neuralforecast/common/_scalers.py).
         random_seed (int): random_seed for pytorch initializer and numpy generators.
-        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full batch.
+        drop_last_loader (bool): if True `TimeSeriesDataLoader` drops last non-full training batch.
         alias (str): optional,  Custom name of the model.
         optimizer (Subclass of 'torch.optim.Optimizer'): optional, user specified optimizer instead of the default choice (Adam).
         optimizer_kwargs (dict): optional, list of parameters used by the user specified `optimizer`.

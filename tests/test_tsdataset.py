@@ -44,6 +44,42 @@ def test_data_module(setup_data):
         np.testing.assert_array_equal(batch["temporal_cols"], ["y", "available_mask"])
 
 
+@pytest.mark.parametrize(
+    "n_series, train_batches, valid_batches",
+    [(5, [2, 2], [4, 1]), (3, [2], [3])],
+)
+def test_data_module_drop_last_keeps_every_validation_series(
+    n_series, train_batches, valid_batches
+):
+    # `drop_last` is for training batches: validation must still see every series.
+    temporal_df = generate_series(n_series=n_series, n_temporal_features=0)
+    dataset, *_ = TimeSeriesDataset.from_df(df=temporal_df)
+
+    data = TimeSeriesDataModule(
+        dataset=dataset, batch_size=2, valid_batch_size=4, drop_last=True
+    )
+
+    assert [len(b["temporal"]) for b in data.train_dataloader()] == train_batches
+    assert [len(b["temporal"]) for b in data.val_dataloader()] == valid_batches
+
+
+@pytest.mark.parametrize(
+    "kwargs, fit_persistent, predict_persistent",
+    [
+        ({}, False, False),
+        ({"num_workers": 0}, False, False),
+        ({"num_workers": 1}, True, False),
+        ({"num_workers": 1, "persistent_workers": False}, False, False),
+        ({"num_workers": 1, "persistent_workers": True}, True, True),
+    ],
+)
+def test_persistent_workers(setup_dataset, kwargs, fit_persistent, predict_persistent):
+    module = TimeSeriesDataModule(setup_dataset, **kwargs)
+    assert module.train_dataloader().persistent_workers is fit_persistent
+    assert module.val_dataloader().persistent_workers is fit_persistent
+    assert module.predict_dataloader().persistent_workers is predict_persistent
+
+
 def test_static_features(setup_data):
     temporal_df, sorted_temporal_df, unsorted_temporal_df = setup_data
     batch_size = 128
@@ -180,7 +216,6 @@ def test_polars_integration(temporal_df):
     for col in ('unique_id', 'temporal_0', 'temporal_1'):
         temporal_df2[col] = temporal_df2[col].cat.codes
     temporal_pl = polars.from_pandas(temporal_df2).sample(fraction=1.0)
-    static_pl = polars.from_pandas(static_df.assign(unique_id=lambda df: df['unique_id'].astype('int64')))
     dataset_pl, indices_pl, dates_pl, ds_pl = TimeSeriesDataset.from_df(df=temporal_pl, static_df=static_df)
 
     # Compare array-like attributes with .all()

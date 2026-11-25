@@ -13,7 +13,7 @@ __all__ = ['AirPassengers', 'AirPassengersDF', 'unique_id', 'ds', 'y', 'AirPasse
 import math
 import random
 from itertools import chain
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -334,7 +334,7 @@ class DayOfWeek(TimeFeature):
     """Day of week encoded as value between [-0.5, 0.5]."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return index.dayofweek / 6.0 - 0.5
+        return index.day_of_week / 6.0 - 0.5
 
 
 class DayOfMonth(TimeFeature):
@@ -348,7 +348,7 @@ class DayOfYear(TimeFeature):
     """Day of year encoded as value between [-0.5, 0.5]."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.dayofyear - 1) / 365.0 - 0.5
+        return (index.day_of_year - 1) / 365.0 - 0.5
 
 
 class MonthOfYear(TimeFeature):
@@ -362,7 +362,8 @@ class WeekOfYear(TimeFeature):
     """Week of year encoded as value between [-0.5, 0.5]."""
 
     def __call__(self, index: pd.DatetimeIndex) -> np.ndarray:
-        return (index.week - 1) / 52.0 - 0.5
+        week = index.isocalendar().week.to_numpy(dtype="float64", na_value=np.nan)
+        return (week - 1) / 52.0 - 0.5
 
 
 def time_features_from_frequency_str(freq_str: str) -> List[TimeFeature]:
@@ -451,7 +452,7 @@ def augment_calendar_df(df, freq="H"):
     ds_data = np.vstack(
         [feat(ds_col) for feat in time_features_from_frequency_str(freq)]
     ).transpose(1, 0)
-    ds_data = pd.DataFrame(ds_data, columns=freq_map[freq])
+    ds_data = pd.DataFrame(ds_data, columns=freq_map[freq], index=df.index)
 
     return pd.concat([df, ds_data], axis=1), freq_map[freq]
 
@@ -982,7 +983,7 @@ def sample_from_quantiles(
     and calls the appropriate sampling function.
 
     Args:
-        quantile_positions: array-like (Q,) sorted quantile levels in (0, 1).
+        quantile_positions: array-like (Q,) quantile levels in (0, 1), in any order.
         quantile_values: array-like (n_series, H, Q) quantile forecast values.
         dataset: NeuralForecast TimeSeriesDataset.
         n_paths: number of sample paths.
@@ -1000,10 +1001,15 @@ def sample_from_quantiles(
 
     y_hist = extract_y_hist(dataset)
 
+    # The samplers need sorted levels, but MQLoss(level=...) lists the median first.
+    quantile_positions = np.array(quantile_positions)
+    sort_idx = np.argsort(quantile_positions)
     quantile_positions_t = torch.as_tensor(
-        np.array(quantile_positions), dtype=torch.float64
+        quantile_positions[sort_idx], dtype=torch.float64
     )
-    quantile_values_t = torch.as_tensor(quantile_values, dtype=torch.float64)
+    quantile_values_t = torch.as_tensor(
+        np.asarray(quantile_values)[..., sort_idx], dtype=torch.float64
+    )
 
     sampler = {
         "gaussian_copula": gaussian_copula_sample,
@@ -1023,3 +1029,18 @@ def sample_from_quantiles(
             return samples.float().numpy()
         return samples.numpy()
     return samples
+
+
+def uncross_quantiles(fcsts: np.ndarray, quantiles: Sequence[float]) -> np.ndarray:
+    """Make quantile forecasts increase with their level, keeping the column order.
+
+    Args:
+        fcsts (np.ndarray): Forecasts with one column per quantile.
+        quantiles (Sequence[float]): Level of each column.
+
+    Returns:
+        np.ndarray: Forecasts with the same shape.
+    """
+    uncrossed = np.empty_like(fcsts)
+    uncrossed[..., np.argsort(quantiles)] = np.sort(fcsts, axis=-1)
+    return uncrossed
