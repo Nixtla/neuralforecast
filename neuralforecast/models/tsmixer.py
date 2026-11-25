@@ -258,7 +258,9 @@ class TSMixer(BaseModel):
         x = x.permute(0, 2, 1)
         x = self.out(x)
         x = x.permute(0, 2, 1)
-        if self.revin:
+        if self.revin and self._keep_window_stats(
+            self.norm.batch_mean, self.norm.batch_std
+        ):
             x = self.norm(x, "denorm")
 
         x = self._group_outputs_by_series(x, batch_size)

@@ -252,7 +252,7 @@ class iTransformer(BaseModel):
         # Project only the first N tokens (target series) to forecast horizon
         dec_out = self.projector(enc_out[:, :N, :]).permute(0, 2, 1)
 
-        if self.use_norm:
+        if self.use_norm and self._keep_window_stats(means, stdev):
             # De-Normalization from Non-stationary Transformer
             dec_out = dec_out * (
                 stdev[:, 0, :]

@@ -328,7 +328,7 @@ class XLinear(BaseModel):
         dec_out = dec_out.permute(0, 2, 1)
 
         # Reverse normalization
-        if self.use_norm:
+        if self.use_norm and self._keep_window_stats(means, stdev):
             dec_out = dec_out * stdev[:, 0:1, :]
             dec_out = dec_out + means[:, 0:1, :]
 

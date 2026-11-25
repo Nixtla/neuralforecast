@@ -253,7 +253,7 @@ class SOFTS(BaseModel):
         dec_out = self.projection(enc_out).permute(0, 2, 1)[:, :, :N]
 
         # De-Normalization from Non-stationary Transformer
-        if self.use_norm:
+        if self.use_norm and self._keep_window_stats(means, stdev):
             dec_out = dec_out * (
                 stdev[:, 0, :]
                 .unsqueeze(1)
