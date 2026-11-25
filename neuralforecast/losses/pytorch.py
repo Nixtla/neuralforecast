@@ -2957,7 +2957,7 @@ class TukeyLoss(BasePointLoss):
 
     Args:
         c (float, optional): Specifies the Tukey loss' threshold on which residuals are no longer considered. Defaults to 4.685.
-        normalize (bool, optional): Whether to normalize residuals by the target standard deviation over the horizon, separately for each window and series. Defaults to True.
+        normalize (bool, optional): Whether to divide residuals by the target standard deviation over the horizon, separately for each window and series, when that deviation exceeds 1. Residuals are never scaled up, so a single-step horizon or a constant target leaves them unscaled. Defaults to True.
 
     References:
         - [Beaton, A. E., and Tukey, J. W. (1974). "The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data."](https://www.jstor.org/stable/1267936)
@@ -3011,13 +3011,14 @@ class TukeyLoss(BasePointLoss):
         if mask is None:
             mask = torch.ones_like(y_hat)
 
-        # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds
+        # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds.
+        # Only scale residuals down: a single-step or flat horizon has no spread,
+        # and dividing by it would push every residual past c and zero the gradient.
         if self.normalize:
             y_mean = self.masked_mean(x=y, mask=mask, dim=1)
-            y_std = (
-                torch.sqrt(self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=1))
-                + 1e-2
-            )
+            y_std = torch.sqrt(
+                self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=1)
+            ).clamp(min=1.0)
         else:
             y_std = 1.0
         delta_y = torch.abs(torch.where(mask != 0, y - y_hat, 0.0)) / y_std

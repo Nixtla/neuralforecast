@@ -33,7 +33,8 @@ def test_tukey_mask_and_normalization(normalize):
     actual = loss(y, prediction, mask=mask)
     cropped = loss(y[:, :3], prediction[:, :3])
     torch.testing.assert_close(actual, cropped)
-    scale = y[:, :3].std(dim=1, correction=0, keepdim=True) + 1e-2 if normalize else 1
+    std = y[:, :3].std(dim=1, correction=0, keepdim=True)
+    scale = std.clamp(min=1) if normalize else 1
     reference = TukeyLoss(normalize=False)(y[:, :3] / scale, prediction[:, :3] / scale)
     torch.testing.assert_close(actual, reference)
     gradient, = torch.autograd.grad(actual, prediction)
@@ -58,7 +59,8 @@ def test_tukey_masked_nonfinite_and_empty(normalize):
     mask = torch.tensor([1.0, 0.5, 2.0, 0.0]).reshape_as(y)
     loss = TukeyLoss(normalize=normalize)
     actual = loss(y, prediction, mask=mask)
-    scale = y[:, :3].std(dim=1, correction=0, keepdim=True) + 1e-2 if normalize else 1
+    std = y[:, :3].std(dim=1, correction=0, keepdim=True)
+    scale = std.clamp(min=1) if normalize else 1
     expected = TukeyLoss(normalize=False)(y[:, :3] / scale, prediction[:, :3] / scale)
     torch.testing.assert_close(actual, expected)
     gradient, = torch.autograd.grad(actual, prediction)
@@ -68,6 +70,17 @@ def test_tukey_masked_nonfinite_and_empty(normalize):
     assert empty == 0
     gradient, = torch.autograd.grad(empty, prediction)
     assert torch.equal(gradient, torch.zeros_like(gradient))
+
+
+@pytest.mark.parametrize("y", [[[3.0]], [[2.0], [2.0], [2.0]]], ids=["h1", "flat"])
+def test_tukey_zero_spread_horizon_keeps_gradient(y):
+    # A single-step horizon or a flat target has no spread to normalize by.
+    y = torch.tensor(y).unsqueeze(0)
+    prediction = (y + 0.5).requires_grad_()
+    actual = TukeyLoss()(y, prediction)
+    torch.testing.assert_close(actual, TukeyLoss(normalize=False)(y, prediction))
+    gradient, = torch.autograd.grad(actual, prediction)
+    assert (gradient > 0).all()
 
 
 def test_tukey_large_outlier_has_finite_zero_gradient():
