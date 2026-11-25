@@ -53,3 +53,16 @@ def test_identity_scaler_forecasts_are_not_constant():
     nf = NeuralForecast(models=[model], freq="D")
     nf.fit(df)
     assert nf.predict()["MLP"].std() > 0.5 * df["y"].std()
+
+
+def test_tweedie_variance_matches_mean_variance_relationship():
+    from neuralforecast.losses.pytorch import Tweedie
+
+    mean = torch.tensor([1.0, 2.0, 3.0])
+    rho = 1.5
+    dist = Tweedie(log_mu=torch.log(mean), rho=rho)
+
+    expected_variance = mean.pow(rho)
+
+    torch.testing.assert_close(dist.variance, expected_variance)
+    torch.testing.assert_close(dist.stddev, expected_variance.sqrt())

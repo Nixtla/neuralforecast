@@ -1098,7 +1098,7 @@ class Tweedie(Distribution):
 
     @property
     def variance(self):
-        return torch.ones_line(self.log_mu)  # TODO need to be assigned
+        return self.mean.pow(self.rho)
 
     def sample(self, sample_shape=torch.Size()):
         shape = self._extended_shape(sample_shape)
