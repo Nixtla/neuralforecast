@@ -3210,10 +3210,10 @@ class HuberMQLoss(BasePointLoss):
         s1_q = torch.maximum(error, torch.zeros_like(error))
 
         quantiles = self.quantiles[None, None, None, :]
-        losses = F.huber_loss(
-            quantiles * sq, zero_error, reduction="none", delta=self.delta
-        ) + F.huber_loss(
-            (1 - quantiles) * s1_q, zero_error, reduction="none", delta=self.delta
+        losses = quantiles * F.huber_loss(
+            sq, zero_error, reduction="none", delta=self.delta
+        ) + (1 - quantiles) * F.huber_loss(
+            s1_q, zero_error, reduction="none", delta=self.delta
         )
         losses = (1 / quantiles.shape[-1]) * losses
 
