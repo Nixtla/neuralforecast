@@ -3040,7 +3040,7 @@ class TukeyLoss(BasePointLoss):
         losses = torch.where(torch.isinf(delta_y), delta_y, losses)
         weights = self._compute_weights(y=y, mask=mask)
         loss = _weighted_mean(losses=losses, weights=weights)
-        return loss.to(dtype)
+        return loss.to(dtype if dtype.is_floating_point else compute_dtype)
 
 
 class HuberQLoss(BasePointLoss):

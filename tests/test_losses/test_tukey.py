@@ -154,3 +154,14 @@ def test_tukey_half_precision_gradient_just_inside_cutoff(dtype):
     gradient, = torch.autograd.grad(actual, prediction)
     assert (gradient > 0).all()
     torch.testing.assert_close(gradient.float(), expected_gradient, rtol=1e-2, atol=0)
+
+
+@pytest.mark.parametrize("normalize", [False, True])
+def test_tukey_integer_inputs_give_floating_loss(normalize):
+    y = torch.tensor([0, 2, 5]).reshape(1, 3, 1)
+    prediction = torch.tensor([1, 2, 3]).reshape(1, 3, 1)
+    actual = TukeyLoss(normalize=normalize)(y, prediction)
+    assert actual.dtype == torch.get_default_dtype()
+    torch.testing.assert_close(
+        actual, TukeyLoss(normalize=normalize)(y.float(), prediction.float())
+    )
