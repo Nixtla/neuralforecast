@@ -138,3 +138,19 @@ def test_tukey_half_precision_reduction_does_not_overflow(dtype):
     assert actual.dtype == dtype
     torch.testing.assert_close(actual.float(), expected, rtol=1e-2, atol=0)
     assert (gradient > 0).all()
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_tukey_half_precision_gradient_just_inside_cutoff(dtype):
+    # The gradient vanishes at c. Expanded in half precision, the polynomial's
+    # backward cancels to the wrong size or sign for residuals just inside c.
+    prediction = torch.tensor([4.5, 4.625, 4.65625]).reshape(1, 3, 1)
+    y = torch.zeros_like(prediction)
+    expected_prediction = prediction.clone().requires_grad_()
+    expected = TukeyLoss(normalize=False)(y, expected_prediction)
+    expected_gradient, = torch.autograd.grad(expected, expected_prediction)
+    prediction = prediction.to(dtype).requires_grad_()
+    actual = TukeyLoss(normalize=False)(y.to(dtype), prediction)
+    gradient, = torch.autograd.grad(actual, prediction)
+    assert (gradient > 0).all()
+    torch.testing.assert_close(gradient.float(), expected_gradient, rtol=1e-2, atol=0)

@@ -3011,19 +3011,21 @@ class TukeyLoss(BasePointLoss):
         if mask is None:
             mask = torch.ones_like(y_hat)
 
+        # Evaluate in at least float32 and return the input precision. In half
+        # precision the horizon statistics and the weighted sum overflow, and the
+        # polynomial's gradient cancels to the wrong size or sign just inside c.
+        dtype = torch.result_type(y, y_hat)
+        compute_dtype = torch.promote_types(dtype, torch.float32)
+        y, y_hat, mask = (x.to(compute_dtype) for x in (y, y_hat, mask))
+
         # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds.
         # Only scale residuals down: a single-step or flat horizon has no spread,
         # and dividing by it would push every residual past c and zero the gradient.
         if self.normalize:
-            # Accumulate the statistics in at least float32: squared deviations
-            # of half-precision targets overflow.
-            y_stats = y.to(torch.promote_types(y.dtype, torch.float32))
-            y_mean = self.masked_mean(x=y_stats, mask=mask, dim=1)
-            y_std = (
-                torch.sqrt(self.masked_mean(x=(y_stats - y_mean) ** 2, mask=mask, dim=1))
-                .clamp(min=1.0)
-                .to(y.dtype)
-            )
+            y_mean = self.masked_mean(x=y, mask=mask, dim=1)
+            y_std = torch.sqrt(
+                self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=1)
+            ).clamp(min=1.0)
         else:
             y_std = 1.0
         delta_y = torch.abs(torch.where(mask != 0, y - y_hat, 0.0)) / y_std
@@ -3037,13 +3039,8 @@ class TukeyLoss(BasePointLoss):
         # the non-finite loss checks instead of reporting the saturated value.
         losses = torch.where(torch.isinf(delta_y), delta_y, losses)
         weights = self._compute_weights(y=y, mask=mask)
-        # Sum in at least float32: a half-precision sum of weights overflows past
-        # 65504 points.
-        sum_dtype = torch.promote_types(losses.dtype, torch.float32)
-        loss = _weighted_mean(
-            losses=losses.to(sum_dtype), weights=weights.to(sum_dtype)
-        )
-        return loss.to(losses.dtype)
+        loss = _weighted_mean(losses=losses, weights=weights)
+        return loss.to(dtype)
 
 
 class HuberQLoss(BasePointLoss):
