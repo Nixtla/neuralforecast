@@ -2947,7 +2947,7 @@ class TukeyLoss(BasePointLoss):
     ```math
     L_{c}(y_{\tau},\; \hat{y}_{\tau})
     =\begin{cases}{
-    \frac{c^{2}}{6}} \left[1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2} \right]^{3}    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\
+    \frac{c^{2}}{6}} \left[1-\left(1-(\frac{y_{\tau}-\hat{y}_{\tau}}{c})^{2}\right)^{3}\right]    \;\text{for } |y_{\tau}-\hat{y}_{\tau}|\leq c \\
     \frac{c^{2}}{6} \qquad \text{otherwise.}  \end{cases}
     ```
 
@@ -2957,7 +2957,7 @@ class TukeyLoss(BasePointLoss):
 
     Args:
         c (float, optional): Specifies the Tukey loss' threshold on which residuals are no longer considered. Defaults to 4.685.
-        normalize (bool, optional): Wether normalization is performed within Tukey loss' computation. Defaults to True.
+        normalize (bool, optional): Whether to divide residuals by the target standard deviation over the horizon, separately for each window and series, when that deviation exceeds 1. Residuals are never scaled up, so a single-step horizon or a constant target leaves them unscaled. Defaults to True.
 
     References:
         - [Beaton, A. E., and Tukey, J. W. (1974). "The Fitting of Power Series, Meaning Polynomials, Illustrated on Band-Spectroscopic Data."](https://www.jstor.org/stable/1267936)
@@ -2987,7 +2987,7 @@ class TukeyLoss(BasePointLoss):
         return y_hat
 
     def masked_mean(self, x, mask, dim):
-        x_nan = x.masked_fill(mask < 1, float("nan"))
+        x_nan = x.masked_fill(mask == 0, float("nan"))
         x_mean = x_nan.nanmean(dim=dim, keepdim=True)
         x_mean = torch.nan_to_num(x_mean, nan=0.0)
         return x_mean
@@ -3011,23 +3011,36 @@ class TukeyLoss(BasePointLoss):
         if mask is None:
             mask = torch.ones_like(y_hat)
 
-        # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds
+        # Evaluate in at least float32 and return the input precision. In half
+        # precision the horizon statistics and the weighted sum overflow, and the
+        # polynomial's gradient cancels to the wrong size or sign just inside c.
+        dtype = torch.result_type(y, y_hat)
+        compute_dtype = torch.promote_types(dtype, torch.float32)
+        y, y_hat, mask = (x.to(compute_dtype) for x in (y, y_hat, mask))
+
+        # We normalize the Tukey loss, to satisfy 4.685 normal outlier bounds.
+        # Only scale residuals down: a single-step or flat horizon has no spread,
+        # and dividing by it would push every residual past c and zero the gradient.
         if self.normalize:
-            y_mean = self.masked_mean(x=y, mask=mask, dim=-1)
-            y_std = (
-                torch.sqrt(self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=-1))
-                + 1e-2
-            )
+            y_mean = self.masked_mean(x=y, mask=mask, dim=1)
+            y_std = torch.sqrt(
+                self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=1)
+            ).clamp(min=1.0)
         else:
             y_std = 1.0
-        delta_y = torch.abs(y - y_hat) / y_std
+        delta_y = torch.abs(torch.where(mask != 0, y - y_hat, 0.0)) / y_std
 
-        tukey_mask = torch.greater_equal(self.c * torch.ones_like(delta_y), delta_y)
-        tukey_loss = tukey_mask * mask * (1 - (delta_y / (self.c)) ** 2) ** 3 + (
-            1 - (tukey_mask * 1)
+        # Bound the polynomial before evaluating it, including for large outliers.
+        scaled_squared = (delta_y / self.c).clamp(max=1).square()
+        losses = (self.c**2 / 6) * scaled_squared * (
+            3 - 3 * scaled_squared + scaled_squared.square()
         )
-        tukey_loss = (self.c**2 / 6) * torch.mean(tukey_loss)
-        return tukey_loss
+        # An infinite residual means the prediction overflowed: keep it visible to
+        # the non-finite loss checks instead of reporting the saturated value.
+        losses = torch.where(torch.isinf(delta_y), delta_y, losses)
+        weights = self._compute_weights(y=y, mask=mask)
+        loss = _weighted_mean(losses=losses, weights=weights)
+        return loss.to(dtype if dtype.is_floating_point else compute_dtype)
 
 
 class HuberQLoss(BasePointLoss):
