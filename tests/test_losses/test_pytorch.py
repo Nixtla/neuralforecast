@@ -19,6 +19,7 @@ from neuralforecast.losses.pytorch import (
     FreDF,
     HuberMQLoss,
     HuberIQLoss,
+    HuberQLoss,
     IQLoss,
     QuantileLoss,
     sCRPS,
@@ -549,29 +550,24 @@ def test_mqloss_matches_average_pinball_loss(num_quantiles):
 
 
 @pytest.mark.parametrize("num_quantiles", [1, 3, 5])
-def test_huber_mqloss_matches_average_quantile_loss(num_quantiles):
+@pytest.mark.parametrize("delta", [0.5, 1.0])
+def test_huber_mqloss_matches_average_quantile_loss(num_quantiles, delta):
     quantiles = (
         [0.5]
         if num_quantiles == 1
         else torch.linspace(0.1, 0.9, steps=num_quantiles).tolist()
     )
-    q = torch.tensor(quantiles)[None, None, None, :]
     y = torch.tensor([[[1.0], [2.0]]])
     y_hat = torch.linspace(0.0, 3.0, steps=2 * num_quantiles).reshape(
         1, 2, 1, num_quantiles
     )
 
-    actual = HuberMQLoss(quantiles=quantiles)(y=y, y_hat=y_hat)
-    error = y_hat - y.unsqueeze(-1)
-    lower = torch.maximum(-error, torch.zeros_like(error))
-    upper = torch.maximum(error, torch.zeros_like(error))
-    zero = torch.zeros_like(error)
-    losses = torch.nn.functional.huber_loss(
-        q * lower, zero, reduction="none"
-    ) + torch.nn.functional.huber_loss(
-        (1 - q) * upper, zero, reduction="none"
-    )
-    expected = losses.mean()
+    actual = HuberMQLoss(quantiles=quantiles, delta=delta)(y=y, y_hat=y_hat)
+    per_quantile = [
+        HuberQLoss(q=q, delta=delta)(y=y, y_hat=y_hat[..., i])
+        for i, q in enumerate(quantiles)
+    ]
+    expected = torch.stack(per_quantile).mean()
 
     torch.testing.assert_close(actual, expected)
 
