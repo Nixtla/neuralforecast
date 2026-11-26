@@ -109,3 +109,19 @@ def test_tukey_normalization_accepts_two_dimensional_inputs():
     prediction = y + 0.5
     loss = TukeyLoss()
     torch.testing.assert_close(loss(y, prediction), loss(y.unsqueeze(-1), prediction.unsqueeze(-1)))
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_tukey_normalization_in_half_precision(dtype):
+    # A deviation of 500 squares past the float16 range; the residuals of 3.2
+    # standard deviations are inside the cutoff and must keep their gradient.
+    y = torch.tensor([0.0, 1000.0]).reshape(1, 2, 1)
+    expected_prediction = (y + 1600).requires_grad_()
+    expected = TukeyLoss()(y, expected_prediction)
+    expected_gradient, = torch.autograd.grad(expected, expected_prediction)
+    prediction = (y + 1600).to(dtype).requires_grad_()
+    actual = TukeyLoss()(y.to(dtype), prediction)
+    gradient, = torch.autograd.grad(actual, prediction)
+    assert actual.dtype == dtype
+    torch.testing.assert_close(actual.float(), expected, rtol=1e-2, atol=0)
+    torch.testing.assert_close(gradient.float(), expected_gradient, rtol=2e-2, atol=0)

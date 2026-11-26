@@ -3015,10 +3015,15 @@ class TukeyLoss(BasePointLoss):
         # Only scale residuals down: a single-step or flat horizon has no spread,
         # and dividing by it would push every residual past c and zero the gradient.
         if self.normalize:
-            y_mean = self.masked_mean(x=y, mask=mask, dim=1)
-            y_std = torch.sqrt(
-                self.masked_mean(x=(y - y_mean) ** 2, mask=mask, dim=1)
-            ).clamp(min=1.0)
+            # Accumulate the statistics in at least float32: squared deviations
+            # of half-precision targets overflow.
+            y_stats = y.to(torch.promote_types(y.dtype, torch.float32))
+            y_mean = self.masked_mean(x=y_stats, mask=mask, dim=1)
+            y_std = (
+                torch.sqrt(self.masked_mean(x=(y_stats - y_mean) ** 2, mask=mask, dim=1))
+                .clamp(min=1.0)
+                .to(y.dtype)
+            )
         else:
             y_std = 1.0
         delta_y = torch.abs(torch.where(mask != 0, y - y_hat, 0.0)) / y_std
