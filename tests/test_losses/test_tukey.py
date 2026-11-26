@@ -125,3 +125,16 @@ def test_tukey_normalization_in_half_precision(dtype):
     assert actual.dtype == dtype
     torch.testing.assert_close(actual.float(), expected, rtol=1e-2, atol=0)
     torch.testing.assert_close(gradient.float(), expected_gradient, rtol=2e-2, atol=0)
+
+
+@pytest.mark.parametrize("dtype", [torch.float16, torch.bfloat16])
+def test_tukey_half_precision_reduction_does_not_overflow(dtype):
+    # 1024 * 64 unit weights sum past the float16 range.
+    y = torch.zeros(1024, 64, 1)
+    expected = TukeyLoss(normalize=False)(y, torch.ones_like(y))
+    prediction = torch.ones_like(y).to(dtype).requires_grad_()
+    actual = TukeyLoss(normalize=False)(y.to(dtype), prediction)
+    gradient, = torch.autograd.grad(actual, prediction)
+    assert actual.dtype == dtype
+    torch.testing.assert_close(actual.float(), expected, rtol=1e-2, atol=0)
+    assert (gradient > 0).all()

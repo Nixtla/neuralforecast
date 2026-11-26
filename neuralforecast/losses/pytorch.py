@@ -3037,7 +3037,13 @@ class TukeyLoss(BasePointLoss):
         # the non-finite loss checks instead of reporting the saturated value.
         losses = torch.where(torch.isinf(delta_y), delta_y, losses)
         weights = self._compute_weights(y=y, mask=mask)
-        return _weighted_mean(losses=losses, weights=weights)
+        # Sum in at least float32: a half-precision sum of weights overflows past
+        # 65504 points.
+        sum_dtype = torch.promote_types(losses.dtype, torch.float32)
+        loss = _weighted_mean(
+            losses=losses.to(sum_dtype), weights=weights.to(sum_dtype)
+        )
+        return loss.to(losses.dtype)
 
 
 class HuberQLoss(BasePointLoss):
