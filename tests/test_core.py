@@ -262,10 +262,56 @@ def test_cross_validation_without_df_uses_stored_dataset(
     nf = NeuralForecast(models=models, freq=freq, local_scaler_type=local_scaler_type)
     nf.fit(df, **col_kwargs)
     # use_init_models resets to the same seeded weights before each run
-    cv_with_df = nf.cross_validation(df, use_init_models=True, **col_kwargs)
+    # Start from the dataset prepared by fit, including its full-history scalers.
     # No column kwargs here: the stored dataset's column names must be preserved.
     cv_no_df = nf.cross_validation(use_init_models=True)
+    cv_with_df = nf.cross_validation(df, use_init_models=True, **col_kwargs)
     assert_frame_equal(cv_no_df, cv_with_df)
+
+
+def test_cross_validation_local_scaler_ignores_test_targets():
+    df = generate_series(2, min_length=30, max_length=40, equal_ends=True)
+    shifted = df.copy()
+    test_rows = df.groupby("unique_id", observed=True).tail(5).index
+    shifted.loc[test_rows, "y"] += 1000
+
+    def run(data):
+        model = MLP(
+            h=3, input_size=6, max_steps=2, val_check_steps=1,
+            scaler_type="identity", accelerator="cpu", logger=False,
+            enable_progress_bar=False,
+        )
+        nf = NeuralForecast(models=[model], freq="D", local_scaler_type="standard")
+        cv = nf.cross_validation(data, n_windows=2, step_size=2, val_size=3)
+        first = cv.groupby("unique_id", observed=True).head(3)
+        return nf.models[0].train_trajectories, nf.models[0].valid_trajectories, first.MLP
+
+    before, after = run(df), run(shifted)
+    for original, perturbed in zip(before, after):
+        np.testing.assert_array_equal(original, perturbed)
+
+
+def test_cross_validation_local_scaler_round_trip():
+    df = generate_series(2, min_length=30, max_length=40, equal_ends=True)
+    long_series, short_series = (g for _, g in df.groupby("unique_id", observed=True))
+    df = pd.concat([long_series, short_series.tail(8)])
+    model = MLP(
+        h=3, input_size=6, max_steps=1, accelerator="cpu",
+        enable_progress_bar=False, logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="D", local_scaler_type="standard")
+    cv = nf.cross_validation(df, n_windows=None, test_size=9, step_size=3)
+    scaled = nf.dataset.temporal[:, nf.dataset.y_idx].numpy().copy()
+    expected = df.sort_values(["unique_id", "ds"]).y.to_numpy()
+    cutoffs = cv.groupby("unique_id", observed=True).cutoff.min()
+    for uid, start, end in zip(nf.uids, nf.dataset.indptr[:-1], nf.dataset.indptr[1:]):
+        history = df.loc[(df.unique_id == uid) & (df.ds <= cutoffs[uid]), "y"]
+        np.testing.assert_allclose(
+            scaled[start:end], (expected[start:end] - history.mean()) / history.std(ddof=0),
+            atol=1e-5,
+        )
+    restored = nf._scalers_target_inverse_transform(scaled[:, None], nf.dataset.indptr)
+    np.testing.assert_allclose(restored[:, 0], expected, atol=1e-5)
 
 
 # test cross_validation with refit

@@ -662,15 +662,41 @@ class NeuralForecast:
             )
         return df
 
-    def _scalers_fit_transform(self, dataset: TimeSeriesDataset) -> None:
-        self.scalers_, self.static_scalers_ = {}, {}
-        if self.local_scaler_type is not None:
-            for i, col in enumerate(dataset.temporal_cols):
-                if col in ("available_mask", "sample_weight") or col in self.categorical_vocab_:
-                    continue
-                ga = GroupedArray(dataset.temporal[:, i].numpy(), dataset.indptr)
-                self.scalers_[col] = _type2scaler[self.local_scaler_type]().fit(ga)
-                dataset.temporal[:, i] = torch.from_numpy(self.scalers_[col].transform(ga))
+    def _fit_temporal_scalers(self, dataset, test_size=0, step_size=1, previous_scalers=None):
+        scalers = {}
+        if self.local_scaler_type is None:
+            return scalers
+
+        if test_size:
+            lengths = np.diff(dataset.indptr)
+            sizes = lengths - test_size
+            # A short series enters CV at the first step with available history.
+            late = sizes <= 0
+            sizes[late] = np.minimum(lengths[late], (sizes[late] - 1) % step_size + 1)
+            fit_indptr = np.append(np.int32(0), sizes.cumsum(dtype=np.int32))
+            history = np.ones(dataset.indptr[-1], dtype=bool)
+            for start, size, end in zip(dataset.indptr[:-1], sizes, dataset.indptr[1:]):
+                history[start + size : end] = False
+
+        for i, col in enumerate(dataset.temporal_cols):
+            if col in ("available_mask", "sample_weight") or col in self.categorical_vocab_:
+                continue
+            values = dataset.temporal[:, i].numpy()
+            ga = GroupedArray(values, dataset.indptr)
+            if previous_scalers:
+                # A stored dataset already uses the scale of its previous fit.
+                values = previous_scalers[col].inverse_transform(ga)
+                ga = GroupedArray(values, dataset.indptr)
+            fit_ga = GroupedArray(values[history], fit_indptr) if test_size else ga
+            scalers[col] = _type2scaler[self.local_scaler_type]().fit(fit_ga)
+            dataset.temporal[:, i] = torch.from_numpy(scalers[col].transform(ga))
+        return scalers
+
+    def _scalers_fit_transform(
+        self, dataset: TimeSeriesDataset, test_size: int = 0, step_size: int = 1
+    ) -> None:
+        self.scalers_ = self._fit_temporal_scalers(dataset, test_size, step_size)
+        self.static_scalers_ = {}
         if self.local_static_scaler_type is not None and dataset.static is not None:
             for i, col in enumerate(dataset.static_cols):
                 if col in self.categorical_vocab_:
@@ -709,7 +735,7 @@ class NeuralForecast:
             data[:, i] = self.scalers_[self.target_col].inverse_transform(ga)
         return data
 
-    def _prepare_fit(self, df, static_df, id_col, time_col, target_col):
+    def _prepare_fit(self, df, static_df, id_col, time_col, target_col, test_size=0, step_size=1):
         # TODO: uids, last_dates and ds should be properties of the dataset class. See github issue.
         self.id_col = id_col
         self.time_col = time_col
@@ -730,7 +756,7 @@ class NeuralForecast:
             time_col=time_col,
             target_col=target_col,
         )
-        self._scalers_fit_transform(dataset)
+        self._scalers_fit_transform(dataset, test_size, step_size)
         return dataset, uids, last_dates, ds
 
     def _check_nan(self, df, static_df, id_col, time_col, target_col):
@@ -2284,7 +2310,11 @@ class NeuralForecast:
 
         # When use_fitted=True we evaluate the already-fitted model on a new
         # holdout `df` without retraining.
-        restore_fitted_state = use_fitted and df is not None
+        # Conformal calibration also needs the full training dataset and its
+        # scalers back for the final fit after the internal backtest.
+        restore_fitted_state = use_fitted or (
+            self._add_level and self.local_scaler_type is not None
+        )
         _snapshot: Dict[str, object] = {}
         if restore_fitted_state:
             _snapshot = {
@@ -2333,9 +2363,17 @@ class NeuralForecast:
                         id_col=id_col,
                         time_col=time_col,
                         target_col=target_col,
+                        test_size=test_size,
+                        step_size=step_size,
                     )
                 )
             else:
+                if self.scalers_:
+                    dataset = deepcopy(self.dataset)
+                    self.scalers_ = self._fit_temporal_scalers(
+                        dataset, test_size, step_size, previous_scalers=self.scalers_
+                    )
+                    self.dataset = dataset
                 id_col, time_col, target_col = (
                     self.id_col,
                     self.time_col,
@@ -2497,11 +2535,12 @@ class NeuralForecast:
             use_fitted (bool, optional): Evaluate the already-fitted model on `df` without retraining
                 (transfer-learning cross-validation). Requires a previous `fit` call, `refit=False`,
                 `use_init_models=False`, and `prediction_intervals=None`. Local scalers, if any, are
-                refit per series on `df` and the fitted state (model weights, stored dataset, scalers)
-                is restored after CV completes. Defaults to False.
+                refit on the history before the first forecast for each series. The fitted model,
+                dataset and scalers are restored after CV completes. Defaults to False.
             verbose (bool): Print processing steps.
             refit (bool or int): Retrain model for each cross validation window.
-                If False, the models are trained at the beginning and then used to predict each window.
+                If False, the models and local temporal scalers are fitted once using the history
+                before the first forecast, then reused for the remaining windows.
                 If positive int, the models are retrained every `refit` windows.
             id_col (str): Column that identifies each serie.
             time_col (str): Column that identifies each timestep, its values can be timestamps or integers. Defaults to 'ds'.
