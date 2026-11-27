@@ -265,6 +265,24 @@ def test_optuna_config_translates_input_size_multiplier(setup_module):
     assert y_hat.shape[0] > 0
 
 
+def test_ray_config_to_optuna_uses_suggest_float():
+    config = {
+        "learning_rate": tune.uniform(1e-4, 1e-1),
+        "weight_decay": tune.loguniform(1e-6, 1e-2),
+    }
+    trial = optuna.create_study().ask()
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        values = BaseAuto._ray_config_to_optuna(config)(trial)
+
+    assert 1e-4 <= values["learning_rate"] <= 1e-1
+    assert 1e-6 <= values["weight_decay"] <= 1e-2
+    dists = trial.distributions
+    FloatDistribution = optuna.distributions.FloatDistribution
+    assert dists["learning_rate"] == FloatDistribution(1e-4, 1e-1)
+    assert dists["weight_decay"] == FloatDistribution(1e-6, 1e-2, log=True)
+
+
 def test_ray_time_budget(setup_module):
     dataset, _, _ = setup_module
     config = {
