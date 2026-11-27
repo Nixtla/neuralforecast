@@ -305,8 +305,6 @@ def test_refit_stored_dataset_preserves_vocab():
 
 
 def test_use_fitted_cross_validation_preserves_vocab():
-    # use_fitted CV on a new df snapshots/restores state; the fitted vocabulary
-    # must survive the (reset+rebuild) that runs on the holdout df.
     df = _panel(cols=("dow",))
     model = _model(
         MLP,
@@ -318,7 +316,14 @@ def test_use_fitted_cross_validation_preserves_vocab():
     nf.fit(df)
     vocab_before = dict(nf.categorical_vocab_)
     holdout = _panel(cols=("dow",), n=30, seed=2)
-    nf.cross_validation(df=holdout, n_windows=2, h=6, refit=False, use_fitted=True)
+    # Only one known day remains and the other is out of vocabulary.
+    holdout["dow"] = np.where(holdout.ds % 2, "wed", "unseen")
+    expected = nf.predict(
+        df=holdout[holdout.ds < 24],
+        futr_df=holdout[holdout.ds >= 24].drop(columns="y"),
+    )
+    actual = nf.cross_validation(df=holdout, n_windows=1, use_fitted=True)
+    pd.testing.assert_frame_equal(actual[expected.columns], expected, atol=1e-6)
     assert nf.categorical_vocab_ == vocab_before
 
 
