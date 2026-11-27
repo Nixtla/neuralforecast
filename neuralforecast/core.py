@@ -2307,25 +2307,25 @@ class NeuralForecast:
             # Process and save new dataset in self
             if df is not None:
                 validate_freq(df[time_col], self.freq)
-                # Reset any stale vocabulary and build it from the training
-                # portion only.
-                self.categorical_vocab_ = {}
-                if self._has_categorical():
-                    _, train_only, _ = next(
-                        iter(
-                            ufp.backtest_splits(
-                                df,
-                                n_windows=1,
-                                h=test_size,
-                                id_col=id_col,
-                                time_col=time_col,
-                                freq=self.freq,
-                                step_size=test_size,
-                                input_size=None,
+                # Frozen embeddings need the same category indices used during fit.
+                if not use_fitted:
+                    self.categorical_vocab_ = {}
+                    if self._has_categorical():
+                        _, train_only, _ = next(
+                            iter(
+                                ufp.backtest_splits(
+                                    df,
+                                    n_windows=1,
+                                    h=test_size,
+                                    id_col=id_col,
+                                    time_col=time_col,
+                                    freq=self.freq,
+                                    step_size=test_size,
+                                    input_size=None,
+                                )
                             )
                         )
-                    )
-                    self._build_categorical_vocab(train_only, static_df)
+                        self._build_categorical_vocab(train_only, static_df)
                 self.dataset, self.uids, self.last_dates, self.ds = (
                     self._prepare_fit(
                         df=df,
