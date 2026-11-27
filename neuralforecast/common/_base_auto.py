@@ -473,9 +473,9 @@ class BaseAuto(pl.LightningModule):
                     ):
                         v = trial.suggest_categorical(k, v.categories)
                     elif isinstance(sampler, tune.search.sample.Uniform):
-                        v = trial.suggest_uniform(k, v.lower, v.upper)
+                        v = trial.suggest_float(k, v.lower, v.upper)
                     elif isinstance(sampler, tune.search.sample.LogUniform):
-                        v = trial.suggest_loguniform(k, v.lower, v.upper)
+                        v = trial.suggest_float(k, v.lower, v.upper, log=True)
                     elif isinstance(sampler, tune.search.sample.Quantized):
                         if isinstance(
                             sampler.get_sampler(), tune.search.sample.Float._LogUniform
