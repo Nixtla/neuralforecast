@@ -146,9 +146,11 @@ def test_decompose_real_model_matches_predict(model_cls):
     assert model.decompose_forecast is False
 
 
-def test_decompose_real_model_resets_flag_when_forward_fails(monkeypatch):
+@pytest.mark.parametrize("training", [True, False], ids=["train", "eval"])
+def test_decompose_real_model_resets_flag_when_forward_fails(monkeypatch, training):
     dataset = _air_passengers_dataset()
     model = _real_model(NHITS)
+    model.train(training)
 
     def boom(*args, **kwargs):
         raise RuntimeError("forward failed")
@@ -158,3 +160,4 @@ def test_decompose_real_model_resets_flag_when_forward_fails(monkeypatch):
         model.decompose(dataset=dataset)
 
     assert model.decompose_forecast is False
+    assert model.training is training
