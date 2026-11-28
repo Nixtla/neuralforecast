@@ -1,9 +1,11 @@
+import gc
 import os
 import platform
 import shutil
 import sys
 import tempfile
 import warnings
+import weakref
 from datetime import date
 from pathlib import Path
 from unittest.mock import patch
@@ -3005,6 +3007,35 @@ def test_loss_valid_loss_quantiles_mismatch_raises(loss, valid_loss):
     model = NHITS(h=12, input_size=24, loss=loss, valid_loss=valid_loss, max_steps=1)
     with pytest.raises(ValueError, match="quantiles.*do not match"):
         NeuralForecast(models=[model], freq="M")
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_predict_releases_dataset(setup_airplane_data, monkeypatch, fail):
+    train_df, _ = setup_airplane_data
+    model = NLinear(h=12, input_size=24, accelerator="cpu", logger=False)
+
+    if fail:
+
+        def fail_forward(*args, **kwargs):
+            raise RuntimeError("prediction interrupted")
+
+        monkeypatch.setattr(model, "forward", fail_forward)
+
+    def predict():
+        dataset, *_ = TimeSeriesDataset.from_df(train_df)
+        if fail:
+            with pytest.raises(RuntimeError, match="prediction interrupted"):
+                model.predict(dataset)
+        else:
+            predictions = model.predict(dataset)
+            assert predictions.size > 0
+            assert np.isfinite(predictions).all()
+        return weakref.ref(dataset)
+
+    dataset_ref = predict()
+    gc.collect()
+    assert dataset_ref() is None
+    assert model.trainer.predict_loop.predictions == []
 
 
 def test_trainer_caching(setup_airplane_data):
