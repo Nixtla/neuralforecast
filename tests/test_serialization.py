@@ -289,6 +289,40 @@ def test_updated_quantiles_are_saved_not_just_init_args():
     assert decoded.output_names == loss.output_names
 
 
+@pytest.mark.parametrize(
+    "loss_kwargs",
+    [{"level": [80]}, {"quantiles": [0.2, 0.8]}],
+    ids=["level", "quantiles"],
+)
+def test_predict_without_quantiles_keeps_trained_quantiles(tmp_path, loss_kwargs):
+    from neuralforecast import NeuralForecast
+    from neuralforecast.models import MLP
+    from neuralforecast.utils import AirPassengersPanel
+
+    df = AirPassengersPanel[["unique_id", "ds", "y"]]
+    model = MLP(
+        h=12,
+        input_size=24,
+        loss=DistributionLoss("Normal", **loss_kwargs),
+        max_steps=2,
+        accelerator="cpu",
+        enable_progress_bar=False,
+        logger=False,
+    )
+    nf = NeuralForecast(models=[model], freq="ME")
+    nf.fit(df)
+    before = nf.predict()
+    assert len(before.columns) > 3  # median plus the trained quantiles
+
+    nf.predict(quantiles=[0.1, 0.9])
+    pd.testing.assert_frame_equal(nf.predict(), before)
+
+    nf.predict(quantiles=[0.1, 0.9])
+    nf.save(str(tmp_path / "ckpt"), overwrite=True)
+    loaded = NeuralForecast.load(str(tmp_path / "ckpt"))
+    pd.testing.assert_frame_equal(loaded.predict(), before)
+
+
 def test_tensor_pointer_to_a_missing_payload_is_refused():
     with pytest.raises(SerializationError, match="missing from the payload"):
         decode_value({TAG: "tensor", "key": "__hparams__.gone", "kind": "torch"}, {})

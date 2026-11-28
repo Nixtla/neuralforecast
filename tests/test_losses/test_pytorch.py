@@ -16,6 +16,7 @@ from neuralforecast.losses.pytorch import (
     RMSE,
     SMAPE,
     DistributionLoss,
+    GMM,
     FreDF,
     HuberMQLoss,
     HuberIQLoss,
@@ -58,6 +59,28 @@ def test_IQLoss_default_and_update_quantile():
 def test_DistributionLoss_level():
     check = DistributionLoss(distribution="Normal", level=[80, 90])
     assert len(check.quantiles), 5
+
+@pytest.mark.parametrize(
+    "loss",
+    [
+        DistributionLoss("Normal", level=[80]),
+        DistributionLoss("Normal", quantiles=[0.2, 0.8]),
+        PMM(level=[80]),
+        GMM(level=[80]),
+        NBMM(level=[80]),
+    ],
+    ids=["DistributionLoss-level", "DistributionLoss-quantiles", "PMM", "GMM", "NBMM"],
+)
+def test_update_quantile_none_restores_constructor_quantiles(loss):
+    quantiles = loss.quantiles.detach().clone()
+    output_names = list(loss.output_names)
+
+    loss.update_quantile(q=[0.1, 0.9])
+    assert loss.output_names != output_names
+
+    loss.update_quantile(q=None)
+    assert torch.equal(loss.quantiles, quantiles)
+    assert loss.output_names == output_names
 
 
 def test_DistributionLoss_quantiles():
