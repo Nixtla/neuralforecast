@@ -1761,28 +1761,31 @@ def test_val_df_parameter_validation(setup_airplane_data):
         nf.fit(AirPassengersPanel_train, val_size=12, val_df=val_df)
 
 
-def test_val_df_equivalence_with_val_size(setup_airplane_data):
+@pytest.mark.parametrize("with_mask", [False, True], ids=["no_mask", "masked_val"])
+def test_val_df_equivalence_with_val_size(setup_airplane_data, with_mask):
     # Splitting off the last 12 rows per series as val_df and passing them
     # explicitly must produce the same valid_trajectories as using val_size=12
     # on the full training DataFrame (same combined dataset, same random seed).
     AirPassengersPanel_train, _ = setup_airplane_data
     val_size = 12
 
-    train_df = (
-        AirPassengersPanel_train.groupby("unique_id", observed=True)
-        .apply(lambda x: x.iloc[:-val_size])
-        .reset_index(drop=True)
-    )
-    val_df = (
-        AirPassengersPanel_train.groupby("unique_id", observed=True)
-        .tail(val_size)
-        .reset_index(drop=True)
-    )
+    df = AirPassengersPanel_train.copy()
+    # position from the end of each series, 0 being the last row
+    pos = df.groupby("unique_id", observed=True).cumcount(ascending=False)
+    is_val = pos < val_size
+    if with_mask:
+        # mask every other validation point: masked points must be ignored by
+        # the validation loss with both val_size and val_df, while the losses
+        # stay non-trivial (masking all of them would make them 0)
+        df["available_mask"] = np.where(is_val & (pos % 2 == 0), 0.0, 1.0)
+
+    train_df = df[~is_val].reset_index(drop=True)
+    val_df = df[is_val].reset_index(drop=True)
 
     model_kwargs = dict(h=12, input_size=24, max_steps=10, random_seed=42)
 
     nf_val_size = NeuralForecast(models=[NHITS(**model_kwargs)], freq="M")
-    nf_val_size.fit(AirPassengersPanel_train, val_size=val_size)
+    nf_val_size.fit(df, val_size=val_size)
 
     nf_val_df = NeuralForecast(models=[NHITS(**model_kwargs)], freq="M")
     nf_val_df.fit(train_df, val_df=val_df)
