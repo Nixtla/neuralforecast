@@ -35,7 +35,7 @@ from neuralforecast._serialization import (
     load_tensors,
     save_tensors,
 )
-from neuralforecast.common.enums import ExplainerEnum
+from neuralforecast.common.enums import ALL_EXPLAINERS, ExplainerEnum
 from neuralforecast.models import (
     GRU,
     KAN,
@@ -2074,8 +2074,8 @@ class NeuralForecast:
             )
         if not hasattr(captum.attr, explainer):
             raise ValueError(f"Explainer {explainer} is not available in captum.")
-        if explainer not in ExplainerEnum.AllExplainers:
-            all_explainers = ", ".join(ExplainerEnum.AllExplainers)
+        if explainer not in ALL_EXPLAINERS:
+            all_explainers = ", ".join(ALL_EXPLAINERS)
             raise ValueError(
                 f"Explainer {explainer} is not supported. Supported explainers are: {all_explainers}."
             )
@@ -2149,7 +2149,7 @@ class NeuralForecast:
             error_msg = "No models support explanations with the current configuration. "
             if any(model.RECURRENT for model in self.models) and explainer == ExplainerEnum.IntegratedGradients:
                 error_msg += (
-                    f"{ExplainerEnum.IntegratedGradients} is not compatible with recurrent models. "
+                    f"{ExplainerEnum.IntegratedGradients.value} is not compatible with recurrent models. "
                     "Either set recurrent=False or use a different explainer. "
                 )
             error_msg += (
